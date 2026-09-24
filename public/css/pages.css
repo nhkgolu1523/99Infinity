@@ -1,0 +1,467 @@
+/* ==========================================================================
+   pages.css — page-level composition
+   ========================================================================== */
+
+/* ==========================================================================
+   HOME
+   ========================================================================== */
+.pchome {
+  padding: 0 0.32rem 3.46667rem;
+}
+
+.pchome .swiper_box {
+  margin-top: 0.26667rem;
+  padding: 0;
+}
+
+/* ==========================================================================
+   MESSAGES / NOTIFICATIONS
+   ========================================================================== */
+.messages__container {
+  padding: 0.32rem;
+  padding-top: calc(var(--navbar-h) + 0.32rem);
+  min-height: 100vh;
+}
+
+.messages__container .navbar__content-right {
+  display: flex;
+  align-items: center;
+  color: var(--text_color_L2);
+}
+
+.messages__container .navbar__content-right span {
+  color: var(--text_color_L2);
+  font-size: 0.32rem;
+}
+
+/* ==========================================================================
+   AUTH PAGES (login / register)
+   ========================================================================== */
+.auth {
+  min-height: 100vh;
+  padding: calc(var(--navbar-h) + 0.53333rem) 0.53333rem 0.64rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.21333rem;
+  margin-bottom: 0.64rem;
+}
+
+.auth__logo {
+  width: 3.2rem;
+  height: auto;
+  object-fit: contain;
+}
+
+.auth__tagline {
+  color: var(--text_color_L3);
+  font-size: 0.32rem;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.auth__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.21333rem;
+}
+
+.auth__submit {
+  margin-top: 0.21333rem;
+}
+
+.auth__alt {
+  margin-top: auto;
+  padding-top: 0.64rem;
+  text-align: center;
+  color: var(--text_color_L3);
+  font-size: 0.32rem;
+}
+
+.auth__alt a {
+  color: var(--main-color);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   ACTIVITY / PROMOTION
+   ========================================================================== */
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.21333rem;
+}
+
+.activity-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg_color_L2);
+  border: 0.01333rem solid var(--card_border_color);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.activity-card:active { transform: scale(0.97); }
+
+.activity-card__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  background: linear-gradient(160deg, #0b3f38, #143033);
+  overflow: hidden;
+}
+
+.activity-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.activity-card__body {
+  padding: 0.26667rem;
+}
+
+.activity-card__title {
+  color: var(--text_color_L1);
+  font-size: 0.34667rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.activity-card__desc {
+  margin-top: 0.10667rem;
+  color: var(--text_color_L3);
+  font-size: 0.26667rem;
+  line-height: 1.35;
+}
+
+.activity-card__badge {
+  position: absolute;
+  top: 0.16rem;
+  left: 0.16rem;
+  padding: 0.05333rem 0.16rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #f3d41d, #e39024);
+  color: var(--text_color_L4);
+  font-size: 0.24rem;
+  font-weight: 700;
+}
+
+/* promotion banner list */
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.promo-item {
+  display: flex;
+  gap: 0.26667rem;
+  padding: 0.32rem;
+  border-radius: var(--radius-md);
+  background: var(--bg_color_L2);
+  border: 0.01333rem solid var(--card_border_color);
+  cursor: pointer;
+}
+
+.promo-item__icon {
+  flex: none;
+  width: 1.28rem;
+  height: 1.28rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: linear-gradient(160deg, #0b3f38, #143033);
+}
+
+.promo-item__title {
+  color: var(--text_color_L1);
+  font-size: 0.37333rem;
+  font-weight: 600;
+}
+
+.promo-item__desc {
+  margin-top: 0.10667rem;
+  color: var(--text_color_L3);
+  font-size: 0.29333rem;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   ACCOUNT
+   ========================================================================== */
+.account-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.42667rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #0b3f38 0%, #123a3c 55%, #1b2f36 100%);
+  border: 0.01333rem solid var(--card_border_color);
+}
+
+.account-hero__avatar {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 0.05333rem solid rgba(32, 211, 116, 0.5);
+}
+
+.account-hero__name {
+  color: var(--text_color_L1);
+  font-size: 0.42667rem;
+  font-weight: 700;
+}
+
+.account-hero__id {
+  margin-top: 0.08rem;
+  color: var(--text_color_L3);
+  font-size: 0.29333rem;
+}
+
+.account-hero__balance {
+  margin-top: 0.16rem;
+  color: var(--norm_secondary-color);
+  font-size: 0.48rem;
+  font-weight: 700;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.21333rem;
+  margin-top: 0.32rem;
+}
+
+.account-actions .btn-primary,
+.account-actions .btn-gold {
+  height: 0.96rem;
+  font-size: 0.34667rem;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.10667rem;
+  margin-top: 0.32rem;
+  padding: 0.32rem 0.16rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg_color_L2);
+}
+
+.account-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.13333rem;
+  padding: 0.16rem 0;
+  color: var(--text_color_L2);
+  font-size: 0.26667rem;
+  text-align: center;
+}
+
+.account-grid__item .icon {
+  width: 0.64rem;
+  height: 0.64rem;
+  color: var(--main-color);
+}
+
+.account-menu {
+  margin-top: 0.32rem;
+  padding: 0 0.32rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg_color_L2);
+}
+
+/* ==========================================================================
+   GAMES
+   ========================================================================== */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.21333rem;
+  margin-top: 0.32rem;
+}
+
+.games-grid__item {
+  position: relative;
+  aspect-ratio: 222 / 300;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg_color_L2);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.games-grid__item:active { transform: scale(0.96); }
+
+.games-grid__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.games-grid__empty {
+  grid-column: 1 / -1;
+}
+
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 0.16rem;
+  height: 0.96rem;
+  padding: 0 0.32rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg_color_L2);
+  margin-top: 0.32rem;
+}
+
+.searchbar .icon {
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  color: var(--text_color_L3);
+}
+
+.searchbar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text_color_L1);
+  font-size: 0.32rem;
+}
+
+/* ==========================================================================
+   SUPPORT
+   ========================================================================== */
+.support-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.26667rem;
+  margin-top: 0.32rem;
+}
+
+.support-card {
+  display: flex;
+  align-items: center;
+  gap: 0.26667rem;
+  padding: 0.34667rem 0.32rem;
+  border-radius: var(--radius-md);
+  background: var(--bg_color_L2);
+  border: 0.01333rem solid var(--card_border_color);
+  cursor: pointer;
+}
+
+.support-card__icon {
+  flex: none;
+  width: 0.96rem;
+  height: 0.96rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--iconSecondary);
+  color: var(--main-color);
+}
+
+.support-card__icon .icon { width: 0.48rem; height: 0.48rem; }
+
+.support-card__title {
+  color: var(--text_color_L1);
+  font-size: 0.37333rem;
+  font-weight: 600;
+}
+
+.support-card__desc {
+  margin-top: 0.05333rem;
+  color: var(--text_color_L3);
+  font-size: 0.29333rem;
+}
+
+/* ==========================================================================
+   FAQ / RULES
+   ========================================================================== */
+.faq-item {
+  border-bottom: 0.01333rem solid rgba(255, 255, 255, 0.06);
+}
+
+.faq-item:last-child { border-bottom: 0; }
+
+.faq-item__q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.21333rem;
+  padding: 0.32rem 0;
+  color: var(--text_color_L1);
+  font-size: 0.34667rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.faq-item__q .icon {
+  flex: none;
+  width: 0.32rem;
+  height: 0.32rem;
+  color: var(--text_color_L3);
+  transition: transform var(--dur-fast) ease;
+}
+
+.faq-item.is-open .faq-item__q .icon { transform: rotate(90deg); }
+
+.faq-item__a {
+  display: none;
+  padding-bottom: 0.32rem;
+  color: var(--text_color_L2);
+  font-size: 0.32rem;
+  line-height: 1.55;
+}
+
+.faq-item.is-open .faq-item__a { display: block; }
+
+/* ==========================================================================
+   404
+   ========================================================================== */
+.notfound {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  padding: 0.64rem;
+  text-align: center;
+}
+
+.notfound__code {
+  font-family: var(--font-num);
+  font-size: 2.13333rem;
+  font-weight: 700;
+  background: var(--main_gradient-color);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.notfound__text {
+  color: var(--text_color_L3);
+  font-size: 0.34667rem;
+}
+
+.notfound .btn-primary { max-width: 4rem; }

@@ -1,0 +1,509 @@
+/* ==========================================================================
+   base.css — design tokens, reset, app frame, typography, utilities
+   Veer.Game H5 — rebuilt from scratch
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. DESIGN TOKENS  (all colours / gradients / radii live here — edit once)
+   -------------------------------------------------------------------------- */
+:root {
+  /* brand */
+  --main-color: #20d374;
+  --main_gradient-color: linear-gradient(130deg, #c5bc0c 0%, #94b20b 33%, #20d374 66%, #0cbac5 100%);
+  --main_gradient-color2: linear-gradient(180deg, #0cc551 0%, #088538 100%);
+  --light-main_gradient-color: var(--main_gradient-color);
+  --main_gradient-color_soft: linear-gradient(180deg, rgba(32, 34, 36, 0.2) -9.09%, rgba(43, 45, 50, 0.2) 100%);
+
+  /* text */
+  --text_white: #fff;
+  --text_color_L1: #ffffff;
+  --text_color_L2: #d7d7d7;
+  --text_color_L3: #93939d;
+  --text_color_L4: #1a1a2c;
+
+  /* surfaces */
+  --bg_color_L1: #111217;
+  --bg_color_L2: #25272a;
+  --bg_color_L3: #05012b;
+  --card_bg_color: rgba(3, 59, 59, 0.2);
+  --card_border_color: #0b4846;
+  --Dividing-line_color: #374963;
+  --sheet_nva_color: #20d374;
+  --sheet_detail_bg_color: #374963;
+  --pop_bg-color: linear-gradient(180deg, #13bf77 13.44%, #4ccc77 86.56%);
+
+  /* accents */
+  --norm_red-color: #fb5b5b;
+  --norm_green-color: #18b660;
+  --norm_secondary-color: #feaa57;
+  --norm_Purple-color: #c86eff;
+  --norm_bule-color: #6ea8f4;
+  --Secondary_red_color: #fd565c;
+  --Secondary_green_color: #40ad72;
+  --Secondary_Color1: #ffebec;
+  --Secondary_Color2: #daffeb;
+  --Secondary_moto_Color9: #1a8257;
+  --Secondary_moto_Color8: #dbfff0;
+  --button_dis_color: linear-gradient(90deg, #898a91 15.38%, #57585d 98.73%);
+  --icon2: rgba(7, 221, 209, 0.3);
+  --iconSecondary: rgba(24, 182, 96, 0.3);
+  --tab1: #21d9cc;
+  --tab2: #3baf4c;
+
+  /* navbar gradients */
+  --navbar_gradient_home: linear-gradient(180deg, #202224, #2b2d32);
+  --navbar_gradient_main: linear-gradient(180deg, #062220, #0a3a38 91.84%);
+
+  /* radii */
+  --radius-xs: 0.10667rem;
+  --radius-sm: 0.16rem;
+  --radius-md: 0.21333rem;
+  --radius-lg: 0.26667rem;
+  --radius-pill: 13.32rem;
+
+  /* spacing */
+  --page-pad: 0.34667rem;
+  --navbar-h: 1.22667rem;
+  --tabbar-h: 2rem;
+
+  /* layout */
+  --page-bg: #9195a3;
+  --app-max-rem: 10rem;
+
+  /* motion */
+  --dur-base: 0.3s;
+  --dur-fast: 0.2s;
+  --ease-out: ease-out;
+  --ease-in: ease-in;
+
+  /* fonts */
+  --font-base: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, 'Segoe UI', Arial, Roboto,
+    'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
+  --font-num: bahnschrift, var(--font-base);
+  --font-display: digitalDreamFat, var(--font-base);
+}
+
+/* --------------------------------------------------------------------------
+   2. RESET
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* font-size is set at runtime by js/app.js (viewport / 10) */
+  font-size: 54px;
+}
+
+html.landscape {
+  font-size: 9vh !important;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  background-color: var(--page-bg);
+  font-family: var(--font-base);
+  color: var(--text_color_L1);
+  font-size: 0.32rem;
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  border: 0;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+input,
+button,
+textarea,
+select {
+  color: inherit;
+  font: inherit;
+  margin: 0;
+}
+
+button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text_color_L3);
+}
+
+a:focus,
+input:focus,
+button:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. APP FRAME
+   -------------------------------------------------------------------------- */
+#app {
+  width: var(--app-max-rem);
+  min-height: 100vh;
+  height: fit-content;
+  position: relative;
+  background-color: var(--bg_color_L1);
+  overflow-x: hidden;
+}
+
+@media screen and (max-width: 500px) {
+  #app {
+    width: 100%;
+    min-height: 100vh;
+  }
+  #app::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+}
+
+/* page content wrapper (below fixed navbar, above tabbar) */
+.page {
+  padding: var(--page-pad);
+  padding-top: calc(var(--navbar-h) + 0.26667rem);
+  padding-bottom: calc(var(--tabbar-h) + 0.64rem);
+  min-height: 100vh;
+  position: relative;
+}
+
+.page--no-tabbar {
+  padding-bottom: 0.64rem;
+}
+
+.page--plain {
+  padding: var(--page-pad);
+  padding-top: calc(var(--navbar-h) + 0.26667rem);
+  min-height: 100vh;
+}
+
+.page__bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 60% at 50% 0%, #0d3a33 0%, var(--bg_color_L1) 60%);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   4. TYPOGRAPHY HELPERS
+   -------------------------------------------------------------------------- */
+.t-xs { font-size: 0.24rem; }
+.t-sm { font-size: 0.26667rem; }
+.t-md { font-size: 0.32rem; }
+.t-lg { font-size: 0.34667rem; }
+.t-xl { font-size: 0.4rem; }
+.t-2xl { font-size: 0.48rem; }
+
+.fw-5 { font-weight: 500; }
+.fw-6 { font-weight: 600; }
+.fw-7 { font-weight: 700; }
+
+.c-l1 { color: var(--text_color_L1); }
+.c-l2 { color: var(--text_color_L2); }
+.c-l3 { color: var(--text_color_L3); }
+.c-main { color: var(--main-color); }
+.c-secondary { color: var(--norm_secondary-color); }
+.c-red { color: var(--norm_red-color); }
+.c-green { color: var(--norm_green-color); }
+
+.cap { text-transform: capitalize; }
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.num {
+  font-family: var(--font-num);
+  letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   5. LAYOUT UTILITIES
+   -------------------------------------------------------------------------- */
+.row { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.row-center { display: flex; align-items: center; justify-content: center; }
+.col { display: flex; flex-direction: column; }
+.grow { flex: 1; min-width: 0; }
+.gap-4 { gap: 0.10667rem; }
+.gap-6 { gap: 0.16rem; }
+.gap-8 { gap: 0.21333rem; }
+.mt-8 { margin-top: 0.21333rem; }
+.mt-12 { margin-top: 0.32rem; }
+.mt-16 { margin-top: 0.42667rem; }
+.mt-20 { margin-top: 0.53333rem; }
+.mt-24 { margin-top: 0.64rem; }
+.mb-12 { margin-bottom: 0.32rem; }
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   6. SHARED ANIMATIONS
+   -------------------------------------------------------------------------- */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideUpIn {
+  from { transform: translate3d(0, 100%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes slideUpOut {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, 100%, 0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.08rem); }
+}
+
+.anim-fade-in { animation: fadeIn var(--dur-base) var(--ease-out) both; }
+.anim-slide-up { animation: slideUpIn var(--dur-base) var(--ease-out) both; }
+.anim-pulse { animation: pulse 1.6s ease-in-out infinite; }
+.anim-float { animation: floatY 2.4s ease-in-out infinite; }
+
+/* --------------------------------------------------------------------------
+   7. LOADING / SKELETON (matches reference loading view)
+   -------------------------------------------------------------------------- */
+.ar-loading-view {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.ar-loading-view.is-active { display: block; }
+
+.ar-loading-view .loading-wrapper {
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+.com__box {
+  position: relative;
+  width: 2.66667rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading {
+  width: 1.6rem;
+  height: 1.6rem;
+  position: relative;
+  transform: rotate(45deg);
+  animation: animationContainer 1s ease infinite;
+}
+
+.loading .shape {
+  width: 0.66667rem;
+  height: 0.66667rem;
+  border-radius: 50%;
+  position: absolute;
+}
+
+.loading .shape-1 { background-color: #0c67d7; left: 0; animation: animationShape1 0.3s ease infinite alternate; }
+.loading .shape-2 { background-color: #cd371c; right: 0; animation: animationShape2 0.3s ease infinite 0.3s alternate; }
+.loading .shape-3 { background-color: #2c9d3f; bottom: 0; animation: animationShape3 0.3s ease infinite 0.3s alternate; }
+.loading .shape-4 { background-color: #eca712; right: 0; bottom: 0; animation: animationShape4 0.3s ease infinite alternate; }
+
+@keyframes animationContainer {
+  0% { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+@keyframes animationShape1 {
+  0% { transform: translate(0.13333rem, 0.13333rem); }
+  to { transform: translate(-0.08rem, -0.08rem); }
+}
+@keyframes animationShape2 {
+  0% { transform: translate(-0.13333rem, 0.13333rem); }
+  to { transform: translate(0.08rem, -0.08rem); }
+}
+@keyframes animationShape3 {
+  0% { transform: translate(0.13333rem, -0.13333rem); }
+  to { transform: translate(-0.08rem, 0.08rem); }
+}
+@keyframes animationShape4 {
+  0% { transform: translate(-0.13333rem, -0.13333rem); }
+  to { transform: translate(0.08rem, 0.08rem); }
+}
+
+.skeleton-wrapper { padding: 0.26667rem 0.13333rem; }
+
+.skeleton {
+  margin-bottom: 0.4rem;
+  animation: skeletonFade 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonFade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+
+.skeleton__title {
+  height: 0.37333rem;
+  width: 40%;
+  border-radius: 0.10667rem;
+  background: var(--bg_color_L2);
+  margin-bottom: 0.21333rem;
+}
+
+.skeleton__line {
+  height: 0.26667rem;
+  border-radius: 0.10667rem;
+  background: var(--bg_color_L2);
+  margin-bottom: 0.16rem;
+}
+
+.skeleton__avatar {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--bg_color_L2);
+}
+
+/* --------------------------------------------------------------------------
+   8. SCROLLBAR / LAZY
+   -------------------------------------------------------------------------- */
+.scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar { display: none; }
+
+img[data-lazy] { opacity: 0; transition: opacity 0.35s ease; }
+img[data-lazy].is-loaded { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
