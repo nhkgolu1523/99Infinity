@@ -1,53 +1,68 @@
 import { site } from '../data'
-import { NavbarInner, CustomerBubble } from '../components/layout'
+import { NavbarInner } from '../components/layout'
+import { SUPPORT_CHANNELS, SUPPORT_FAQS } from '../components/dialogs'
 import { Icon } from '../components/icons'
 
 /* ==========================================================================
-   GAMES  (full catalogue with search + category filter)
+   GAMES  (gm-* — gold theme catalogue with search + provider filter)
    ========================================================================== */
 export function GamesPage() {
-  const all: { src: string; cat: string }[] = []
+  const all: { src: string; cat: string; label: string }[] = []
   for (const [prov, list] of Object.entries(site.games as Record<string, string[]>)) {
-    for (const src of list) all.push({ src, cat: prov })
+    for (const src of list) {
+      const label =
+        src
+          .split('/')
+          .pop()!
+          .replace(/\.[^.]+$/, '')
+          .replace(/[_-]+/g, ' ')
+          .replace(/[0-9a-f]{14,}$/i, '')
+          .trim() || 'Game'
+      all.push({ src, cat: prov, label })
+    }
   }
 
   const cats = Object.keys(site.games as Record<string, string[]>)
 
   return (
-    <>
-      <NavbarInner title="Games" back="/" />
+    <div class="gm-page">
+      <header class="ac-header">
+        <a class="ac-header__btn" href="/" aria-label="Back">
+          <Icon name="chevron-left" size="0.33rem" />
+        </a>
+        <span class="ac-header__title">Games</span>
+      </header>
 
-      <main class="page page--no-tabbar">
-        <div class="searchbar">
-          <Icon name="search" />
+      <main class="gm-content">
+        <div class="gm-search">
+          <Icon name="search" size="0.384rem" class="gm-search__icon" />
           <input type="search" placeholder="Search games" data-game-search aria-label="Search games" />
         </div>
 
-        <div class="tabs-line mt-12" data-tabs="games">
-          <div class="tabs-line__item active" data-tab="all">All</div>
+        <div class="gm-tabs" data-tabs="games">
+          <div class="gm-tab active" data-tab="all">All</div>
           {cats.map((c) => (
-            <div class="tabs-line__item" data-tab={c}>
+            <div class="gm-tab" data-tab={c}>
               {c.replace(/_/g, ' ').toUpperCase()}
             </div>
           ))}
         </div>
 
-        <div class="games-grid" data-games-grid>
+        <div class="gm-grid" data-games-grid>
           {all.map((g) => (
-            <a class="games-grid__item" href="/games" data-game data-cat={g.cat} data-name={g.src}>
-              <img src={g.src} alt="" loading="lazy" />
+            <a class="gm-card" href="/games" data-game data-cat={g.cat} data-name={g.src}>
+              <img src={g.src} alt={g.label} loading="lazy" />
+              <span class="gm-card__title">{g.label}</span>
             </a>
           ))}
         </div>
 
-        <div class="empty hidden" data-games-empty>
-          <Icon name="search" size="2.13333rem" />
+        <div class="gm-empty hidden" data-games-empty>
+          <Icon name="search" size="0.864rem" />
           <span>No games matched your search.</span>
         </div>
       </main>
-
-      <CustomerBubble />
-    </>
+    </div>
   )
 }
 
@@ -55,72 +70,51 @@ export function GamesPage() {
    SUPPORT
    ========================================================================== */
 export function SupportPage() {
-  const channels = [
-    { icon: 'headset', title: 'Live chat', desc: 'Average reply under 2 minutes', href: '/support' },
-    { icon: 'mail', title: 'Email support', desc: 'support@veergame.example', href: '/support' },
-    { icon: 'ticket', title: 'Telegram channel', desc: 'Announcements and bonus codes', href: '/promotion' },
-    { icon: 'phone', title: 'WhatsApp', desc: 'Chat with us directly', href: '/support' },
-  ]
+  const channels = SUPPORT_CHANNELS
 
-  const faqs = [
-    {
-      q: 'How do I create an account?',
-      a: 'Tap Register in the top bar, enter your phone number and a password, then confirm. Registration takes less than a minute.',
-    },
-    {
-      q: 'How long do withdrawals take?',
-      a: 'Most withdrawals are processed within 1–30 minutes. Bank transfers may take longer on weekends.',
-    },
-    {
-      q: 'Is my data safe?',
-      a: 'Yes. All traffic is encrypted and your password is stored using one-way hashing. We never share your data with third parties.',
-    },
-    {
-      q: 'What is the minimum deposit?',
-      a: 'The minimum deposit is ₹100. There is no maximum limit on most payment methods.',
-    },
-  ]
+  const faqs = SUPPORT_FAQS
 
   return (
-    <>
-      <NavbarInner title="Customer service" back="/" />
+    <div class="cs-page">
+      <header class="cs-header">
+        <a class="cs-header__back" href="/" data-back aria-label="Back">
+          <Icon name="chevron-left" size="0.48rem" />
+        </a>
+        <h1 class="cs-header__title">Customer service</h1>
+      </header>
 
-      <main class="page page--no-tabbar">
-        <div class="support-list" style="margin-top:0">
-          {channels.map((c) => (
-            <a class="support-card" href={c.href}>
-              <span class="support-card__icon">
-                <Icon name={c.icon} />
-              </span>
-              <span class="grow">
-                <span class="support-card__title" style="display:block">
-                  {c.title}
-                </span>
-                <span class="support-card__desc" style="display:block">
-                  {c.desc}
-                </span>
-              </span>
-              <Icon name="chevron-right" size="0.32rem" class="c-l3" />
-            </a>
-          ))}
-        </div>
+      <main class="cs-content">
+        {channels.map((c) => (
+          <a class="cs-card" href={c.href}>
+            <span class="cs-card__icon">
+              <Icon name={c.icon} size="0.4rem" />
+            </span>
+            <span class="cs-card__body">
+              <span class="cs-card__title">{c.title}</span>
+              <span class="cs-card__desc">{c.desc}</span>
+            </span>
+            <Icon name="chevron-right" size="0.28rem" class="cs-card__arrow" />
+          </a>
+        ))}
 
-        <section class="panel mt-12">
-          <div class="panel__title">Frequently asked questions</div>
-          {faqs.map((f, i) => (
-            <div class={`faq-item${i === 0 ? ' is-open' : ''}`}>
-              <div class="faq-item__q">
-                {f.q}
-                <Icon name="chevron-right" size="0.32rem" />
+        <section class="cs-faq">
+          <h2 class="cs-faq__heading">Frequently asked questions</h2>
+          <div class="cs-faq__list">
+            {faqs.map((f) => (
+              <div class="cs-faq__item">
+                <div class="cs-faq__q">
+                  <span>{f.q}</span>
+                  <Icon name="chevron-right" size="0.28rem" class="cs-faq__arrow" />
+                </div>
+                <div class="cs-faq__a">
+                  <p>{f.a}</p>
+                </div>
               </div>
-              <div class="faq-item__a">{f.a}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </section>
       </main>
-
-      <CustomerBubble />
-    </>
+    </div>
   )
 }
 

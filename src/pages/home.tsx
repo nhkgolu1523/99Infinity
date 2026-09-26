@@ -1,5 +1,5 @@
 import { site } from '../data'
-import { NavbarHome, FloatButtons, CustomerBubble, SiteFooter } from '../components/layout'
+import { NavbarHome, SiteFooter } from '../components/layout'
 import {
   BannerSwiper,
   NoticeBar,
@@ -28,8 +28,6 @@ export function HomePage() {
         <SiteFooter />
       </main>
 
-      <FloatButtons />
-      <CustomerBubble />
     </>
   )
 }

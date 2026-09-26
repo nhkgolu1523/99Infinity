@@ -36,11 +36,6 @@ export function NavbarHome({ loggedIn = false }: { loggedIn?: boolean }) {
                   <a class="btn login" href="/login">Log in</a>
                 </>
               )}
-
-              <button class="lang" type="button" data-lang-toggle aria-label="Change language">
-                <img src={site.brand.flag} alt="" />
-                <span>{site.brand.lang}</span>
-              </button>
             </div>
           </div>
         </div>
@@ -75,33 +70,6 @@ export function NavbarInner({
         </div>
       </div>
     </header>
-  )
-}
-
-/* ==========================================================================
-   FLOATING ENTRIES + CUSTOMER BUBBLE
-   ========================================================================== */
-export function FloatButtons() {
-  return (
-    <div class="float" id="floatStack">
-      {site.floats.map((f) => (
-        <a
-          class={`float-entry ${f.key}`}
-          href={f.href}
-          aria-label={f.label}
-          title={f.label}
-          data-float={f.key}
-        ></a>
-      ))}
-    </div>
-  )
-}
-
-export function CustomerBubble() {
-  return (
-    <a class="customer" id="customerBubble" href="/support" aria-label="Customer service">
-      <img src="/assets/img/ui/service.png" alt="Customer service" />
-    </a>
   )
 }
 

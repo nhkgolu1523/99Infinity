@@ -59,6 +59,48 @@ export function LoginAlertDialog() {
   )
 }
 
+/** Logout confirmation modal — dark-red theme matching the Account redesign. */
+export function LogoutDialog() {
+  return (
+    <div
+      class="dialog-host dialog-host--center"
+      id="logout"
+      data-dialog="logout"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="logoutTitle"
+    >
+      <div class="dialog-host__overlay" data-dialog-close></div>
+      <div class="dialog-host__content">
+        <div class="ac-modal">
+          <div class="ac-modal__icon">
+            <Icon name="fa-logout" size="0.55rem" />
+          </div>
+          <h3 class="ac-modal__title" id="logoutTitle">
+            Log out
+          </h3>
+          <p class="ac-modal__text">
+            Are you sure you want to log out? You will need to log in again to access your account.
+          </p>
+          <div class="ac-modal__buttons">
+            <button class="ac-modal__btn ac-modal__btn--no" type="button" data-dialog-close>
+              No
+            </button>
+            <button
+              class="ac-modal__btn ac-modal__btn--yes"
+              type="button"
+              data-dialog-close
+              data-toast="You have been logged out successfully!"
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Centred dialog used for generic notices / confirms. */
 export function NoticeDialog({
   id,
@@ -96,43 +138,32 @@ export function NoticeDialog({
   )
 }
 
-/** Bottom sheet listing quick actions — used by the centre tabbar button. */
-export function QuickActionsSheet() {
-  const actions = [
-    { icon: 'gift', label: 'Daily Bonus', desc: 'Claim your free daily reward', href: '/activity' },
-    { icon: 'trophy', label: 'Super Jackpot', desc: 'Win extra rewards on top', href: '/activity' },
-    { icon: 'ticket', label: 'Promotions', desc: 'All active bonuses & events', href: '/promotion' },
-    { icon: 'wallet', label: 'Deposit', desc: 'Add funds to your wallet', href: '/account' },
-  ]
+/**
+ * Shared support content — shown on the /support page (opened from the
+ * customer-service bubble and the Settings / Account "Customer service" rows).
+ */
+export const SUPPORT_CHANNELS = [
+  { icon: 'fa-headset', title: 'Live chat', desc: 'Average reply under 2 minutes', href: '/support' },
+  { icon: 'fa-envelope', title: 'Email support', desc: 'support@99infinity.example', href: '/support' },
+  { icon: 'fa-telegram', title: 'Telegram channel', desc: 'Announcements and bonus codes', href: '/promotion' },
+  { icon: 'fa-whatsapp', title: 'WhatsApp', desc: 'Chat with us directly', href: '/support' },
+]
 
-  return (
-    <div class="dialog-host dialog-host--bottom" id="quickActionsSheet" data-dialog="quick-actions" role="dialog" aria-modal="true">
-      <div class="dialog-host__overlay" data-dialog-close></div>
-      <div class="dialog-host__content">
-        <div class="sheet">
-          <div class="sheet__handle"></div>
-          <div class="sheet__title">Get ₹500</div>
-
-          <div class="support-list" style="margin-top:0">
-            {actions.map((a) => (
-              <a class="support-card" href={a.href}>
-                <span class="support-card__icon">
-                  <Icon name={a.icon} />
-                </span>
-                <span class="grow">
-                  <span class="support-card__title" style="display:block">
-                    {a.label}
-                  </span>
-                  <span class="support-card__desc" style="display:block">
-                    {a.desc}
-                  </span>
-                </span>
-                <Icon name="chevron-right" size="0.32rem" class="c-l3" />
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+export const SUPPORT_FAQS = [
+  {
+    q: 'How do I create an account?',
+    a: 'Tap Register in the top bar, enter your phone number and a password, then confirm. Registration takes less than a minute.',
+  },
+  {
+    q: 'How long do withdrawals take?',
+    a: 'Most withdrawals are processed within 1–30 minutes. Bank transfers may take longer on weekends.',
+  },
+  {
+    q: 'Is my data safe?',
+    a: 'Yes. All traffic is encrypted and your password is stored using one-way hashing. We never share your data with third parties.',
+  },
+  {
+    q: 'What is the minimum deposit?',
+    a: 'The minimum deposit is ₹100. There is no maximum limit on most payment methods.',
+  },
+]

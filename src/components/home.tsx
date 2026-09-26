@@ -7,7 +7,7 @@ import { Icon } from './icons'
 export function BannerSwiper() {
   return (
     <section class="swiper_box" aria-label="Promotions" aria-roledescription="carousel">
-      <div class="banner-swiper" data-swiper="banner" data-autoplay="4500" data-loop="true">
+      <div class="banner-swiper" data-swiper="banner" data-autoplay="3000" data-loop="true">
         <div class="swiper-wrapper">
           {site.banners.map((src, i) => (
             <div class="swiper-slide" data-index={i}>
@@ -58,13 +58,13 @@ export function ActivityCards() {
     <div class="activity-cards">
       {site.activityCards.map((c) => (
         <a class="activity-cards__item" href={c.href}>
-          <div class="info">
+          <div class="txt">
             <div class="title">{c.title}</div>
             <div class="desc">{c.desc}</div>
-            <span class="arrow">
-              <Icon name="chevron-right" size="0.26667rem" />
-            </span>
           </div>
+          <span class="arrow">
+            <Icon name="chevron-right" size="0.264rem" />
+          </span>
           <img class="art" src={c.art} alt="" loading="lazy" />
         </a>
       ))}
@@ -154,44 +154,37 @@ export function TopGames() {
 }
 
 /* ==========================================================================
-   GAME HUB  (category cards: 2 rows of 2 large + 1 row of 4 small)
+   GAME HUB  (hub-* — gold theme, 4 large + 4 small category cards)
    ========================================================================== */
 export function GameHub() {
   const large = site.gameHub.filter((c) => !(c as any).small)
   const small = site.gameHub.filter((c) => (c as any).small)
 
-  const largeRows: any[] = []
-  for (let i = 0; i < large.length; i += 2) largeRows.push(large.slice(i, i + 2))
-
   return (
-    <section class="game-hub">
-      <div class="game-hub__title">
-        <img class="t-ico" src="/assets/img/title/game-hub.png" alt="" loading="lazy" />
-        Play and Win
+    <section class="hub">
+      <div class="hub__head">
+        <span class="hub__head-icon">
+          <Icon name="gamepad" size="0.48rem" />
+        </span>
+        <h2 class="hub__head-title">Play and Win</h2>
       </div>
 
-      {largeRows.map((row) => (
-        <div class="game-hub__row">
-          {row.map((c: any) => (
-            <a class="game-hub__card" href="/games">
-              <div class="text">
-                <div class="name">{c.name}</div>
-                <div class="count">{c.count}</div>
-              </div>
-              <img class="art" src={c.art} alt="" loading="lazy" />
-            </a>
-          ))}
-        </div>
-      ))}
+      <div class="hub__grid-top">
+        {large.map((c: any) => (
+          <a class="hub-card-lg" href="/games">
+            <span class="hub-card-lg__title">{c.name}</span>
+            <span class="hub-card-lg__count">{c.count}</span>
+            <img class="hub-card-lg__art" src={c.art} alt="" loading="lazy" />
+          </a>
+        ))}
+      </div>
 
-      <div class="game-hub__row">
+      <div class="hub__grid-bottom">
         {small.map((c: any) => (
-          <a class="game-hub__card small" href="/games">
-            <div class="text">
-              <div class="name">{c.name}</div>
-              <div class="count">{c.count}</div>
-            </div>
-            <img class="art" src={c.art} alt="" loading="lazy" />
+          <a class="hub-card-sm" href="/games">
+            <span class="hub-card-sm__title">{c.name}</span>
+            <span class="hub-card-sm__count">{c.count}</span>
+            <img class="hub-card-sm__art" src={c.art} alt="" loading="lazy" />
           </a>
         ))}
       </div>

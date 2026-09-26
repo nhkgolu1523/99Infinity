@@ -1,9 +1,9 @@
 import { site } from '../data'
-import { NavbarInner, CustomerBubble, SiteFooter } from '../components/layout'
+import { NavbarInner, SiteFooter } from '../components/layout'
 import { Icon } from '../components/icons'
 
 /* ==========================================================================
-   ACTIVITY
+   ACTIVITY  (at-* — gold theme cards, header shared with ac-*)
    ========================================================================== */
 const ACTIVITIES = [
   {
@@ -11,20 +11,28 @@ const ACTIVITIES = [
     desc: 'Log in every day and claim free rewards instantly.',
     art: '/assets/img/activity/bonus.png',
     badge: 'Daily',
+    badgeClass: 'daily',
+    cat: 'daily',
     key: 'daily-bonus',
+    href: '/daily-reward',
   },
   {
     title: 'Lucky Wheel',
     desc: 'One spin could unlock your next big win.',
     art: '/assets/img/activity/wheel.png',
     badge: 'Hot',
+    badgeClass: 'hot',
+    cat: 'daily',
     key: 'lucky-wheel',
+    href: '/spin',
   },
   {
     title: 'Super Jackpot',
     desc: 'Win the super jackpot and receive additional rewards.',
     art: '/assets/img/float/reward-center.png',
     badge: 'Jackpot',
+    badgeClass: 'jackpot',
+    cat: 'events',
     key: 'super-jackpot',
   },
   {
@@ -32,6 +40,8 @@ const ACTIVITIES = [
     desc: 'Earn commission for every friend who joins and plays.',
     art: '/assets/img/float/gift.png',
     badge: 'Bonus',
+    badgeClass: 'bonus',
+    cat: 'events',
     key: 'invite',
   },
   {
@@ -39,49 +49,61 @@ const ACTIVITIES = [
     desc: 'Ride the winning streak for extra cash rewards.',
     art: '/assets/img/float/changlong.svg',
     badge: 'Event',
+    badgeClass: 'event',
+    cat: 'events',
     key: 'changlong',
   },
   {
-    title: 'VIP Rebate',
-    desc: 'Climb the VIP tiers and unlock daily rebates.',
+    title: 'VIP Wheel',
+    desc: 'Exclusive spins for VIP members with bigger prizes.',
     art: '/assets/img/float/turntable.png',
     badge: 'VIP',
+    badgeClass: 'vip',
+    cat: 'events',
     key: 'vip',
   },
 ]
 
 export function ActivityPage() {
   return (
-    <>
-      <NavbarInner title="Activity" back="/" />
+    <div class="at-page">
+      <header class="ac-header">
+        <a class="ac-header__btn" href="/" aria-label="Back">
+          <Icon name="chevron-left" size="0.33rem" />
+        </a>
+        <span class="ac-header__title">Activity</span>
+      </header>
 
-      <main class="page">
-        <div class="tabs" data-tabs="activity">
-          <div class="tabs__item active" data-tab="all">All</div>
-          <div class="tabs__item" data-tab="daily">Daily</div>
-          <div class="tabs__item" data-tab="event">Events</div>
+      <main class="at-content">
+        <div class="at-tabs" data-tabs="activity">
+          <div class="at-tab active" data-tab="all">All</div>
+          <div class="at-tab" data-tab="daily">Daily</div>
+          <div class="at-tab" data-tab="events">Events</div>
         </div>
 
-        <div class="activity-grid" data-tab-panel="activity">
+        <div class="at-list" data-tab-panel="activity">
           {ACTIVITIES.map((a) => (
-            <a class="activity-card" href={`/activity/${a.key}`} data-tab-item={a.key}>
-              <div class="activity-card__media">
+            <a class="at-card" href={a.href || `/activity/${a.key}`} data-tab-item={a.cat}>
+              <div class="at-card__media">
                 <img src={a.art} alt="" loading="lazy" />
-                <span class="activity-card__badge">{a.badge}</span>
+                <span class={`at-badge at-badge--${a.badgeClass}`}>{a.badge}</span>
               </div>
-              <div class="activity-card__body">
-                <div class="activity-card__title">{a.title}</div>
-                <div class="activity-card__desc">{a.desc}</div>
+              <div class="at-card__info">
+                <h3 class="at-card__title">{a.title}</h3>
+                <p class="at-card__desc">{a.desc}</p>
               </div>
             </a>
           ))}
         </div>
 
+        <div class="at-empty" data-tab-empty="activity">
+          <Icon name="history" size="0.864rem" />
+          <p>No activities available right now.</p>
+        </div>
+
         <SiteFooter />
       </main>
-
-      <CustomerBubble />
-    </>
+    </div>
   )
 }
 
@@ -150,65 +172,72 @@ export function ActivityDetailPage({ slug }: { slug: string }) {
         </section>
       </main>
 
-      <CustomerBubble />
     </>
   )
 }
 
 /* ==========================================================================
-   PROMOTION
+   PROMOTION  (glass-gold cards + big percent watermark — pr-* classes)
    ========================================================================== */
 const PROMOS = [
   {
-    title: 'Welcome Bonus 100%',
-    desc: 'Double your first deposit up to ₹5,000. New members only.',
+    title: 'Welcome Bonus',
+    desc: 'Double your first deposit up to ₹5,000.',
+    percent: '100%',
     icon: '/assets/img/activity/bonus.png',
   },
   {
-    title: 'Daily Reload 20%',
-    desc: 'Top up any day of the week and receive a 20% reload bonus.',
+    title: 'Daily Reload',
+    desc: 'Top up any day and get 20% extra.',
+    percent: '20%',
     icon: '/assets/img/float/reward-center.png',
   },
   {
     title: 'Refer & Earn',
-    desc: 'Get up to 30% commission for every friend you invite.',
+    desc: 'Earn up to 30% commission per friend.',
+    percent: '30%',
     icon: '/assets/img/float/gift.png',
   },
   {
     title: 'Weekend Cashback',
-    desc: 'Play on weekends and get up to 10% cashback on losses.',
+    desc: 'Up to 10% cashback on weekend losses.',
+    percent: '10%',
     icon: '/assets/img/float/turntable.png',
   },
   {
     title: 'VIP Exclusive',
-    desc: 'Personal account manager, higher limits and faster payouts.',
+    desc: 'Personal manager, higher limits and faster payouts.',
+    percent: 'VIP',
     icon: '/assets/img/float/telegram.png',
   },
 ]
 
 export function PromotionPage() {
   return (
-    <>
-      <NavbarInner title="Promotion" back="/" />
+    <div class="pr-page">
+      <header class="pr-header">
+        <a class="pr-header__back" href="/" data-back aria-label="Back">
+          <Icon name="chevron-left" size="0.33rem" />
+        </a>
+        <span class="pr-header__title">Promotion</span>
+      </header>
 
-      <main class="page page--no-tabbar">
-        <div class="promo-list">
-          {PROMOS.map((p) => (
-            <a class="promo-item" href="/activity">
-              <img class="promo-item__icon" src={p.icon} alt="" loading="lazy" />
-              <div class="grow">
-                <div class="promo-item__title">{p.title}</div>
-                <div class="promo-item__desc">{p.desc}</div>
-              </div>
-              <Icon name="chevron-right" size="0.32rem" class="c-l3" />
-            </a>
-          ))}
-        </div>
+      <main class="pr-content">
+        {PROMOS.map((p) => (
+          <a class="pr-card" href="/activity" data-percent={p.percent}>
+            <span class="pr-card__icon">
+              <img src={p.icon} alt="" loading="lazy" />
+            </span>
+            <span class="pr-card__body">
+              <span class="pr-card__title">{p.title}</span>
+              <span class="pr-card__desc">{p.desc}</span>
+            </span>
+            <Icon name="chevron-right" size="0.336rem" class="pr-card__arrow" />
+          </a>
+        ))}
 
         <SiteFooter />
       </main>
-
-      <CustomerBubble />
-    </>
+    </div>
   )
 }

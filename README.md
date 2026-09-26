@@ -1,4 +1,4 @@
-# Veer.Game H5 — UI rebuild
+# 99infinity H5 — UI rebuild
 
 A pixel-focused rebuild of the mobile H5 gaming UI from the supplied reference zip.
 **Everything is written from scratch** — no file from the reference bundle is reused

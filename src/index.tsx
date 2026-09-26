@@ -6,14 +6,27 @@ import { HomePage } from './pages/home'
 import { MessagesPage } from './pages/messages'
 import { LoginPage, RegisterPage, ForgotPasswordPage } from './pages/auth'
 import { ActivityPage, ActivityDetailPage, PromotionPage } from './pages/activity'
+import { LuckyWheelPage } from './pages/spin'
+import { DailyRewardPage } from './pages/daily'
 import {
   AccountPage,
   WalletPage,
+  WithdrawPage,
   HistoryPage,
   ProfilePage,
   SettingsPage,
+  AboutPage,
+  SecurityPage,
+  ChangePasswordPage,
+  TwoFactorPage,
+  TransactionPinPage,
+  DevicesPage,
+  AntiPhishingPage,
+  TermsPage,
+  PrivacyPage,
 } from './pages/account'
 import { GamesPage, SupportPage, NotFoundPage } from './pages/misc'
+import { DepositPage } from './pages/deposit'
 
 const app = new Hono()
 
@@ -26,6 +39,14 @@ app.get('/', (c) => c.render(<HomePage />, { title: 'Home', active: 'home' }))
 
 app.get('/activity', (c) =>
   c.render(<ActivityPage />, { title: 'Activity', active: 'activity' })
+)
+
+/* lucky wheel — opened from the tabbar centre spin wheel */
+app.get('/spin', (c) => c.render(<LuckyWheelPage />, { title: 'Lucky Wheel', showTabbar: false }))
+
+/* daily reward — opened from the home "Your Daily Bonus Awaits" card */
+app.get('/daily-reward', (c) =>
+  c.render(<DailyRewardPage />, { title: 'Daily Reward', showTabbar: false })
 )
 
 app.get('/promotion', (c) =>
@@ -63,10 +84,10 @@ app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTab
 
 /* wallet sub-pages */
 app.get('/account/deposit', (c) =>
-  c.render(<WalletPage mode="deposit" />, { title: 'Deposit', showTabbar: false })
+  c.render(<DepositPage />, { title: 'Deposit', showTabbar: false })
 )
 app.get('/account/withdraw', (c) =>
-  c.render(<WalletPage mode="withdraw" />, { title: 'Withdraw', showTabbar: false })
+  c.render(<WithdrawPage />, { title: 'Withdraw', showTabbar: false })
 )
 app.get('/account/history', (c) =>
   c.render(<HistoryPage />, { title: 'History', showTabbar: false })
@@ -79,6 +100,33 @@ app.get('/account/profile', (c) =>
 )
 app.get('/account/settings', (c) =>
   c.render(<SettingsPage />, { title: 'Settings', showTabbar: false })
+)
+app.get('/account/about', (c) =>
+  c.render(<AboutPage />, { title: 'About Us', showTabbar: false })
+)
+app.get('/account/security', (c) =>
+  c.render(<SecurityPage />, { title: 'Security Center', showTabbar: false })
+)
+app.get('/account/security/password', (c) =>
+  c.render(<ChangePasswordPage />, { title: 'Change Password', showTabbar: false })
+)
+app.get('/account/security/2fa', (c) =>
+  c.render(<TwoFactorPage />, { title: 'Two-Factor Auth', showTabbar: false })
+)
+app.get('/account/security/pin', (c) =>
+  c.render(<TransactionPinPage />, { title: 'Transaction PIN', showTabbar: false })
+)
+app.get('/account/security/devices', (c) =>
+  c.render(<DevicesPage />, { title: 'Active Devices', showTabbar: false })
+)
+app.get('/account/security/antiphishing', (c) =>
+  c.render(<AntiPhishingPage />, { title: 'Anti-Phishing Code', showTabbar: false })
+)
+app.get('/account/terms', (c) =>
+  c.render(<TermsPage />, { title: 'Terms of Service', showTabbar: false })
+)
+app.get('/account/privacy', (c) =>
+  c.render(<PrivacyPage />, { title: 'Privacy Policy', showTabbar: false })
 )
 
 /* --------------------------------------------------------------------------

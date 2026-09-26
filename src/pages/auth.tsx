@@ -1,56 +1,63 @@
 import { site } from '../data'
-import { NavbarInner, CustomerBubble } from '../components/layout'
 import { Icon } from '../components/icons'
+
+/* ==========================================================================
+   AUTH HEADER (back + centred title)
+   ========================================================================== */
+function AuthHeader({ title, back = '/' }: { title: string; back?: string }) {
+  return (
+    <header class="au-header">
+      <a class="au-header__back" href={back} aria-label="Back">
+        <Icon name="chevron-left" size="0.42rem" />
+      </a>
+      <h1>{title}</h1>
+    </header>
+  )
+}
 
 /* ==========================================================================
    LOGIN
    ========================================================================== */
 export function LoginPage() {
   return (
-    <>
-      <NavbarInner title="Log in" />
+    <div class="au-page">
+      <AuthHeader title="Log in" />
 
-      <main class="auth">
-        <div class="auth__hero">
-          <img class="auth__logo" src={site.brand.logo} alt={site.brand.name} />
-          <p class="auth__tagline">Welcome back — sign in to continue playing</p>
-        </div>
+      <main class="au-main">
+        <img class="au-logo" src={site.brand.logo} alt={site.brand.name} />
+        <p class="au-welcome">Welcome back — sign in to continue playing</p>
 
-        <form class="auth__form" data-auth-form="login" novalidate>
-          <label class="field">
-            <Icon name="phone" class="field__icon" />
-            <span class="field__suffix">+91</span>
-            <input type="tel" name="phone" placeholder="Phone number" autocomplete="tel" inputmode="numeric" />
+        <form class="au-form" data-auth-form="login" novalidate>
+          <label class="au-group">
+            <Icon name="phone" size="0.42rem" class="au-group__icon" />
+            <span class="au-group__code">+91</span>
+            <input type="tel" name="phone" placeholder="Phone number" autocomplete="tel" inputmode="numeric" maxlength="10" />
           </label>
 
-          <label class="field">
-            <Icon name="lock" class="field__icon" />
+          <label class="au-group">
+            <Icon name="lock" size="0.42rem" class="au-group__icon" />
             <input type="password" name="password" placeholder="Password" autocomplete="current-password" />
-            <button class="field__suffix" type="button" data-toggle-password aria-label="Show password">
-              <Icon name="eye" size="0.4rem" />
+            <button class="au-eye" type="button" data-toggle-password aria-label="Show password">
+              <Icon name="eye" size="0.384rem" />
             </button>
           </label>
 
-          <div class="auth__row">
-            <label class="checkbox">
+          <div class="au-options">
+            <label class="au-check">
               <input type="checkbox" name="remember" checked />
               <span>Remember me</span>
             </label>
-            <span class="link-main" data-open-dialog="forgot-password">Forgot password?</span>
+            <span class="au-forgot" data-open-dialog="forgot-password">Forgot password?</span>
           </div>
 
-          <button class="btn-primary auth__submit" type="submit">
-            Log in
-          </button>
+          <button class="au-btn" type="submit">Log in</button>
         </form>
 
-        <div class="auth__alt">
-          Don't have an account? <a href="/register">Register now</a>
-        </div>
-
-        <CustomerBubble />
+        <p class="au-switch">
+          Don't have an account? <a href="/register">Create Account</a>
+        </p>
       </main>
-    </>
+    </div>
   )
 }
 
@@ -59,59 +66,53 @@ export function LoginPage() {
    ========================================================================== */
 export function RegisterPage() {
   return (
-    <>
-      <NavbarInner title="Register" />
+    <div class="au-page">
+      <AuthHeader title="Register" />
 
-      <main class="auth">
-        <div class="auth__hero">
-          <img class="auth__logo" src={site.brand.logo} alt={site.brand.name} />
-          <p class="auth__tagline">Create an account and claim your welcome bonus</p>
-        </div>
+      <main class="au-main">
+        <img class="au-logo" src={site.brand.logo} alt={site.brand.name} />
+        <p class="au-welcome">Create an account and claim your welcome bonus</p>
 
-        <form class="auth__form" data-auth-form="register" novalidate>
-          <label class="field">
-            <Icon name="phone" class="field__icon" />
-            <span class="field__suffix">+91</span>
-            <input type="tel" name="phone" placeholder="Phone number" autocomplete="tel" inputmode="numeric" />
+        <form class="au-form" data-auth-form="register" novalidate>
+          <label class="au-group">
+            <Icon name="phone" size="0.42rem" class="au-group__icon" />
+            <span class="au-group__code">+91</span>
+            <input type="tel" name="phone" placeholder="Phone number" autocomplete="tel" inputmode="numeric" maxlength="10" />
           </label>
 
-          <label class="field">
-            <Icon name="lock" class="field__icon" />
+          <label class="au-group">
+            <Icon name="lock" size="0.42rem" class="au-group__icon" />
             <input type="password" name="password" placeholder="Create password" autocomplete="new-password" />
-            <button class="field__suffix" type="button" data-toggle-password aria-label="Show password">
-              <Icon name="eye" size="0.4rem" />
+            <button class="au-eye" type="button" data-toggle-password aria-label="Show password">
+              <Icon name="eye" size="0.384rem" />
             </button>
           </label>
 
-          <label class="field">
-            <Icon name="lock" class="field__icon" />
+          <label class="au-group">
+            <Icon name="lock" size="0.42rem" class="au-group__icon" />
             <input type="password" name="confirm" placeholder="Confirm password" autocomplete="new-password" />
           </label>
 
-          <label class="field">
-            <Icon name="ticket" class="field__icon" />
+          <label class="au-group">
+            <Icon name="ticket" size="0.42rem" class="au-group__icon" />
             <input type="text" name="invite" placeholder="Invitation code (optional)" />
           </label>
 
-          <label class="checkbox">
-            <input type="checkbox" name="terms" />
-            <span>
-              I am 18+ and I agree to the <span class="c-main">Terms &amp; Conditions</span>
-            </span>
-          </label>
+          <div class="au-terms">
+            <input type="checkbox" id="auAgeCheck" name="terms" />
+            <label for="auAgeCheck">
+              I am 18+ and I agree to the <a href="/account/terms">Terms &amp; Conditions</a>
+            </label>
+          </div>
 
-          <button class="btn-primary auth__submit" type="submit">
-            Create account
-          </button>
+          <button class="au-btn" type="submit">Create account</button>
         </form>
 
-        <div class="auth__alt">
+        <p class="au-switch">
           Already have an account? <a href="/login">Log in</a>
-        </div>
-
-        <CustomerBubble />
+        </p>
       </main>
-    </>
+    </div>
   )
 }
 
@@ -120,41 +121,35 @@ export function RegisterPage() {
    ========================================================================== */
 export function ForgotPasswordPage() {
   return (
-    <>
-      <NavbarInner title="Reset password" back="/login" />
+    <div class="au-page">
+      <AuthHeader title="Reset password" back="/login" />
 
-      <main class="auth">
-        <div class="auth__hero">
-          <Icon name="lock" size="1.6rem" class="c-main" />
-          <p class="auth__tagline">
-            Enter your registered phone number and we will send you a reset code.
-          </p>
-        </div>
+      <main class="au-main">
+        <Icon name="lock" size="1.6rem" class="c-main au-reset-ico" />
+        <p class="au-welcome">Enter your registered phone number and we will send you a reset code.</p>
 
-        <form class="auth__form" data-auth-form="reset" novalidate>
-          <label class="field">
-            <Icon name="phone" class="field__icon" />
-            <span class="field__suffix">+91</span>
-            <input type="tel" name="phone" placeholder="Phone number" inputmode="numeric" />
+        <form class="au-form" data-auth-form="reset" novalidate>
+          <label class="au-group">
+            <Icon name="phone" size="0.42rem" class="au-group__icon" />
+            <span class="au-group__code">+91</span>
+            <input type="tel" name="phone" placeholder="Phone number" inputmode="numeric" maxlength="10" />
           </label>
 
-          <label class="field">
-            <Icon name="shield-check" class="field__icon" />
+          <label class="au-group">
+            <Icon name="shield-check" size="0.42rem" class="au-group__icon" />
             <input type="text" name="code" placeholder="Verification code" inputmode="numeric" />
-            <button class="field__suffix" type="button" data-send-code>
+            <button class="au-send" type="button" data-send-code>
               Send code
             </button>
           </label>
 
-          <button class="btn-primary auth__submit" type="submit">
-            Reset password
-          </button>
+          <button class="au-btn" type="submit">Reset password</button>
         </form>
 
-        <div class="auth__alt">
+        <p class="au-switch">
           Remembered it? <a href="/login">Back to log in</a>
-        </div>
+        </p>
       </main>
-    </>
+    </div>
   )
 }

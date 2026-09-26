@@ -3,38 +3,38 @@
 
 export const site = {
   "brand": {
-    "name": "Veer.Game",
+    "name": "99infinity",
     "logo": "/assets/img/brand/logo.png",
     "flag": "/assets/img/brand/flag-en.png",
     "lang": "EN"
   },
-  "banners": ["/assets/img/banner/Banner_20260911203442hwj8.png", "/assets/img/banner/Banner_20260911203455jvb4.png", "/assets/img/banner/Banner_20260911203508snit.png", "/assets/img/banner/Banner_20260911203513due9.png", "/assets/img/banner/Banner_20260914104543fkre.jpg", "/assets/img/banner/banner-1.png", "/assets/img/banner/banner-2.png", "/assets/img/banner/banner-3.png", "/assets/img/banner/banner-4.png", "/assets/img/banner/banner-5.jpg"],
-  "notice": "🎉 Welcome to the Veer.Game Platform! 🎉 Enjoy an exciting gaming experience with a wide selection of popular games. 🎮🔥 💥 New players are welcome to register, explore the platform, and join the fun. Thank you for choosing Veer.Game We wish you a great gaming experience! ⭐",
+  "banners": ["/assets/img/banner/banner-1-play-and-win.jpg", "/assets/img/banner/banner-2-chicken-road.jpg", "/assets/img/banner/banner-3-ludo.jpg", "/assets/img/banner/banner-4-chess.jpg", "/assets/img/banner/banner-5-fruit-slasher.jpg", "/assets/img/banner/banner-6-fishing-simulator.jpg", "/assets/img/banner/banner-7-car-racing.jpg"],
+  "notice": "🎉 Welcome to the 99infinity Platform! 🎉 Enjoy an exciting gaming experience with a wide selection of popular games. 🎮🔥 💥 New players are welcome to register, explore the platform, and join the fun. Thank you for choosing 99infinity We wish you a great gaming experience! ⭐",
   "activityCards": [
     {
       "title": "Your Daily Bonus Awaits",
       "desc": "Log in today and claim free rewards instantly.",
       "art": "/assets/img/activity/bonus.png",
-      "href": "/activity"
+      "href": "/daily-reward"
     },
     {
       "title": "Spin for Luck",
       "desc": "One spin could unlock your next big win.",
       "art": "/assets/img/activity/wheel.png",
-      "href": "/activity"
+      "href": "/spin"
     }
   ],
   "topGames": [
     {
-      "cover": "/assets/img/game/spribe/aviator.png",
+      "cover": "/assets/img/top/ludo.jpg",
       "crown": "/assets/img/ui/crown-1.png"
     },
     {
-      "cover": "/assets/img/game/tb_chess/100.png",
+      "cover": "/assets/img/top/chicken.png",
       "crown": "/assets/img/ui/crown-2.png"
     },
     {
-      "cover": "/assets/img/game/arlottery/WinGo_30S_20260909011825105.jpg",
+      "cover": "/assets/img/top/fruit-slasher.jpg",
       "crown": "/assets/img/ui/crown-3.png"
     },
     {
@@ -236,8 +236,8 @@ export const site = {
       "alt": "WhatsApp"
     }
   ],
-  "footerText": ["The Veer.Game platform advocates fairness, justice, and openness. We mainly operate fair lottery, blockchain games, live casinos, and slot machine games.", "Veer.Game works with more than 10,000 online live game dealers and slot games, all of which are verified fair games.", "Veer.Game supports fast deposit and withdrawal, and looks forward to your visit."],
-  "footerWarning": ["Gambling can be addictive, please play rationally.", "Veer.Game only accepts customers above the age of 18."],
+  "footerText": ["The 99infinity platform advocates fairness, justice, and openness. We mainly operate fair lottery, blockchain games, live casinos, and slot machine games.", "99infinity works with more than 10,000 online live game dealers and slot games, all of which are verified fair games.", "99infinity supports fast deposit and withdrawal, and looks forward to your visit."],
+  "footerWarning": ["Gambling can be addictive, please play rationally.", "99infinity only accepts customers above the age of 18."],
   "tabbar": [
     {
       "key": "home",
@@ -256,7 +256,7 @@ export const site = {
     {
       "key": "center",
       "label": "Get ₹500",
-      "href": "/activity"
+      "href": "/spin"
     },
     {
       "key": "promotion",
@@ -273,36 +273,9 @@ export const site = {
       "href": "/account"
     }
   ],
-  "floats": [
-    {
-      "key": "rewardCenter",
-      "label": "Reward Center",
-      "href": "/activity"
-    },
-    {
-      "key": "turntable-lottery",
-      "label": "Lucky Wheel",
-      "href": "/activity"
-    },
-    {
-      "key": "big-turntable",
-      "label": "Mega Wheel",
-      "href": "/activity"
-    },
-    {
-      "key": "turntable-telegram",
-      "label": "Telegram",
-      "href": "/promotion"
-    },
-    {
-      "key": "changlongEnter",
-      "label": "Dragon Streak",
-      "href": "/promotion"
-    }
-  ],
   "messages": [
     {
-      "title": "Welcome to Veer.Game",
+      "title": "Welcome to 99infinity",
       "desc": "Enjoy an exciting gaming experience with a wide selection of popular games. New players are welcome to register, explore the platform, and join the fun.",
       "time": "2026-09-14 10:45"
     },
