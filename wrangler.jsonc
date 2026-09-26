@@ -1,11 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "99infinity",
   "compatibility_date": "2026-09-17",
-  "pages_build_output_dir": "./dist",
+  "main": "dist/_worker.js",
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "assets": {
+    "directory": "./dist"
+  }
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },
