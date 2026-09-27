@@ -1841,8 +1841,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  height: 2.64rem;
-  padding: 0.432rem 0.384rem;
+  height: 2.08rem;
+  padding: 0.36rem 0.36rem;
   overflow: hidden;
   background: linear-gradient(145deg, #1e1e1e 0%, #141414 100%);
   border: 1px solid rgba(212, 175, 55, 0.15);
@@ -1896,10 +1896,10 @@
 
 .hub-card-lg__art {
   position: absolute;
-  bottom: -0.24rem;
-  right: -0.24rem;
-  width: 1.92rem;
-  height: 1.92rem;
+  bottom: -0.18rem;
+  right: -0.18rem;
+  width: 1.6rem;
+  height: 1.6rem;
   object-fit: contain;
   z-index: 1;
 }
@@ -1916,8 +1916,8 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-height: 2.64rem;
-  padding: 0.288rem 0.24rem;
+  min-height: 1.86rem;
+  padding: 0.26rem 0.22rem;
   overflow: hidden;
   background: linear-gradient(145deg, #1e1e1e 0%, #141414 100%);
   border: 1px solid rgba(212, 175, 55, 0.12);
@@ -1968,16 +1968,10 @@
 
 .hub-card-sm__art {
   position: absolute;
-  bottom: -0.12rem;
-  right: -0.12rem;
-  width: 1.32rem;
-  height: 1.32rem;
+  bottom: -0.1rem;
+  right: -0.1rem;
+  width: 1.15rem;
+  height: 1.15rem;
   object-fit: contain;
   z-index: 1;
-}
-
-@media (max-width: 380px) {
-  .hub__grid-bottom {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
