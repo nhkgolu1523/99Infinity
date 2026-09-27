@@ -1244,9 +1244,9 @@
   background: var(--ac-card);
   border: 1px solid var(--ac-border);
   border-radius: 0.5rem;
-  padding: 0.64rem 0.55rem;
+  padding: 0.68rem 0.58rem;
   width: 90%;
-  max-width: 7.6rem;
+  max-width: 7.9rem;
   text-align: center;
   box-shadow: 0 0.37rem 0.74rem rgba(0, 0, 0, 0.4);
 }
@@ -1264,7 +1264,7 @@
 }
 
 .ac-modal__title { font-size: 0.4rem; font-weight: 700; color: #fff; margin-bottom: 0.18rem; }
-.ac-modal__text { font-size: 0.3rem; color: var(--ac-text-2); margin-bottom: 0.5rem; line-height: 1.55; }
+.ac-modal__text { font-size: 0.33rem; color: var(--ac-text-2); margin-bottom: 0.5rem; line-height: 1.55; }
 .ac-modal__buttons { display: flex; gap: 0.26rem; }
 
 .ac-modal__btn {
