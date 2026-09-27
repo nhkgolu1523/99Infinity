@@ -1243,36 +1243,36 @@
 .ac-modal {
   background: var(--ac-card);
   border: 1px solid var(--ac-border);
-  border-radius: 0.44rem;
-  padding: 0.55rem 0.44rem;
+  border-radius: 0.5rem;
+  padding: 0.64rem 0.55rem;
   width: 90%;
-  max-width: 5.93rem;
+  max-width: 7.6rem;
   text-align: center;
   box-shadow: 0 0.37rem 0.74rem rgba(0, 0, 0, 0.4);
 }
 
 .ac-modal__icon {
-  width: 1.11rem;
-  height: 1.11rem;
+  width: 1.3rem;
+  height: 1.3rem;
   border-radius: 50%;
   background: var(--ac-red-bg);
   color: var(--ac-red);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 0.28rem;
+  margin: 0 auto 0.32rem;
 }
 
-.ac-modal__title { font-size: 0.33333rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem; }
-.ac-modal__text { font-size: 0.26rem; color: var(--ac-text-2); margin-bottom: 0.44rem; line-height: 1.5; }
-.ac-modal__buttons { display: flex; gap: 0.22rem; }
+.ac-modal__title { font-size: 0.4rem; font-weight: 700; color: #fff; margin-bottom: 0.18rem; }
+.ac-modal__text { font-size: 0.3rem; color: var(--ac-text-2); margin-bottom: 0.5rem; line-height: 1.55; }
+.ac-modal__buttons { display: flex; gap: 0.26rem; }
 
 .ac-modal__btn {
   flex: 1;
-  padding: 0.26rem;
+  padding: 0.32rem;
   border: none;
-  border-radius: 0.26rem;
-  font-size: 0.28rem;
+  border-radius: 0.32rem;
+  font-size: 0.33rem;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.1s ease;

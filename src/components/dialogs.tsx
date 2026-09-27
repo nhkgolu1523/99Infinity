@@ -74,7 +74,7 @@ export function LogoutDialog() {
       <div class="dialog-host__content">
         <div class="ac-modal">
           <div class="ac-modal__icon">
-            <Icon name="fa-logout" size="0.55rem" />
+            <Icon name="fa-logout" size="0.64rem" />
           </div>
           <h3 class="ac-modal__title" id="logoutTitle">
             Log out
