@@ -11,3 +11,10 @@ pids/
 .DS_Store
 *.tar.gz
 *.zip
+
+# local design references — not part of the app
+/Account Tab.html
+/bottom-nav.html
+/IMAGES/
+/src/pages/99Infinity Text.png
+/_tmp_*
