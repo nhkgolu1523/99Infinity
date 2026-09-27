@@ -78,7 +78,7 @@ export function SupportPage() {
     <div class="cs-page">
       <header class="cs-header">
         <a class="cs-header__back" href="/" data-back aria-label="Back">
-          <Icon name="chevron-left" size="0.48rem" />
+          <Icon name="chevron-left" size="0.52rem" />
         </a>
         <h1 class="cs-header__title">Customer service</h1>
       </header>
@@ -87,13 +87,13 @@ export function SupportPage() {
         {channels.map((c) => (
           <a class="cs-card" href={c.href}>
             <span class="cs-card__icon">
-              <Icon name={c.icon} size="0.4rem" />
+              <Icon name={c.icon} size="0.46rem" />
             </span>
             <span class="cs-card__body">
               <span class="cs-card__title">{c.title}</span>
               <span class="cs-card__desc">{c.desc}</span>
             </span>
-            <Icon name="chevron-right" size="0.28rem" class="cs-card__arrow" />
+            <Icon name="chevron-right" size="0.32rem" class="cs-card__arrow" />
           </a>
         ))}
 
@@ -104,7 +104,7 @@ export function SupportPage() {
               <div class="cs-faq__item">
                 <div class="cs-faq__q">
                   <span>{f.q}</span>
-                  <Icon name="chevron-right" size="0.28rem" class="cs-faq__arrow" />
+                  <Icon name="chevron-right" size="0.32rem" class="cs-faq__arrow" />
                 </div>
                 <div class="cs-faq__a">
                   <p>{f.a}</p>

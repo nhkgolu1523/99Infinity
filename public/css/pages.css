@@ -698,7 +698,7 @@
 .cs-header__back:active { transform: scale(0.9); }
 
 .cs-header__title {
-  font-size: 0.34667rem;
+  font-size: 0.38rem;
   font-weight: 600;
   letter-spacing: 0.013rem;
   color: #fff;
@@ -732,8 +732,8 @@
 }
 
 .cs-card__icon {
-  width: 0.93333rem;
-  height: 0.93333rem;
+  width: 1.02rem;
+  height: 1.02rem;
   border-radius: 50%;
   background: var(--cs-green-bg);
   color: var(--cs-green);
@@ -750,7 +750,7 @@
 
 .cs-card__title {
   display: block;
-  font-size: 0.29333rem;
+  font-size: 0.33rem;
   font-weight: 600;
   margin-bottom: 0.08rem;
   color: #fff;
@@ -758,7 +758,7 @@
 
 .cs-card__desc {
   display: block;
-  font-size: 0.26667rem;
+  font-size: 0.3rem;
   color: var(--cs-text-2);
 }
 
@@ -775,7 +775,7 @@
 }
 
 .cs-faq__heading {
-  font-size: 0.32rem;
+  font-size: 0.36rem;
   font-weight: 600;
   color: #fff;
   margin-bottom: 0.2rem;
@@ -796,13 +796,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.35rem 0;
+  padding: 0.38rem 0;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .cs-faq__q span {
-  font-size: 0.28rem;
+  font-size: 0.32rem;
   font-weight: 500;
   color: #e6edf3;
   padding-right: 0.2rem;
@@ -821,7 +821,7 @@
 }
 
 .cs-faq__a p {
-  font-size: 0.26667rem;
+  font-size: 0.3rem;
   color: #fff;
   line-height: 1.6;
   padding-bottom: 0.35rem;
