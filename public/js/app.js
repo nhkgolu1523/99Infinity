@@ -1224,7 +1224,9 @@
      the fetched body already contains the right tabbar (active state) and
      dialogs, so a plain innerHTML swap keeps everything consistent. */
   async function spaNavigate(url, push) {
-    if (url === location.pathname + location.search) return;
+    /* same-page guard only for link clicks (push) — popstate must ALWAYS
+       swap, because by then location already points at the target page */
+    if (push && url === location.pathname + location.search) return;
     showLoader();
     try {
       const res = await fetch(url);
