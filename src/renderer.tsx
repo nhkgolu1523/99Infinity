@@ -3,14 +3,12 @@ import { site } from './data'
 import { IconSprite } from './components/icons'
 import { LoginAlertDialog, NoticeDialog, LogoutDialog } from './components/dialogs'
 
-/** Runtime viewport → rem scaling. Runs before paint to avoid FOUC.
-    Ratio matches the client (54px @ 414px ≈ 0.13 of viewport width) so the
-    UI renders the same proportional size on every phone. */
+/** Runtime viewport → rem scaling. Runs before paint to avoid FOUC. */
 const REM_SCRIPT = `(function(){var d=document.documentElement;
 function set(){var w=d.clientWidth||window.innerWidth||0;var h=window.innerHeight||0;
 if(w>h&&w>500){d.classList.add('landscape');d.style.fontSize='9vh';return;}
 d.classList.remove('landscape');
-var f=Math.min(w,414)/7.7;d.style.fontSize=f+'px';}
+var f=Math.min(w,540)/10;d.style.fontSize=f+'px';}
 set();window.addEventListener('resize',set);window.addEventListener('orientationchange',function(){setTimeout(set,120)});})();`
 
 /* asset cache-buster — re-evaluated on every fresh worker deploy, so browsers
