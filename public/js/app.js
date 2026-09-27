@@ -720,22 +720,8 @@
       })
     );
 
-    /* page-transition spinner — instant feedback on internal navigation */
-    document.addEventListener('click', (e) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const t = e.target;
-      if (!t || !t.closest) return;
-      const a = t.closest('a[href]');
-      if (!a || a.hasAttribute('data-dialog-open') || a.hasAttribute('data-open-dialog')) return;
-      const href = a.getAttribute('href') || '';
-      if (!href || href.charAt(0) !== '/' || a.target === '_blank') return;
-      if (document.getElementById('pageLoader')) return;
-      const loader = document.createElement('div');
-      loader.id = 'pageLoader';
-      loader.className = 'page-loader';
-      loader.innerHTML = '<i></i>';
-      document.body.appendChild(loader);
-    });
+    /* SPA navigation + page-transition spinner live at the boot section
+       (they need initAll) — see the end of this file. */
 
     /* PIN keypad — create + confirm stages */
     const pad = $('[data-pin-keypad]');
@@ -1204,7 +1190,7 @@
   }
 
   /* ------------------------------------------------------------------ boot */
-  function boot() {
+  function initAll() {
     initLazyImages();
     initBannerSwipers();
     initNavSwipers();
@@ -1217,6 +1203,88 @@
     initQuickAmounts();
     initWithdraw();
     initEntryPoints();
+  }
+
+  /* ------------------------------------------------ SPA navigation + loader */
+  function showLoader() {
+    if (document.getElementById('pageLoader')) return;
+    const loader = document.createElement('div');
+    loader.id = 'pageLoader';
+    loader.className = 'page-loader';
+    loader.innerHTML = '<i></i>';
+    document.body.appendChild(loader);
+  }
+
+  function hideLoader() {
+    const loader = document.getElementById('pageLoader');
+    if (loader) loader.remove();
+  }
+
+  /* fetch the target page and swap <body> content in place — no full reload.
+     the fetched body already contains the right tabbar (active state) and
+     dialogs, so a plain innerHTML swap keeps everything consistent. */
+  async function spaNavigate(url, push) {
+    if (url === location.pathname + location.search) return;
+    showLoader();
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('bad status ' + res.status);
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      if (!doc || !doc.body) throw new Error('bad html');
+
+      Dialog.closeAll();
+      document.documentElement.style.overflow = '';
+
+      /* neutralise stray page timers (e.g. the deposit countdown) that belong
+         to the outgoing DOM — otherwise they fire after navigation */
+      const highest = setTimeout(() => {}, 0);
+      for (let i = 0; i <= highest; i++) {
+        clearTimeout(i);
+        clearInterval(i);
+      }
+
+      document.title = doc.title;
+      document.body.innerHTML = doc.body.innerHTML;
+      if (push) history.pushState({}, '', url);
+      else history.replaceState({}, '', url);
+      window.scrollTo(0, 0);
+      initAll();
+    } catch (err) {
+      hideLoader();
+      window.location.href = url; /* full-load fallback */
+      return;
+    }
+    hideLoader();
+  }
+
+  /* intercept internal links (tabs, cards, back buttons...) */
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const a = t.closest('a[href]');
+    if (!a || a.hasAttribute('data-dialog-open') || a.hasAttribute('data-open-dialog')) return;
+    const href = a.getAttribute('href') || '';
+    if (!href || href.charAt(0) !== '/' || a.target === '_blank') return;
+    e.preventDefault();
+    spaNavigate(href, true);
+  });
+
+  /* browser back / forward — instant swap, no reload, no bfcache spinner */
+  window.addEventListener('popstate', () => {
+    spaNavigate(location.pathname + location.search + location.hash, false);
+  });
+
+  /* safety net: pages restored from bfcache never keep a stuck spinner */
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) hideLoader();
+  });
+
+  window.VG_INIT = initAll;
+
+  function boot() {
+    initAll();
   }
 
   if (document.readyState === 'loading') {
