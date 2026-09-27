@@ -1975,3 +1975,30 @@
   object-fit: contain;
   z-index: 1;
 }
+
+/* ==========================================================================
+   PAGE-TRANSITION SPINNER — shown on internal link clicks (app.js)
+   ========================================================================== */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 18, 23, 0.55);
+}
+
+.page-loader i {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 0.09rem solid rgba(255, 255, 255, 0.22);
+  border-top-color: var(--main-color);
+  border-radius: 50%;
+  animation: page-spin 0.7s linear infinite;
+}
+
+@keyframes page-spin {
+  to { transform: rotate(360deg); }
+}
+

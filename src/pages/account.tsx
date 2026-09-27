@@ -10,17 +10,17 @@ import { SPRITE_SYMBOLS } from '../components/account-sprite'
    ========================================================================== */
 export function AccountPage() {
   const quick = [
-    { icon: 'icon-wallets', label: 'Wallet', href: '/account/wallet' },
-    { icon: 'icon-rechargeIcon', label: 'Deposit', href: '/deposit' },
-    { icon: 'icon-widthdrawBlue', label: 'Withdraw', href: '/withdraw' },
+    { icon: 'icon-wallets', label: 'Wallet', href: '/account/history' },
+    { icon: 'icon-rechargeIcon', label: 'Deposit', href: '/account/deposit' },
+    { icon: 'icon-widthdrawBlue', label: 'Withdraw', href: '/account/withdraw' },
     { icon: 'icon-VipIcon', label: 'VIP', href: '/activity' },
   ]
 
   const financial = [
     { icon: 'icon-betHistory', title: 'Game History', desc: 'My game history', href: '/account/bets' },
     { icon: 'icon-tradeHistory', title: 'Transaction', desc: 'My transaction history', href: '/account/history' },
-    { icon: 'icon-rechargeHistory', title: 'Deposit', desc: 'My deposit history', href: '/deposit' },
-    { icon: 'icon-myWithdrawHistory', title: 'Withdraw', desc: 'My withdraw history', href: '/withdraw' },
+    { icon: 'icon-rechargeHistory', title: 'Deposit', desc: 'My deposit history', href: '/account/deposit-history' },
+    { icon: 'icon-myWithdrawHistory', title: 'Withdraw', desc: 'My withdraw history', href: '/account/withdraw-history' },
   ]
 
   const panel = [
@@ -28,6 +28,8 @@ export function AccountPage() {
     { icon: 'icon-gifts', label: 'Gifts', href: '/daily-reward' },
     { icon: 'icon-login_list_icon', label: 'My Top-Up Coupons', href: '/activity' },
     { icon: 'icon-statsIcon', label: 'Game statistics', href: '/account/bets' },
+    { icon: 'fa-shield', label: 'Security Center', href: '/account/security' },
+    { icon: 'user', label: 'Personal information', href: '/account/profile' },
     { icon: 'icon-language', label: 'Language', value: 'English', href: '/account/settings' },
   ]
 
@@ -139,9 +141,13 @@ export function AccountPage() {
             {panel.map((p) => (
               <a class="settingPanel__container-items__item ar-1px-b" href={p.href}>
                 <div class="settingPanel__container-items__title">
-                  <svg class={`svg-icon ${p.icon}`}>
-                    <use href={`#${p.icon}`}></use>
-                  </svg>
+                  {p.icon.startsWith('icon-') ? (
+                    <svg class={`svg-icon ${p.icon}`}>
+                      <use href={`#${p.icon}`}></use>
+                    </svg>
+                  ) : (
+                    <Icon name={p.icon} size="0.8rem" />
+                  )}
                   <span>{p.label}</span>
                 </div>
                 <div class="settingPanel__container-items-right">
@@ -172,10 +178,7 @@ export function AccountPage() {
           </div>
           <div class="serviceCenter-wrap-header">
             <button data-dialog-open="logout">
-              <svg class="svg-icon icon-logout">
-                <use href="#icon-logout"></use>
-              </svg>{' '}
-              Log out
+              <Icon name="fa-logout" size="0.64rem" /> Log out
             </button>
           </div>
         </div>
@@ -496,7 +499,18 @@ export function WithdrawPage() {
 /* ==========================================================================
    HISTORY / TRANSACTIONS  (th-* – gold theme list, header shared with ac-*)
    ========================================================================== */
-export function HistoryPage() {
+export function HistoryPage({
+  mode = 'all',
+}: {
+  mode?: 'all' | 'deposit' | 'withdraw' | 'bets'
+}) {
+  const titles: Record<string, string> = {
+    all: 'Transaction history',
+    deposit: 'Deposit history',
+    withdraw: 'Withdraw history',
+    bets: 'Bet history',
+  }
+
   const rows = [
     { type: 'Deposit', method: 'UPI', date: '2026-09-20 14:22', amount: '+₹500.00', dir: 'credit', icon: 'arrow-down', cat: 'deposit' },
     { type: 'Bet', method: 'Aviator', date: '2026-09-20 14:30', amount: '-₹50.00', dir: 'debit', icon: 'fa-dice', cat: 'bets' },
@@ -513,15 +527,15 @@ export function HistoryPage() {
         <a class="ac-header__btn" href="/account" aria-label="Back">
           <Icon name="chevron-left" size="0.33rem" />
         </a>
-        <span class="ac-header__title">Transaction history</span>
+        <span class="ac-header__title">{titles[mode]}</span>
       </header>
 
       <main class="th-content">
         <div class="th-tabs" data-tabs="txhistory">
-          <div class="th-tab active" data-tab="all">All</div>
-          <div class="th-tab" data-tab="deposit">Deposit</div>
-          <div class="th-tab" data-tab="withdraw">Withdraw</div>
-          <div class="th-tab" data-tab="bets">Bets</div>
+          <div class={`th-tab${mode === 'all' ? ' active' : ''}`} data-tab="all">All</div>
+          <div class={`th-tab${mode === 'deposit' ? ' active' : ''}`} data-tab="deposit">Deposit</div>
+          <div class={`th-tab${mode === 'withdraw' ? ' active' : ''}`} data-tab="withdraw">Withdraw</div>
+          <div class={`th-tab${mode === 'bets' ? ' active' : ''}`} data-tab="bets">Bets</div>
         </div>
 
         <div class="th-list" data-tab-panel="txhistory">

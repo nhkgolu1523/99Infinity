@@ -304,6 +304,11 @@
           document.dispatchEvent(new CustomEvent('tab:change', { detail: { key, value } }));
         });
       });
+
+      /* apply the initial active tab's filter once on load — lets pages open
+         pre-filtered (e.g. /account/deposit-history opens with Deposit active) */
+      const activeTab = items.find((t) => t.classList.contains('active'));
+      if (activeTab) activeTab.click();
     });
   }
 
@@ -714,6 +719,23 @@
         }
       })
     );
+
+    /* page-transition spinner — instant feedback on internal navigation */
+    document.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const t = e.target;
+      if (!t || !t.closest) return;
+      const a = t.closest('a[href]');
+      if (!a || a.hasAttribute('data-dialog-open') || a.hasAttribute('data-open-dialog')) return;
+      const href = a.getAttribute('href') || '';
+      if (!href || href.charAt(0) !== '/' || a.target === '_blank') return;
+      if (document.getElementById('pageLoader')) return;
+      const loader = document.createElement('div');
+      loader.id = 'pageLoader';
+      loader.className = 'page-loader';
+      loader.innerHTML = '<i></i>';
+      document.body.appendChild(loader);
+    });
 
     /* PIN keypad — create + confirm stages */
     const pad = $('[data-pin-keypad]');

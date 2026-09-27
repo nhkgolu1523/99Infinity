@@ -4240,7 +4240,7 @@
   display: block;
   text-align: center;
   font-size: 0.312rem;
-  color: #8b949e;
+  color: #fb5b5b;
   font-weight: 600;
   text-decoration: none;
   padding: 0.192rem;
@@ -4620,9 +4620,9 @@
   justify-content: center;
   width: 100%;
   padding: 0.13333rem 0;
-  color: var(--main-color);
+  color: var(--norm_red-color);
   background: var(--bg_color_L1);
-  border: 0.01333rem solid var(--main-color);
+  border: 0.01333rem solid var(--norm_red-color);
   border-radius: 0.66667rem;
   font-size: 0.4rem;
   gap: 0.32rem;

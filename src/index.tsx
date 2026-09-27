@@ -93,7 +93,13 @@ app.get('/account/history', (c) =>
   c.render(<HistoryPage />, { title: 'History', showTabbar: false })
 )
 app.get('/account/bets', (c) =>
-  c.render(<HistoryPage />, { title: 'Bet history', showTabbar: false })
+  c.render(<HistoryPage mode="bets" />, { title: 'Bet history', showTabbar: false })
+)
+app.get('/account/deposit-history', (c) =>
+  c.render(<HistoryPage mode="deposit" />, { title: 'Deposit history', showTabbar: false })
+)
+app.get('/account/withdraw-history', (c) =>
+  c.render(<HistoryPage mode="withdraw" />, { title: 'Withdraw history', showTabbar: false })
 )
 app.get('/account/profile', (c) =>
   c.render(<ProfilePage />, { title: 'Profile', showTabbar: false })
