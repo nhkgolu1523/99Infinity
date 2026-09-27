@@ -382,11 +382,11 @@
 .activity-cards__item {
   position: relative;
   z-index: 1;
-  height: 2.36rem;
-  padding: 0.3rem 0.34rem;
+  height: 3rem;
+  padding: 0.336rem 0.384rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   border-radius: 0.384rem;
   overflow: hidden;
 
@@ -427,7 +427,6 @@
   position: relative;
   z-index: 2;
   align-self: flex-start;
-  margin-top: 0.22rem;
   width: 0.624rem;
   height: 0.624rem;
   border-radius: 50%;
@@ -449,10 +448,10 @@
 /* art image */
 .activity-cards__item .art {
   position: absolute;
-  bottom: -0.16rem;
-  right: -0.16rem;
-  width: 1.42rem;
-  height: 1.42rem;
+  bottom: -0.192rem;
+  right: -0.192rem;
+  width: 1.68rem;
+  height: 1.68rem;
   object-fit: contain;
   z-index: 1;
   opacity: 0.95;
