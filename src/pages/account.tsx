@@ -1,113 +1,199 @@
 import { site } from '../data'
 import { NavbarInner, SiteFooter } from '../components/layout'
 import { Icon } from '../components/icons'
+import { SPRITE_SYMBOLS } from '../components/account-sprite'
 
 /* ==========================================================================
-   ACCOUNT
+   ACCOUNT – exact copy of the client reference (Account Tab.html):
+   gradient hero + avatar/UID, total balance card, quick actions,
+   financial-services cards, settings list, service-center grid + logout.
    ========================================================================== */
 export function AccountPage() {
-  const grid = [
-    { icon: 'fa-credit-card', label: 'Deposit', href: '/account/deposit' },
-    { icon: 'fa-external-link', label: 'Withdraw', href: '/account/withdraw' },
-    { icon: 'fa-clock', label: 'History', href: '/account/history' },
-    { icon: 'fa-gift', label: 'Bonus', href: '/activity', gold: true },
-    { icon: 'fa-dice', label: 'Bet History', href: '/account/bets' },
-    { icon: 'fa-crown', label: 'VIP', href: '/activity', gold: true },
-    { icon: 'fa-user', label: 'Profile', href: '/account/profile' },
-    { icon: 'settings', label: 'Settings', href: '/account/settings' },
+  const quick = [
+    { icon: 'icon-wallets', label: 'Wallet', href: '/account/wallet' },
+    { icon: 'icon-rechargeIcon', label: 'Deposit', href: '/deposit' },
+    { icon: 'icon-widthdrawBlue', label: 'Withdraw', href: '/withdraw' },
+    { icon: 'icon-VipIcon', label: 'VIP', href: '/activity' },
   ]
 
-  const list = [
-    { icon: 'fa-shield', label: 'Security Center', badge: 'Protected', gold: true, href: '/account/security' },
-    { icon: 'globe', label: 'Language', badge: site.brand.lang, href: '/account/settings' },
-    { icon: 'info', label: 'About us', href: '/account/about' },
-    { icon: 'fa-headset', label: 'Customer service', badge: '24/7', href: '/support' },
+  const financial = [
+    { icon: 'icon-betHistory', title: 'Game History', desc: 'My game history', href: '/account/bets' },
+    { icon: 'icon-tradeHistory', title: 'Transaction', desc: 'My transaction history', href: '/account/history' },
+    { icon: 'icon-rechargeHistory', title: 'Deposit', desc: 'My deposit history', href: '/deposit' },
+    { icon: 'icon-myWithdrawHistory', title: 'Withdraw', desc: 'My withdraw history', href: '/withdraw' },
+  ]
+
+  const panel = [
+    { icon: 'icon-notification', label: 'Notification', href: '/messages' },
+    { icon: 'icon-gifts', label: 'Gifts', href: '/daily-reward' },
+    { icon: 'icon-login_list_icon', label: 'My Top-Up Coupons', href: '/activity' },
+    { icon: 'icon-statsIcon', label: 'Game statistics', href: '/account/bets' },
+    { icon: 'icon-language', label: 'Language', value: 'English', href: '/account/settings' },
+  ]
+
+  const service = [
+    { icon: 'icon-settingCenter', label: 'Settings', href: '/account/settings' },
+    { icon: 'icon-feedback', label: 'Feedback', href: '/support' },
+    { icon: 'icon-notificationCenter', label: 'Announcement', href: '/messages' },
+    { icon: 'icon-serverTicket', label: 'Customer Service', href: '/support' },
+    { icon: 'icon-guide', label: "Beginner's Guide", href: '/support' },
+    { icon: 'icon-about', label: 'About us', href: '/account/about' },
   ]
 
   return (
-    <div class="ac-page">
-      <header class="ac-header">
-        <a class="ac-header__btn" href="/" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
-        </a>
-        <span class="ac-header__title">Account</span>
-        <a class="ac-header__btn" href="/support" aria-label="Customer service">
-          <Icon name="fa-headset" size="0.33rem" />
-        </a>
-      </header>
+    <div class="acct-page">
+      {/* client SVG icon sprite — exact copy from the Account Tab reference.
+          (dangerouslySetInnerHTML cannot go on <svg> itself in Hono JSX, so
+          each <symbol> is rendered as its own node, like icons.tsx does.) */}
+      <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+        {SPRITE_SYMBOLS.map((s) => (
+          <symbol
+            {...s.attrs}
+            key={s.id}
+            dangerouslySetInnerHTML={{ __html: s.body }}
+          />
+        ))}
+      </svg>
 
-      <main class="ac-content">
-        <div class="ac-profile">
-          <img class="ac-profile__avatar" src="/assets/img/avatar/guest.svg" alt="" />
-          <div class="ac-profile__info">
-            <h2>Guest User</h2>
-            <div class="ac-profile__id">ID: 00000000</div>
-            <div class="ac-profile__balance">
-              <Icon name="fa-rupee" size="0.3rem" />
-              <span class="num">0.00</span>
+      {/* gradient hero – avatar, nickname, UID, last login */}
+      <div class="userInfo__container">
+        <div class="userInfo__container-content">
+          <div class="userInfo__container-content-wrapper">
+            <div class="userInfo__container-content__avatar">
+              <img class="userAvatar" src="/assets/img/account/avatar.png" alt="" />
+            </div>
+            <div class="userInfo__container-content__name">
+              <div class="userInfo__container-content-nickname">
+                <h3>Guest</h3>
+                <div class="n0" style="background-image:url('/assets/img/account/vip-0.png')"></div>
+              </div>
+              <div class="userInfo__container-content-uid">
+                <span>UID</span>
+                <span>|</span>
+                <span>1426676</span>
+                <svg class="svg-icon icon-copy" data-copy="1426676" data-copy-toast="UID Copied!">
+                  <use href="#icon-copy"></use>
+                </svg>
+              </div>
+              <div class="userInfo__container-content-logintime">
+                <span>Last login:&nbsp;</span>
+                <span>2026-09-26 20:51:03</span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="ac-actions">
-          <a class="ac-btn ac-btn--deposit" href="/account/deposit">
-            <Icon name="fa-arrow-down" size="0.33rem" /> Deposit
-          </a>
-          <a class="ac-btn ac-btn--withdraw" href="/account/withdraw">
-            <Icon name="fa-arrow-up" size="0.33rem" /> Withdraw
-          </a>
+      <div class="userinfo-content">
+        {/* total balance + quick actions */}
+        <div class="totalSavings__container">
+          <div class="totalSavings__container-header">
+            <div class="totalSavings__container-header-box ar-1px-b">
+              <div class="balance_info">
+                <div class="totalSavings__container-header__title">
+                  <span>Total balance</span>
+                </div>
+                <p class="totalSavings__container-header__subtitle">
+                  <span>₹0.00</span>
+                  <svg class="svg-icon icon-refreshBalance" data-toast="Balance refreshed!">
+                    <use href="#icon-refreshBalance"></use>
+                  </svg>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="totalSavings__container-content">
+            {quick.map((q) => (
+              <div class="totalSavings__container-content-item">
+                <a href={q.href}>
+                  <svg class={`svg-icon ${q.icon}`}>
+                    <use href={`#${q.icon}`}></use>
+                  </svg>
+                  <span>{q.label}</span>
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <nav class="ac-grid" aria-label="Quick actions">
-          {grid.map((g) => (
-            <a class={`ac-grid__item${g.gold ? ' gold' : ''}`} href={g.href}>
-              <span class="ac-grid__icon">
-                <Icon name={g.icon} size="0.37rem" />
-              </span>
-              <span>{g.label}</span>
-            </a>
-          ))}
-        </nav>
-
-        <div class="ac-list">
-          {list.map((m) => (
-            <a class="ac-list__item" href={m.href}>
-              <span class="ac-list__left">
-                <span class="ac-list__icon">
-                  <Icon name={m.icon} size="0.3rem" />
-                </span>
-                <span class="ac-list__label">{m.label}</span>
-              </span>
-              <span class="ac-list__right">
-                {m.badge && <span class={`ac-badge${m.gold ? ' gold' : ''}`}>{m.badge}</span>}
-                <Icon name="chevron-right" size="0.22rem" class="ac-list__chev" />
-              </span>
-            </a>
-          ))}
-
-          <button class="ac-list__item ac-list__item--logout" data-dialog-open="logout">
-            <span class="ac-list__left">
-              <span class="ac-list__icon">
-                <Icon name="fa-logout" size="0.3rem" />
-              </span>
-              <span class="ac-list__label">Log out</span>
-            </span>
-            <span class="ac-list__right">
-              <Icon name="chevron-right" size="0.22rem" class="ac-list__chev ac-list__chev--red" />
-            </span>
-          </button>
+        {/* game / transaction / deposit / withdraw history cards */}
+        <div class="financialServices__container">
+          <div class="financialServices__container-box">
+            {financial.map((f) => (
+              <a href={f.href}>
+                <svg class={`svg-icon ${f.icon}`}>
+                  <use href={`#${f.icon}`}></use>
+                </svg>
+                <div class="financialServices__container-box-para">
+                  <h3>{f.title}</h3>
+                  <span>{f.desc}</span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
-      </main>
+
+        {/* notification / gifts / coupons / statistics / language */}
+        <div class="settingPanel__container">
+          <div class="settingPanel__container-items">
+            {panel.map((p) => (
+              <a class="settingPanel__container-items__item ar-1px-b" href={p.href}>
+                <div class="settingPanel__container-items__title">
+                  <svg class={`svg-icon ${p.icon}`}>
+                    <use href={`#${p.icon}`}></use>
+                  </svg>
+                  <span>{p.label}</span>
+                </div>
+                <div class="settingPanel__container-items-right">
+                  {p.value && <span>{p.value}</span>}
+                  <i class="van-icon-arrow">
+                    <Icon name="chevron-right" size="0.4rem" />
+                  </i>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* service center grid + logout */}
+        <div class="serviceCenter-wrap">
+          <div class="serviceCenter__container">
+            <h1>Service center</h1>
+            <div class="serviceCenter__container-items">
+              {service.map((s) => (
+                <a class="serviceCenter__container-items__item" href={s.href}>
+                  <svg class={`svg-icon ${s.icon}`}>
+                    <use href={`#${s.icon}`}></use>
+                  </svg>
+                  <span>{s.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+          <div class="serviceCenter-wrap-header">
+            <button data-dialog-open="logout">
+              <svg class="svg-icon icon-logout">
+                <use href="#icon-logout"></use>
+              </svg>{' '}
+              Log out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* floating customer-service button */}
+      <a class="customer" href="/support" aria-label="Customer service">
+        <img src="/assets/img/account/customer-float.png" alt="" />
+      </a>
     </div>
   )
 }
-
 /* ==========================================================================
    WALLET / DEPOSIT / WITHDRAW
    ========================================================================== */
 const METHODS = [
   { key: 'upi', label: 'UPI', desc: 'Instant · No fee', icon: 'phone' },
-  { key: 'bank', label: 'Bank Transfer', desc: '1–30 minutes', icon: 'wallet' },
+  { key: 'bank', label: 'Bank Transfer', desc: '1—30 minutes', icon: 'wallet' },
   { key: 'usdt', label: 'USDT (TRC20)', desc: 'Crypto · Low fee', icon: 'grid' },
   { key: 'card', label: 'Debit / Credit Card', desc: 'Visa · Mastercard', icon: 'ticket' },
 ]
@@ -267,7 +353,7 @@ export function WithdrawPage() {
                 </span>
                 <span class="wd-method__info">
                   <h4>Bank Transfer</h4>
-                  <p>1–30 minutes</p>
+                  <p>1—30 minutes</p>
                 </span>
               </span>
               <Icon name="chevron-right" size="0.27rem" class="wd-method__chev" />
@@ -408,7 +494,7 @@ export function WithdrawPage() {
 }
 
 /* ==========================================================================
-   HISTORY / TRANSACTIONS  (th-* — gold theme list, header shared with ac-*)
+   HISTORY / TRANSACTIONS  (th-* – gold theme list, header shared with ac-*)
    ========================================================================== */
 export function HistoryPage() {
   const rows = [
@@ -677,7 +763,7 @@ export function SecurityPage() {
 }
 
 /* ==========================================================================
-   SECURITY TOOLS (sec-*) — Change Password / 2FA / PIN / Devices / Phishing
+   SECURITY TOOLS (sec-*) – Change Password / 2FA / PIN / Devices / Phishing
    ========================================================================== */
 function SecShell({ title, children }: { title: string; children: any }) {
   return (

@@ -1,6 +1,6 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 import { site } from './data'
-import { IconSprite, Icon } from './components/icons'
+import { IconSprite } from './components/icons'
 import { LoginAlertDialog, NoticeDialog, LogoutDialog } from './components/dialogs'
 
 /** Runtime viewport → rem scaling. Runs before paint to avoid FOUC. */
@@ -84,7 +84,9 @@ export const renderer = jsxRenderer(
 )
 
 /* --------------------------------------------------------------------------
-   Tabbar — floating gold pill with a centre spin-wheel ("Get ₹500")
+   Tabbar — exact copy of the client reference (bottom-nav.html): image pill
+   bar, centre spin-wheel on the notch pedestal, and image icons where the
+   active tab swaps to its green "sel" version.
    -------------------------------------------------------------------------- */
 function TabbarMount({ active }: { active: string }) {
   const items = site.tabbar
@@ -92,43 +94,39 @@ function TabbarMount({ active }: { active: string }) {
   const center = items[2]
   const right = items.slice(3)
 
-  /* FontAwesome-style solid glyphs (same icons as the reference HTML) */
-  const TAB_ICONS: Record<string, string> = {
-    home: 'fa-house',
-    activity: 'fa-chart',
-    promotion: 'fa-gift',
-    account: 'fa-user',
-  }
-
   const tab = (t: (typeof items)[number]) => (
     <a
       class={`tabbar__items-tab${active === t.key ? ' active' : ''}`}
       href={t.href}
       aria-label={t.label}
     >
-      <Icon name={TAB_ICONS[t.key] || 'grid'} class="tabbar__items-tab__icon" />
+      <img
+        class="tabbar__items-tab__icon"
+        src={active === t.key ? t.activeIcon : t.icon}
+        alt=""
+      />
+      {t.key === 'activity' && <span class="reddot"></span>}
       <span>{t.label}</span>
     </a>
   )
 
   return (
     <nav class="tabbar" aria-label="Primary">
-      <div class="tabbar__pill"></div>
+      <div class="tabbar__bar"></div>
 
-      {/* centre spin-wheel + Get ₹500 — same layering as the reference tabbar */}
+      {/* centre spin-wheel — wheel (z2) behind the notch (z4), label (z7) */}
       <a class="tabbar__center" href={center.href} aria-label={center.label}>
-        <span
-          class="tabbar__center-wheel"
+        <div
+          class="tabbar__center-icon"
           style={`background-image:url('/assets/img/tabbar/center-wheel.png')`}
-        ></span>
-        <span class="tabbar__center-text">
-          {center.label}
-        </span>
+        ></div>
+        <div class="tabbar__center-fg"></div>
+        <span class="tabbar__center-text active">{center.label}</span>
       </a>
 
       <div class="tabbar__items">
         {left.map(tab)}
-        <div class="tabbar__items-spacer" aria-hidden="true"></div>
+        <div class="tabbar__items-tab placeholder" aria-hidden="true"></div>
         {right.map(tab)}
       </div>
     </nav>

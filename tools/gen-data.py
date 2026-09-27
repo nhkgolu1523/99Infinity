@@ -150,10 +150,10 @@ data = {
     'footerWarning': ['Gambling can be addictive, please play rationally.', '99infinity only accepts customers above the age of 18.'],
     'tabbar': [
         {'key': 'home', 'label': 'Home', 'icon': '/assets/img/tabbar/home.png', 'activeIcon': '/assets/img/tabbar/home-active.png', 'href': '/'},
-        {'key': 'activity', 'label': 'Activity', 'icon': '/assets/img/tabbar/activity.png', 'activeIcon': '/assets/img/tabbar/activity.png', 'href': '/activity'},
+        {'key': 'activity', 'label': 'Activity', 'icon': '/assets/img/tabbar/activity.png', 'activeIcon': '/assets/img/tabbar/activity-active.png', 'href': '/activity'},
         {'key': 'center', 'label': 'Get \u20b9500', 'href': '/spin'},
-        {'key': 'promotion', 'label': 'Promotion', 'icon': '/assets/img/tabbar/promotion.png', 'activeIcon': '/assets/img/tabbar/promotion.png', 'href': '/promotion'},
-        {'key': 'account', 'label': 'Account', 'icon': '/assets/img/tabbar/mine.png', 'activeIcon': '/assets/img/tabbar/mine.png', 'href': '/account'},
+        {'key': 'promotion', 'label': 'Promotion', 'icon': '/assets/img/tabbar/promotion.png', 'activeIcon': '/assets/img/tabbar/promotion-active.png', 'href': '/promotion'},
+        {'key': 'account', 'label': 'Account', 'icon': '/assets/img/tabbar/mine.png', 'activeIcon': '/assets/img/tabbar/mine-active.png', 'href': '/account'},
     ],
     'messages': [
         {

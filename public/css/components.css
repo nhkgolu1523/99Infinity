@@ -993,167 +993,138 @@
 }
 
 /* ==========================================================================
-   TABBAR — floating gold pill with centre spin-wheel
+   TABBAR - exact copy of the client reference (bottom-nav.html):
+   image pill bar + centre spin-wheel on a notch pedestal + image icons
+   (active tab swaps to its green "sel" icon). Root font 54px = reference,
+   so rem values are 1:1.
    ========================================================================== */
 .tabbar {
   position: fixed;
-  bottom: 0.37rem;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 92%;
-  max-width: 10rem;
-  height: 1.5rem;
+  width: 10rem;
+  height: 2rem;
   z-index: 100;
   pointer-events: none;
 }
-
-.tabbar__pill {
-  position: absolute;
-  inset: 0;
-  background: #141414;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 0.65rem;
-  box-shadow: 0 0.19rem 0.56rem rgba(0, 0, 0, 0.5);
-  pointer-events: auto; /* re-enable clicks — the .tabbar host disables them */
+@media (max-width: 500px) {
+  .tabbar { width: 100%; left: 0; transform: none; }
 }
 
-/* tab row — overlays the pill, above the notch so tabs stay clickable */
-.tabbar__items {
+/* pill background image */
+.tabbar__bar {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  padding: 0 0.19rem;
-  z-index: 5;
+  bottom: 0.13333rem;
+  left: 0.34667rem;
+  right: 0.34667rem;
+  height: 1.73333rem;
+  background: url(/assets/img/tabbar/bar-bg.png) no-repeat center;
+  background-size: 100% 100%;
+  z-index: 3;
   pointer-events: none;
 }
 
-/* gap reserved for the centre spin-wheel */
-.tabbar__items-spacer {
-  flex: none;
-  width: 2.1rem;
-}
-
-.tabbar__items-tab {
-  position: relative;
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.08rem;
-  color: #8e8e93;
-  text-decoration: none;
-  font-size: 0.22rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-  pointer-events: auto; /* re-enable clicks — .tabbar__items disables them */
-}
-
-.tabbar__items-tab:active { transform: scale(0.95); }
-
-.tabbar__items-tab__icon {
-  width: 0.5rem;
-  height: 0.5rem;
-  object-fit: contain;
-  transition: transform 0.2s ease;
-}
-
-.tabbar__items-tab span {
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.tabbar__items-tab.active { color: #d4af37; }
-.tabbar__items-tab.active .tabbar__items-tab__icon { transform: translateY(-0.04rem); }
-
-/* active indicator — small gold dot */
-.tabbar__items-tab::after {
-  content: '';
-  position: absolute;
-  bottom: 0.13rem;
-  left: 50%;
-  width: 0.09rem;
-  height: 0.09rem;
-  margin-left: -0.045rem;
-  background: #d4af37;
-  border-radius: 50%;
-  opacity: 0;
-  transform: scale(0);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tabbar__items-tab.active::after { opacity: 1; transform: scale(1); }
-
-/* centre spin-wheel + Get ₹500 — same layering as the reference tabbar:
-   wheel (z2) behind the curved notch (z4), label (z7) on top, tabs (z5) above all */
+/* centre spin-wheel - wheel (z2) behind the curved notch (z4), label (z7) */
 .tabbar__center {
   position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 2.55rem;
-  height: 2.7rem;
+  left: calc(50% - 1.46667rem);
+  bottom: 0.13333rem;
+  width: 2.93333rem;
+  height: 2.66667rem;
   pointer-events: auto;
   cursor: pointer;
   text-decoration: none;
+}
+.tabbar__center-icon {
+  position: absolute;
+  left: 50%;
+  bottom: 0.50667rem;
+  transform: translateX(-50%);
+  width: 2.13333rem;
+  height: 2rem;
+  background-repeat: no-repeat;
+  background-size: cover;
   z-index: 2;
 }
-
-/* dark-gold curved pedestal — rises in front of the wheel's lower edge so the
-   wheel tucks behind it. Subtle golden sheen on a dark base, not full gold. */
-.tabbar__center::before {
-  content: '';
+.tabbar__center-fg {
   position: absolute;
   left: 50%;
   bottom: 0;
   transform: translateX(-50%);
-  width: 1.95rem;
-  height: 1rem;
-  background: linear-gradient(
-    180deg,
-    rgba(14, 14, 14, 0.98) 0%,
-    rgba(14, 14, 14, 0.95) 52%,
-    rgba(212, 175, 55, 0.3) 100%
-  );
-  border-radius: 0.55rem 0.55rem 0 0;
-  box-shadow:
-    inset 0 0.02rem 0.03rem rgba(212, 175, 55, 0.15),
-    0 -0.04rem 0.28rem rgba(212, 175, 55, 0.08);
-  z-index: 4;
+  width: 2.66667rem;
+  height: 0.92rem;
+  background: url(/assets/img/tabbar/notch.png) no-repeat center/contain;
   pointer-events: none;
+  z-index: 4;
 }
-
-.tabbar__center-wheel {
-  position: absolute;
-  left: 50%;
-  bottom: 0.45rem;
-  transform: translateX(-50%);
-  width: 2.1rem;
-  height: 1.95rem;
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: center;
-  z-index: 2;
-  filter: drop-shadow(0 0.08rem 0.15rem rgba(0, 0, 0, 0.45));
-}
-
 .tabbar__center-text {
   position: absolute;
   left: 50%;
-  bottom: 0.26rem;
+  bottom: 0.33333rem;
   transform: translateX(-50%);
+  min-width: 2.93333rem;
+  text-align: center;
   white-space: nowrap;
-  color: #00e676;
+  color: var(--text_color_L3);
   font-size: 0.34667rem;
   font-weight: 600;
   line-height: normal;
-  text-shadow: 0 0 0.14rem rgba(212, 175, 55, 0.45);
   z-index: 7;
 }
+.tabbar__center-text.active { color: var(--text_color_L1); }
 
+/* tab row - sits above the bar, tabs shifted toward the centre */
+.tabbar__items {
+  position: absolute;
+  bottom: 0.13333rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0.34667rem 0.26667rem;
+  z-index: 5;
+}
+.tabbar__items-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.08rem;
+  color: var(--text_color_L3);
+  padding-bottom: 0.08rem;
+  pointer-events: auto;
+  cursor: pointer;
+  text-decoration: none;
+}
+.tabbar__items-tab .reddot {
+  position: absolute;
+  bottom: 0.96rem;
+  left: calc(50% + 0.16rem);
+  width: 0.18667rem;
+  height: 0.18667rem;
+  border-radius: 50%;
+  background: var(--norm_red-color);
+  z-index: 5;
+}
+.tabbar__items-tab:nth-child(2) { transform: translateX(-0.32rem); }
+.tabbar__items-tab:nth-child(4) { transform: translateX(0.32rem); }
+.tabbar__items-tab__icon {
+  width: 0.74667rem;
+  height: 0.74667rem;
+  object-fit: contain;
+}
+.tabbar__items-tab span {
+  line-height: 1;
+  font-size: 0.29333rem;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+.tabbar__items-tab.active { color: var(--text_color_L1); }
+.tabbar__items-tab.placeholder { pointer-events: none; }
 /* ==========================================================================
    BUTTONS
    ========================================================================== */

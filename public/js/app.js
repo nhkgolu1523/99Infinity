@@ -706,7 +706,7 @@
         const value = btn.dataset.copy || '';
         if (navigator.clipboard) {
           navigator.clipboard.writeText(value).then(
-            () => toast('Secret code copied!'),
+            () => toast(btn.dataset.copyToast || 'Secret code copied!'),
             () => toast('Failed to copy')
           );
         } else {

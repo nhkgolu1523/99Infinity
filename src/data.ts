@@ -250,7 +250,7 @@ export const site = {
       "key": "activity",
       "label": "Activity",
       "icon": "/assets/img/tabbar/activity.png",
-      "activeIcon": "/assets/img/tabbar/activity.png",
+      "activeIcon": "/assets/img/tabbar/activity-active.png",
       "href": "/activity"
     },
     {
@@ -262,14 +262,14 @@ export const site = {
       "key": "promotion",
       "label": "Promotion",
       "icon": "/assets/img/tabbar/promotion.png",
-      "activeIcon": "/assets/img/tabbar/promotion.png",
+      "activeIcon": "/assets/img/tabbar/promotion-active.png",
       "href": "/promotion"
     },
     {
       "key": "account",
       "label": "Account",
       "icon": "/assets/img/tabbar/mine.png",
-      "activeIcon": "/assets/img/tabbar/mine.png",
+      "activeIcon": "/assets/img/tabbar/mine-active.png",
       "href": "/account"
     }
   ],

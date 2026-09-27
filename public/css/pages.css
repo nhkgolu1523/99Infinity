@@ -4340,3 +4340,304 @@
 
 
 
+
+/* ==========================================================================
+   ACCOUNT TAB — exact copy of the client reference (Account Tab.html).
+   Root font-size (54px) matches the reference, so rem values are 1:1.
+   ========================================================================== */
+
+/* inline <use> sprite icons (client naming) */
+.svg-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: currentColor;
+  overflow: hidden;
+}
+
+/* vant-style 0.5px bottom hairline */
+.ar-1px-b { position: relative; }
+.ar-1px-b::after {
+  content: " ";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  height: 0.01333rem;
+  border-bottom: 0.01333rem solid var(--Dividing-line_color);
+  transform-origin: 0 100%;
+  transform: scaleY(0.5);
+}
+
+/* page shell */
+.acct-page {
+  min-height: 100vh;
+  background: var(--bg_color_L1);
+  padding-bottom: calc(var(--tabbar-h) + 0.64rem);
+}
+
+/* ---- gradient hero ---- */
+.userInfo__container {
+  width: 100%;
+  height: 5.6rem;
+  padding-bottom: 2.90667rem;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 0 0 0.8rem 0.8rem;
+  background: var(--game_tab_active_bg, var(--light-main_gradient-color, var(--bg_color_L2)));
+}
+.userInfo__container-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 0.45333rem;
+  color: #fff;
+}
+.userInfo__container-content-wrapper { display: flex; justify-content: flex-start; }
+.userInfo__container-content__avatar {
+  width: 1.86667rem;
+  height: 1.86667rem;
+  border-radius: 50%;
+  margin-right: 0.2rem;
+  overflow: hidden;
+}
+.userInfo__container-content__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.userInfo__container-content__name {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+.userInfo__container-content-nickname {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 0.4rem;
+  color: #fff;
+}
+.userInfo__container-content-nickname h3 { margin: 0; }
+.userInfo__container .n0 {
+  width: 1.33333rem;
+  height: 0.58667rem;
+  margin: 0 0.13333rem;
+  background-size: 1.33333rem 0.58667rem;
+  background-repeat: no-repeat;
+}
+.userInfo__container-content-nickname .editPencil { width: 0.4rem; }
+.userInfo__container-content-uid {
+  width: 3.06667rem;
+  border-radius: 0.53333rem;
+  padding: 0.06667rem 0;
+  font-size: 0.29333rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: var(--norm_secondary-color);
+}
+.userInfo__container-content-uid svg { width: 0.32rem; height: 0.32rem; cursor: pointer; }
+.userInfo__container-content-logintime { font-size: 0.29333rem; color: #fff; }
+
+/* cards block pulled up over the hero */
+.userinfo-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.53333rem;
+  padding: 0 0.32rem 0.81333rem;
+  position: relative;
+  top: -2.18667rem;
+}
+
+/* ---- total balance ---- */
+.totalSavings__container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+  height: 4.2rem;
+  border-radius: 0.26667rem;
+  background: var(--bg_color_L2);
+}
+.totalSavings__container-header { width: 100%; padding: 0.37333rem 0.52rem 0 0.36rem; }
+.totalSavings__container-header-box {
+  padding-bottom: 0.26667rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.totalSavings__container-header__title {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+.totalSavings__container-header__title span {
+  font-weight: 400;
+  font-size: 0.37333rem;
+  color: var(--text_color_L2);
+}
+.totalSavings__container-header__subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: 0.32rem;
+  width: 100%;
+  margin: 0.2rem 0 0;
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: var(--text_color_L1);
+}
+.totalSavings__container-header__subtitle svg { width: 0.50667rem; height: 0.50667rem; }
+.totalSavings__container-content {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  padding: 0.4rem 0.26667rem;
+}
+.totalSavings__container-content-item {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.totalSavings__container-content-item a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.totalSavings__container-content-item a svg { min-width: 0.8rem; min-height: 0.8rem; }
+.totalSavings__container-content-item a span {
+  margin: 0.13333rem 0;
+  font-size: 0.37333rem;
+  color: var(--text_color_L1);
+  text-align: center;
+}
+
+/* ---- financial services (history cards) ---- */
+.financialServices__container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.53333rem;
+}
+.financialServices__container-box {
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 0.26667rem;
+}
+.financialServices__container-box > a {
+  width: calc((100% - 0.26667rem) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--text_color_L2);
+  padding: 0.24rem;
+  background: var(--darkBg, var(--bg_color_L2));
+  border-radius: 0.13333rem;
+}
+.financialServices__container-box > a svg { min-width: 0.93333rem; min-height: 1.08rem; }
+.financialServices__container-box-para {
+  padding: 0 0.13333rem;
+  display: flex;
+  flex-direction: column;
+}
+.financialServices__container-box-para h3 { margin: 0; font-size: 0.37333rem; color: var(--text_color_L1); }
+.financialServices__container-box-para span { font-size: 0.32rem; color: var(--text_color_L2); }
+
+
+/* ---- settings panel list ---- */
+.settingPanel__container {
+  padding: 0 0.26667rem 0.13333rem;
+  border-radius: 0.26667rem;
+  background: var(--darkBg, var(--bg_color_L2));
+}
+.settingPanel__container-items {
+  display: flex;
+  flex-direction: column;
+  color: var(--text_color_L1);
+  padding-bottom: 0.26667rem;
+}
+.settingPanel__container-items__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.37333rem;
+  padding: 0.33333rem 0;
+}
+.settingPanel__container-items__item svg { width: 0.8rem; height: 0.8rem; }
+.settingPanel__container-items__item span { color: var(--text_color_L1); }
+.settingPanel__container-items__item:last-child.ar-1px-b::after { content: none; }
+.settingPanel__container-items__title {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.16rem;
+}
+.settingPanel__container-items__title svg { color: var(--main-color); }
+.settingPanel__container-items-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.settingPanel__container-items-right span {
+  font-size: 0.37333rem;
+  padding-right: 0.4rem;
+  color: var(--text_color_L1);
+}
+.settingPanel__container-items-right .van-icon-arrow { color: #666; display: flex; align-items: center; }
+
+/* ---- service center ---- */
+.serviceCenter__container {
+  padding: 0.53333rem 0.32rem;
+  border-radius: 0.26667rem;
+  background: var(--darkBg, var(--bg_color_L2));
+  height: 5.33333rem;
+  box-shadow: var(--BoxShadowColor-9, 0 8px 40px rgba(0, 0, 0, 0.12));
+}
+.serviceCenter__container h1 { margin: 0 0 0.58667rem; color: var(--text_color_L1); font-size: 0.4rem; }
+.serviceCenter__container-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  justify-items: center;
+  gap: 0.32rem;
+  color: var(--text_color_L2);
+}
+.serviceCenter__container-items__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.13333rem;
+  font-size: 0.32rem;
+}
+.serviceCenter__container-items__item svg { width: 0.8rem; height: 0.8rem; }
+.serviceCenter__container-items__item span { text-align: center; }
+.serviceCenter-wrap-header { margin: 1.06667rem 0 0.26667rem; }
+.serviceCenter-wrap-header button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.13333rem 0;
+  color: var(--main-color);
+  background: var(--bg_color_L1);
+  border: 0.01333rem solid var(--main-color);
+  border-radius: 0.66667rem;
+  font-size: 0.4rem;
+  gap: 0.32rem;
+}
+.serviceCenter-wrap-header button svg { width: 0.64rem; height: 0.64rem; }
+
+/* ---- floating customer-service button ---- */
+.customer {
+  position: fixed;
+  bottom: 2.4rem;
+  right: 0.4rem;
+  width: 1.49333rem;
+  height: 1.49333rem;
+  border-radius: 50%;
+  z-index: 108;
+}
+.customer img { width: 100%; height: 100%; border-radius: 50%; }
+
