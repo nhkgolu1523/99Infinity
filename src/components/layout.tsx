@@ -15,6 +15,12 @@ export function NavbarHome({ loggedIn = false }: { loggedIn?: boolean }) {
             <a href="/" aria-label={`${site.brand.name} home`}>
               <img class="logo" src={site.brand.logo} alt={site.brand.name} />
             </a>
+            {/* brand wordmark — small, right of the logo badge */}
+            <img
+              class="logo-text"
+              src="/assets/img/brand/logo-text.png"
+              alt={site.brand.name}
+            />
           </div>
 
           <div class="navbar__content-right">

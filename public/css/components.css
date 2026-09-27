@@ -67,6 +67,14 @@
   object-fit: contain;
 }
 
+/* brand wordmark — sits right of the logo badge, optically centred */
+.navbar .logo-text {
+  height: 0.76rem;
+  width: auto;
+  margin-left: 0.16rem;
+  object-fit: contain;
+}
+
 /* variant: gradient navbar used on inner pages */
 .navbar--main .navbar-fixed {
   background: var(--navbar_gradient_main);
