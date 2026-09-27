@@ -274,7 +274,7 @@ export function WithdrawPage() {
     <div class="ac-page" id="wdPage">
       <header class="ac-header">
         <a class="ac-header__btn" href="/account" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
+          <Icon name="chevron-left" size="0.37rem" />
         </a>
         <span class="ac-header__title">Withdraw</span>
       </header>
@@ -285,7 +285,7 @@ export function WithdrawPage() {
           <div class="wd-balance">
             <span>Available balance</span>
             <div class="wd-balance__amount">
-              <Icon name="fa-rupee" size="0.27rem" /> 0.00
+              <Icon name="fa-rupee" size="0.31rem" /> 0.00
             </div>
           </div>
 
@@ -323,14 +323,14 @@ export function WithdrawPage() {
             <div class="wd-method__item">
               <span class="wd-method__left">
                 <span class="wd-method__icon">
-                  <Icon name="fa-mobile" size="0.38rem" />
+                  <Icon name="fa-mobile" size="0.43rem" />
                 </span>
                 <span class="wd-method__info">
                   <h4>UPI</h4>
                   <p>Instant · No fee</p>
                 </span>
               </span>
-              <Icon name="chevron-right" size="0.27rem" class="wd-method__chev" />
+              <Icon name="chevron-right" size="0.31rem" class="wd-method__chev" />
             </div>
             <div class="wd-inline">
               <div class="wd-inline__inner">
@@ -339,7 +339,7 @@ export function WithdrawPage() {
                     <label class="wd-label" for="wdUpi">UPI ID</label>
                     <input type="text" class="wd-field" id="wdUpi" placeholder="yourname@upi" />
                     <div class="wd-hint">
-                      <Icon name="fa-circle-info" size="0.2rem" /> Example: 9876543210@paytm, user@okaxis
+                      <Icon name="fa-circle-info" size="0.23rem" /> Example: 9876543210@paytm, user@okaxis
                     </div>
                   </div>
                 </div>
@@ -352,14 +352,14 @@ export function WithdrawPage() {
             <div class="wd-method__item">
               <span class="wd-method__left">
                 <span class="wd-method__icon">
-                  <Icon name="fa-building-columns" size="0.38rem" />
+                  <Icon name="fa-building-columns" size="0.43rem" />
                 </span>
                 <span class="wd-method__info">
                   <h4>Bank Transfer</h4>
                   <p>1—30 minutes</p>
                 </span>
               </span>
-              <Icon name="chevron-right" size="0.27rem" class="wd-method__chev" />
+              <Icon name="chevron-right" size="0.31rem" class="wd-method__chev" />
             </div>
             <div class="wd-inline">
               <div class="wd-inline__inner">
@@ -395,14 +395,14 @@ export function WithdrawPage() {
             <div class="wd-method__item">
               <span class="wd-method__left">
                 <span class="wd-method__icon">
-                  <Icon name="fa-coins" size="0.38rem" />
+                  <Icon name="fa-coins" size="0.43rem" />
                 </span>
                 <span class="wd-method__info">
                   <h4>USDT (TRC20)</h4>
                   <p>Crypto · Low fee</p>
                 </span>
               </span>
-              <Icon name="chevron-right" size="0.27rem" class="wd-method__chev" />
+              <Icon name="chevron-right" size="0.31rem" class="wd-method__chev" />
             </div>
             <div class="wd-inline">
               <div class="wd-inline__inner">
@@ -411,7 +411,7 @@ export function WithdrawPage() {
                     <label class="wd-label" for="wdUsdt">Wallet Address</label>
                     <input type="text" class="wd-field" id="wdUsdt" placeholder="Enter TRC20 wallet address" />
                     <div class="wd-hint wd-hint--warn">
-                      <Icon name="fa-triangle-exclamation" size="0.2rem" /> Only TRC20 network is supported. Wrong network may result in loss.
+                      <Icon name="fa-triangle-exclamation" size="0.23rem" /> Only TRC20 network is supported. Wrong network may result in loss.
                     </div>
                   </div>
                   <div class="wd-group">
@@ -428,14 +428,14 @@ export function WithdrawPage() {
             <div class="wd-method__item">
               <span class="wd-method__left">
                 <span class="wd-method__icon">
-                  <Icon name="fa-credit-card" size="0.38rem" />
+                  <Icon name="fa-credit-card" size="0.43rem" />
                 </span>
                 <span class="wd-method__info">
                   <h4>Debit / Credit Card</h4>
                   <p>Visa · Mastercard</p>
                 </span>
               </span>
-              <Icon name="chevron-right" size="0.27rem" class="wd-method__chev" />
+              <Icon name="chevron-right" size="0.31rem" class="wd-method__chev" />
             </div>
             <div class="wd-inline">
               <div class="wd-inline__inner">
@@ -624,7 +624,7 @@ export function SettingsPage() {
     <div class="ac-page">
       <header class="ac-subheader">
         <a class="ac-header__btn" href="/account" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
+          <Icon name="chevron-left" size="0.37rem" />
         </a>
         <h2 class="ac-subheader__title">Settings</h2>
       </header>
@@ -642,23 +642,23 @@ export function SettingsPage() {
         <div class="ac-card">
           <div class="ac-settings-item" data-toast="Cache cleared successfully!">
             <span class="ac-settings-item__label">Clear cache</span>
-            <Icon name="chevron-right" size="0.22rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
           </div>
         </div>
 
         <div class="ac-card">
           <a class="ac-settings-item" href="/account/terms">
             <span class="ac-settings-item__label">Terms of Service</span>
-            <Icon name="chevron-right" size="0.22rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
           </a>
           <a class="ac-settings-item" href="/account/privacy">
             <span class="ac-settings-item__label">Privacy Policy</span>
-            <Icon name="chevron-right" size="0.22rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
           </a>
         </div>
 
         <button class="ac-logout-btn" data-dialog-open="logout">
-          <Icon name="fa-logout" size="0.33rem" /> Log out
+          <Icon name="fa-logout" size="0.37rem" /> Log out
         </button>
 
         <div class="ac-version">Version 1.0.0</div>
@@ -675,7 +675,7 @@ export function AboutPage() {
     <div class="ac-page">
       <header class="ac-subheader">
         <a class="ac-header__btn" href="/account" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
+          <Icon name="chevron-left" size="0.37rem" />
         </a>
         <h2 class="ac-subheader__title">About Us</h2>
       </header>
@@ -737,7 +737,7 @@ export function SecurityPage() {
     <div class="ac-page">
       <header class="ac-subheader">
         <a class="ac-header__btn" href="/account" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
+          <Icon name="chevron-left" size="0.37rem" />
         </a>
         <h2 class="ac-subheader__title">Security Center</h2>
       </header>
@@ -756,7 +756,7 @@ export function SecurityPage() {
             <a class="ac-list__item" href={m.href}>
               <span class="ac-list__left">
                 <span class="ac-list__icon">
-                  <Icon name={m.icon} size="0.3rem" />
+                  <Icon name={m.icon} size="0.34rem" />
                 </span>
                 <span class="ac-list__label">{m.label}</span>
               </span>
@@ -766,7 +766,7 @@ export function SecurityPage() {
                     {m.badge}
                   </span>
                 )}
-                <Icon name="chevron-right" size="0.22rem" class="ac-list__chev" />
+                <Icon name="chevron-right" size="0.25rem" class="ac-list__chev" />
               </span>
             </a>
           ))}
@@ -784,7 +784,7 @@ function SecShell({ title, children }: { title: string; children: any }) {
     <div class="ac-page">
       <header class="ac-subheader">
         <a class="ac-header__btn" href="/account/security" aria-label="Back">
-          <Icon name="chevron-left" size="0.33rem" />
+          <Icon name="chevron-left" size="0.37rem" />
         </a>
         <h2 class="ac-subheader__title">{title}</h2>
       </header>
@@ -796,7 +796,7 @@ function SecShell({ title, children }: { title: string; children: any }) {
 function SecEye() {
   return (
     <button type="button" class="sec-eye" data-toggle-password aria-label="Show password">
-      <Icon name="eye" size="0.36rem" />
+      <Icon name="eye" size="0.4rem" />
     </button>
   )
 }
@@ -813,7 +813,7 @@ export function ChangePasswordPage() {
         <div class="sec-group">
           <label class="sec-label">Current Password</label>
           <div class="sec-input">
-            <Icon name="lock" size="0.384rem" class="sec-input__icon" />
+            <Icon name="lock" size="0.43rem" class="sec-input__icon" />
             <input type="password" name="current" placeholder="Enter current password" data-sec-current />
             <SecEye />
           </div>
@@ -822,7 +822,7 @@ export function ChangePasswordPage() {
         <div class="sec-group">
           <label class="sec-label">New Password</label>
           <div class="sec-input">
-            <Icon name="fa-key" size="0.384rem" class="sec-input__icon" />
+            <Icon name="fa-key" size="0.43rem" class="sec-input__icon" />
             <input type="password" name="new" placeholder="Enter new password" data-pass-strength />
             <SecEye />
           </div>
@@ -838,7 +838,7 @@ export function ChangePasswordPage() {
         <div class="sec-group">
           <label class="sec-label">Confirm New Password</label>
           <div class="sec-input">
-            <Icon name="fa-key" size="0.384rem" class="sec-input__icon" />
+            <Icon name="fa-key" size="0.43rem" class="sec-input__icon" />
             <input type="password" name="confirm" placeholder="Re-enter new password" />
             <SecEye />
           </div>
@@ -877,7 +877,7 @@ export function TwoFactorPage() {
       <div class="sec-secret">
         <span>JBSW Y3DP EHPK 3PXP</span>
         <button type="button" data-copy="JBSWY3DPEHPK3PXP" aria-label="Copy secret code">
-          <Icon name="copy" size="0.336rem" />
+          <Icon name="copy" size="0.38rem" />
         </button>
       </div>
 
@@ -890,7 +890,7 @@ export function TwoFactorPage() {
         <div class="sec-group">
           <label class="sec-label">Verification Code</label>
           <div class="sec-input">
-            <Icon name="shield-check" size="0.384rem" class="sec-input__icon" />
+            <Icon name="shield-check" size="0.43rem" class="sec-input__icon" />
             <input
               type="text"
               name="code"
@@ -991,7 +991,7 @@ export function AntiPhishingPage() {
         <div class="sec-group">
           <label class="sec-label">Your Anti-Phishing Code</label>
           <div class="sec-input">
-            <Icon name="mail" size="0.384rem" class="sec-input__icon" />
+            <Icon name="mail" size="0.43rem" class="sec-input__icon" />
             <input
               type="text"
               name="code"

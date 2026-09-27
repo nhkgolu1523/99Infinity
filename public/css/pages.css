@@ -876,7 +876,7 @@
 }
 
 .ac-header__title {
-  font-size: 0.33333rem;
+  font-size: 0.38rem;
   font-weight: 700;
   letter-spacing: 0.013rem;
   color: #fff;
@@ -886,8 +886,8 @@
 }
 
 .ac-header__btn {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.78rem;
+  height: 0.78rem;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
   display: flex;
@@ -913,7 +913,7 @@
 }
 
 .ac-subheader__title {
-  font-size: 0.33333rem;
+  font-size: 0.38rem;
   font-weight: 700;
   color: #fff;
   margin-left: 0.28rem;
@@ -1075,9 +1075,9 @@
 .ac-list__left { display: flex; align-items: center; gap: 0.28rem; }
 
 .ac-list__icon {
-  width: 0.66667rem;
-  height: 0.66667rem;
-  border-radius: 0.185rem;
+  width: 0.76rem;
+  height: 0.76rem;
+  border-radius: 0.21rem;
   background: rgba(255, 255, 255, 0.03);
   display: flex;
   align-items: center;
@@ -1085,15 +1085,15 @@
   color: var(--ac-green);
 }
 
-.ac-list__label { font-size: 0.28rem; font-weight: 600; color: #e6edf3; }
+.ac-list__label { font-size: 0.32rem; font-weight: 600; color: #e6edf3; }
 .ac-list__right { display: flex; align-items: center; gap: 0.22rem; }
 .ac-list__chev { color: #555; }
 
 .ac-badge {
   background: rgba(255, 255, 255, 0.05);
-  padding: 0.074rem 0.185rem;
+  padding: 0.085rem 0.21rem;
   border-radius: 0.37rem;
-  font-size: 0.22rem;
+  font-size: 0.25rem;
   font-weight: 600;
   color: var(--ac-text-2);
 }
@@ -1124,19 +1124,19 @@
 
 .ac-settings-item:last-child { border-bottom: none; }
 .ac-settings-item:active { opacity: 0.6; }
-.ac-settings-item__label { font-size: 0.28rem; font-weight: 500; color: #e6edf3; }
+.ac-settings-item__label { font-size: 0.32rem; font-weight: 500; color: #e6edf3; }
 .ac-settings-item__chev { color: #555; }
 .ac-settings-item--toggle { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .ac-toggle {
   position: relative;
-  width: 0.8rem;
-  height: 0.44rem;
+  width: 0.92rem;
+  height: 0.5rem;
   appearance: none;
   -webkit-appearance: none;
   background: #2c3440;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.22rem;
+  border-radius: 0.25rem;
   outline: none;
   cursor: pointer;
   transition: background 0.3s ease;
@@ -1148,17 +1148,17 @@
 .ac-toggle::before {
   content: '';
   position: absolute;
-  top: 0.037rem;
-  left: 0.037rem;
-  width: 0.33rem;
-  height: 0.33rem;
+  top: 0.045rem;
+  left: 0.045rem;
+  width: 0.38rem;
+  height: 0.38rem;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0.037rem 0.074rem rgba(0, 0, 0, 0.2);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ac-toggle:checked::before { transform: translateX(0.37rem); }
+.ac-toggle:checked::before { transform: translateX(0.42rem); }
 
 .ac-logout-btn {
   display: flex;
@@ -1166,12 +1166,12 @@
   justify-content: center;
   gap: 0.185rem;
   width: 100%;
-  padding: 0.3rem;
+  padding: 0.34rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 0.26rem;
   background: #1c212b;
   color: var(--ac-red);
-  font-size: 0.28rem;
+  font-size: 0.32rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
@@ -1181,15 +1181,15 @@
 
 .ac-version {
   text-align: center;
-  font-size: 0.22rem;
+  font-size: 0.25rem;
   color: var(--ac-text-2);
   font-weight: 500;
   margin-top: 0.1rem;
 }
 
 .ac-about-hero { text-align: center; padding: 0.37rem 0 0.55rem 0; }
-.ac-about-hero h1 { font-size: 0.52rem; font-weight: 800; color: var(--ac-gold); margin-bottom: 0.185rem; }
-.ac-about-hero p { font-size: 0.26rem; color: var(--ac-text-2); }
+.ac-about-hero h1 { font-size: 0.6rem; font-weight: 800; color: var(--ac-gold); margin-bottom: 0.185rem; }
+.ac-about-hero p { font-size: 0.295rem; color: var(--ac-text-2); }
 
 .ac-stats {
   display: grid;
@@ -1206,15 +1206,15 @@
   text-align: center;
 }
 
-.ac-stat h3 { font-size: 0.3rem; font-weight: 800; color: var(--ac-green); margin-bottom: 0.074rem; }
-.ac-stat p { font-size: 0.185rem; color: var(--ac-text-2); text-transform: uppercase; font-weight: 600; }
+.ac-stat h3 { font-size: 0.34rem; font-weight: 800; color: var(--ac-green); margin-bottom: 0.074rem; }
+.ac-stat p { font-size: 0.21rem; color: var(--ac-text-2); text-transform: uppercase; font-weight: 600; }
 
 .ac-legal {
   background: var(--ac-card);
   border: 1px solid var(--ac-border);
   border-radius: 0.3rem;
   padding: 0.37rem;
-  font-size: 0.26rem;
+  font-size: 0.295rem;
   line-height: 1.7;
   color: #e6edf3;
 }
@@ -1222,13 +1222,13 @@
 .ac-legal p { margin-bottom: 0.185rem; color: var(--ac-text-2); }
 .ac-legal p:last-child { margin-bottom: 0; }
 .ac-legal__updated { color: var(--ac-green); font-weight: 600; margin-bottom: 0.28rem; }
-.ac-legal h3 { color: var(--ac-gold); font-size: 0.28rem; font-weight: 700; margin: 0.28rem 0 0.09rem; }
+.ac-legal h3 { color: var(--ac-gold); font-size: 0.32rem; font-weight: 700; margin: 0.28rem 0 0.09rem; }
 
 .ac-security-status { text-align: center; padding: 0.37rem 0 0.46rem 0; }
 
 .ac-security-icon {
-  width: 1.39rem;
-  height: 1.39rem;
+  width: 1.55rem;
+  height: 1.55rem;
   border-radius: 50%;
   border: 2px solid var(--ac-green);
   box-shadow: 0 0 0.37rem var(--ac-green-bg);
@@ -1237,8 +1237,8 @@
 }
 
 .ac-security-icon img { width: 100%; height: 100%; object-fit: cover; }
-.ac-security-status h2 { font-size: 0.33333rem; font-weight: 700; color: #fff; margin-bottom: 0.09rem; }
-.ac-security-status p { font-size: 0.24rem; color: var(--ac-green); font-weight: 600; }
+.ac-security-status h2 { font-size: 0.38rem; font-weight: 700; color: #fff; margin-bottom: 0.09rem; }
+.ac-security-status p { font-size: 0.27rem; color: var(--ac-green); font-weight: 600; }
 
 .ac-modal {
   background: var(--ac-card);
@@ -1302,13 +1302,13 @@
 }
 
 .wd-balance span {
-  font-size: 0.2688rem;
+  font-size: 0.3072rem;
   color: var(--ac-text-2);
   font-weight: 500;
 }
 
 .wd-balance__amount {
-  font-size: 0.3456rem;
+  font-size: 0.4032rem;
   font-weight: 800;
   color: var(--ac-gold);
   display: flex;
@@ -1333,7 +1333,7 @@
 }
 
 .wd-input__symbol {
-  font-size: 0.384rem;
+  font-size: 0.432rem;
   font-weight: 600;
   color: var(--ac-text-2);
   margin-right: 0.192rem;
@@ -1346,7 +1346,7 @@
   border: none;
   outline: none;
   color: #fff;
-  font-size: 0.384rem;
+  font-size: 0.44rem;
   font-weight: 700;
   width: 100%;
   user-select: text;
@@ -1355,7 +1355,7 @@
   caret-color: #00c853;
 }
 
-.wd-input__field::placeholder { color: #555; font-weight: 500; font-size: 0.3072rem; }
+.wd-input__field::placeholder { color: #555; font-weight: 500; font-size: 0.3456rem; }
 
 .wd-input__field::-webkit-outer-spin-button,
 .wd-input__field::-webkit-inner-spin-button {
@@ -1381,7 +1381,7 @@
   color: var(--ac-text-2);
   padding: 0.192rem 0;
   border-radius: 0.192rem;
-  font-size: 0.2496rem;
+  font-size: 0.288rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1402,7 +1402,7 @@
   border: none;
   padding: 0.3072rem;
   border-radius: 0.3072rem;
-  font-size: 0.3072rem;
+  font-size: 0.3456rem;
   font-weight: 800;
   cursor: pointer;
   transition: transform 0.1s ease, opacity 0.1s ease;
@@ -1412,7 +1412,7 @@
 .wd-request:active { transform: scale(0.98); opacity: 0.9; }
 
 .wd-methods-title {
-  font-size: 0.288rem;
+  font-size: 0.3264rem;
   font-weight: 700;
   margin-bottom: 0.1536rem;
   color: #e6edf3;
@@ -1432,9 +1432,9 @@
 .wd-method__left { display: flex; align-items: center; gap: 0.288rem; }
 
 .wd-method__icon {
-  width: 0.8832rem;
-  height: 0.8832rem;
-  border-radius: 0.2688rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.3rem;
   background: rgba(0, 208, 156, 0.1);
   color: var(--ac-green);
   display: flex;
@@ -1445,7 +1445,7 @@
 }
 
 .wd-method__info h4 {
-  font-size: 0.288rem;
+  font-size: 0.3264rem;
   font-weight: 600;
   color: #fff;
   margin-bottom: 0.0768rem;
@@ -1453,7 +1453,7 @@
 }
 
 .wd-method__info p {
-  font-size: 0.2304rem;
+  font-size: 0.264rem;
   color: var(--ac-text-2);
   font-weight: 500;
 }
@@ -1503,7 +1503,7 @@
 
 .wd-label {
   display: block;
-  font-size: 0.2304rem;
+  font-size: 0.2688rem;
   font-weight: 600;
   color: var(--ac-text-2);
   margin-bottom: 0.1536rem;
@@ -1517,7 +1517,7 @@
   border-radius: 0.2304rem;
   padding: 0.2688rem 0.3072rem;
   color: #fff;
-  font-size: 0.2688rem;
+  font-size: 0.3072rem;
   font-weight: 500;
   outline: none;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -1535,7 +1535,7 @@
 .wd-field::placeholder { color: #555; font-weight: 400; }
 
 .wd-hint {
-  font-size: 0.2112rem;
+  font-size: 0.2496rem;
   color: var(--ac-text-2);
   margin-top: 0.1152rem;
   display: flex;
@@ -2261,7 +2261,7 @@
    Lives inside .ac-page so the ac-* green tokens/theme are reused.
    ========================================================================== */
 .sec-info {
-  font-size: 0.312rem;
+  font-size: 0.35rem;
   color: #8b949e;
   line-height: 1.6;
   margin-bottom: 0.576rem;
@@ -2275,7 +2275,7 @@
 
 .sec-label {
   display: block;
-  font-size: 0.312rem;
+  font-size: 0.35rem;
   font-weight: 600;
   color: #8b949e;
   margin-bottom: 0.192rem;
@@ -2309,7 +2309,7 @@
   border: none;
   outline: none;
   color: #ffffff;
-  font-size: 0.36rem;
+  font-size: 0.4032rem;
   font-weight: 500;
 }
 
@@ -2733,7 +2733,7 @@
   border: none;
   padding: 0.384rem;
   border-radius: 0.336rem;
-  font-size: 0.36rem;
+  font-size: 0.4032rem;
   font-weight: 700;
   letter-spacing: 0.0072rem;
   cursor: pointer;
@@ -2800,7 +2800,7 @@
 }
 
 .sec-step__text {
-  font-size: 0.312rem;
+  font-size: 0.35rem;
   color: #8b949e;
   line-height: 1.5;
 }
