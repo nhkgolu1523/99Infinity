@@ -1062,7 +1062,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0.33rem 0;
+  padding: 0.38rem 0;
   border-bottom: 1px solid var(--ac-border);
   background: none;
   text-decoration: none;
@@ -1075,8 +1075,8 @@
 .ac-list__left { display: flex; align-items: center; gap: 0.28rem; }
 
 .ac-list__icon {
-  width: 0.76rem;
-  height: 0.76rem;
+  width: 0.84rem;
+  height: 0.84rem;
   border-radius: 0.21rem;
   background: rgba(255, 255, 255, 0.03);
   display: flex;
@@ -1085,7 +1085,7 @@
   color: var(--ac-green);
 }
 
-.ac-list__label { font-size: 0.32rem; font-weight: 600; color: #e6edf3; }
+.ac-list__label { font-size: 0.36rem; font-weight: 600; color: #e6edf3; }
 .ac-list__right { display: flex; align-items: center; gap: 0.22rem; }
 .ac-list__chev { color: #555; }
 
@@ -1093,7 +1093,7 @@
   background: rgba(255, 255, 255, 0.05);
   padding: 0.085rem 0.21rem;
   border-radius: 0.37rem;
-  font-size: 0.25rem;
+  font-size: 0.28rem;
   font-weight: 600;
   color: var(--ac-text-2);
 }
@@ -1115,7 +1115,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.33rem 0;
+  padding: 0.36rem 0;
   border-bottom: 1px solid var(--ac-border);
   cursor: pointer;
   text-decoration: none;
@@ -1124,19 +1124,19 @@
 
 .ac-settings-item:last-child { border-bottom: none; }
 .ac-settings-item:active { opacity: 0.6; }
-.ac-settings-item__label { font-size: 0.32rem; font-weight: 500; color: #e6edf3; }
+.ac-settings-item__label { font-size: 0.36rem; font-weight: 500; color: #e6edf3; }
 .ac-settings-item__chev { color: #555; }
 .ac-settings-item--toggle { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .ac-toggle {
   position: relative;
-  width: 0.92rem;
-  height: 0.5rem;
+  width: 1.04rem;
+  height: 0.56rem;
   appearance: none;
   -webkit-appearance: none;
   background: #2c3440;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.25rem;
+  border-radius: 0.28rem;
   outline: none;
   cursor: pointer;
   transition: background 0.3s ease;
@@ -1148,17 +1148,17 @@
 .ac-toggle::before {
   content: '';
   position: absolute;
-  top: 0.045rem;
-  left: 0.045rem;
-  width: 0.38rem;
-  height: 0.38rem;
+  top: 0.05rem;
+  left: 0.05rem;
+  width: 0.44rem;
+  height: 0.44rem;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0.037rem 0.074rem rgba(0, 0, 0, 0.2);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ac-toggle:checked::before { transform: translateX(0.42rem); }
+.ac-toggle:checked::before { transform: translateX(0.48rem); }
 
 .ac-logout-btn {
   display: flex;
@@ -1166,12 +1166,12 @@
   justify-content: center;
   gap: 0.185rem;
   width: 100%;
-  padding: 0.34rem;
+  padding: 0.38rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 0.26rem;
   background: #1c212b;
   color: var(--ac-red);
-  font-size: 0.32rem;
+  font-size: 0.37rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
@@ -1181,7 +1181,7 @@
 
 .ac-version {
   text-align: center;
-  font-size: 0.25rem;
+  font-size: 0.28rem;
   color: var(--ac-text-2);
   font-weight: 500;
   margin-top: 0.1rem;
@@ -1227,8 +1227,8 @@
 .ac-security-status { text-align: center; padding: 0.37rem 0 0.46rem 0; }
 
 .ac-security-icon {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.72rem;
+  height: 1.72rem;
   border-radius: 50%;
   border: 2px solid var(--ac-green);
   box-shadow: 0 0 0.37rem var(--ac-green-bg);
@@ -1237,8 +1237,8 @@
 }
 
 .ac-security-icon img { width: 100%; height: 100%; object-fit: cover; }
-.ac-security-status h2 { font-size: 0.38rem; font-weight: 700; color: #fff; margin-bottom: 0.09rem; }
-.ac-security-status p { font-size: 0.27rem; color: var(--ac-green); font-weight: 600; }
+.ac-security-status h2 { font-size: 0.42rem; font-weight: 700; color: #fff; margin-bottom: 0.09rem; }
+.ac-security-status p { font-size: 0.31rem; color: var(--ac-green); font-weight: 600; }
 
 .ac-modal {
   background: var(--ac-card);

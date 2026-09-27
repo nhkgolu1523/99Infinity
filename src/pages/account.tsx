@@ -642,23 +642,23 @@ export function SettingsPage() {
         <div class="ac-card">
           <div class="ac-settings-item" data-toast="Cache cleared successfully!">
             <span class="ac-settings-item__label">Clear cache</span>
-            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.28rem" class="ac-settings-item__chev" />
           </div>
         </div>
 
         <div class="ac-card">
           <a class="ac-settings-item" href="/account/terms">
             <span class="ac-settings-item__label">Terms of Service</span>
-            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.28rem" class="ac-settings-item__chev" />
           </a>
           <a class="ac-settings-item" href="/account/privacy">
             <span class="ac-settings-item__label">Privacy Policy</span>
-            <Icon name="chevron-right" size="0.25rem" class="ac-settings-item__chev" />
+            <Icon name="chevron-right" size="0.28rem" class="ac-settings-item__chev" />
           </a>
         </div>
 
         <button class="ac-logout-btn" data-dialog-open="logout">
-          <Icon name="fa-logout" size="0.37rem" /> Log out
+          <Icon name="fa-logout" size="0.42rem" /> Log out
         </button>
 
         <div class="ac-version">Version 1.0.0</div>
@@ -756,7 +756,7 @@ export function SecurityPage() {
             <a class="ac-list__item" href={m.href}>
               <span class="ac-list__left">
                 <span class="ac-list__icon">
-                  <Icon name={m.icon} size="0.34rem" />
+                  <Icon name={m.icon} size="0.4rem" />
                 </span>
                 <span class="ac-list__label">{m.label}</span>
               </span>
@@ -766,7 +766,7 @@ export function SecurityPage() {
                     {m.badge}
                   </span>
                 )}
-                <Icon name="chevron-right" size="0.25rem" class="ac-list__chev" />
+                <Icon name="chevron-right" size="0.28rem" class="ac-list__chev" />
               </span>
             </a>
           ))}
