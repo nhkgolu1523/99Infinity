@@ -386,7 +386,7 @@
   padding: 0.3rem 0.34rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   border-radius: 0.384rem;
   overflow: hidden;
 
@@ -427,6 +427,7 @@
   position: relative;
   z-index: 2;
   align-self: flex-start;
+  margin-top: 0.22rem;
   width: 0.624rem;
   height: 0.624rem;
   border-radius: 50%;
