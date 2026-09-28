@@ -844,16 +844,33 @@
     );
   }
 
-  /* account tab — guests are sent to the login page instead of the account */
+  /* account tab — guests are sent to the login page instead of the account.
+     Bound ONCE: initAll() runs again after every SPA swap, so a listener added
+     on each swap would fire one navigation per earlier page visit — that is the
+     "tap Account → reload reload reload" glitch. */
+  let guestGateBound = false;
+
   function initGuestGate() {
-    document.addEventListener('click', (e) => {
-      const a = e.target && e.target.closest ? e.target.closest('a[href="/account"]') : null;
-      if (!a || !a.closest('.tabbar')) return;
-      if (currentUser) return;
-      e.preventDefault();
-      toast('Please log in to continue', 2000);
-      spaNavigate('/login', true); /* first tap itself → login, no delay */
-    });
+    if (guestGateBound) return;
+    guestGateBound = true;
+    /* CAPTURE phase + stopImmediatePropagation: this listener must win the race
+       against the generic link interceptor registered at module scope. Without
+       it the same tap navigated twice (once to /account, which the server
+       redirects to /login, and once straight to /login) — two history entries,
+       two body swaps and the loader flashing like a page reload. */
+    document.addEventListener(
+      'click',
+      (e) => {
+        const a = e.target && e.target.closest ? e.target.closest('a[href="/account"]') : null;
+        if (!a || !a.closest('.tabbar')) return;
+        if (currentUser) return;
+        e.preventDefault();
+        e.stopImmediatePropagation(); /* keep the generic interceptor out of it */
+        toast('Please log in to continue', 2000);
+        spaNavigate('/login', true); /* first tap itself → login, no delay */
+      },
+      true /* capture: must run before the generic link interceptor */
+    );
   }
 
   /* ------------------------------------------------------------------ game gating */
@@ -2158,10 +2175,16 @@
   /* fetch the target page and swap <body> content in place — no full reload.
      the fetched body already contains the right tabbar (active state) and
      dialogs, so a plain innerHTML swap keeps everything consistent. */
+  let navPending = null;
+
   async function spaNavigate(url, push) {
     /* same-page guard only for link clicks (push) — popstate must ALWAYS
-       swap, because by then location already points at the target page */
-    if (push && url === location.pathname + location.search) return;
+       swap, because by then location already points at the target page.
+       navPending also swallows a second identical request while the first one
+       is still in flight (double tap / duplicate listener): without it every
+       duplicate would run its own swap and re-run initAll() on top. */
+    if (push && (url === location.pathname + location.search || url === navPending)) return;
+    navPending = url;
     showLoader();
     try {
       const res = await fetch(url);
@@ -2193,10 +2216,12 @@
       window.scrollTo(0, 0);
       initAll();
     } catch (err) {
+      navPending = null;
       hideLoader();
       window.location.href = url; /* full-load fallback */
       return;
     }
+    navPending = null;
     hideLoader();
   }
 

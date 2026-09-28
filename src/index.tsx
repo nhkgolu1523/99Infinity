@@ -52,8 +52,6 @@ const accountGate = (c: any, next: () => Promise<void>) => {
 app.use('/account', accountGate)
 app.use('/account/*', accountGate)
 
-/* backend endpoints — the browser only ever talks to these */
-app.route('/api', apiApp)
 /* --------------------------------------------------------------------------
    TABBED PAGES  (show the bottom navigation)
    -------------------------------------------------------------------------- */
