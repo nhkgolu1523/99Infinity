@@ -140,6 +140,8 @@ export async function createFamOrder(
     }
 
   const payload: Record<string, any> = { amount: Number(opts.amount) }
+  /* the key travels in the body AND the header — the real gateway reads either */
+  if (key) payload.api_key = key
   if (opts.name) payload.customer_name = String(opts.name).slice(0, 60)
   if (opts.email) payload.customer_email = String(opts.email).slice(0, 80)
   if (opts.phone) payload.customer_phone = String(opts.phone).replace(/\D/g, '').slice(0, 10)
@@ -215,8 +217,13 @@ export async function verifyFamOrder(env: any, orderId: string): Promise<FamStat
 
   let res: Response
   try {
+    /* NOTE: measured against the live gateway — `verify-order.php` reads the key
+       from the QUERY STRING only; with just the X-Api-Key header it answers
+       `401 {"status":"unauthorized","message":"Missing api_key"}`. Both are sent
+       here so the call keeps working whichever way the gateway expects. */
     res = await fetch(
-      `${famBase(env)}/api/verify-order.php?order_id=${encodeURIComponent(orderId)}`,
+      `${famBase(env)}/api/verify-order.php?order_id=${encodeURIComponent(orderId)}` +
+        (key ? `&api_key=${encodeURIComponent(key)}` : ''),
       key ? { headers: { 'X-Api-Key': key } } : undefined,
     )
   } catch {
