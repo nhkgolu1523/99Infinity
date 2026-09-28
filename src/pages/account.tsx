@@ -756,7 +756,7 @@ export function SecurityPage() {
             <a class="ac-list__item" href={m.href}>
               <span class="ac-list__left">
                 <span class="ac-list__icon">
-                  <Icon name={m.icon} size="0.4rem" />
+                  <Icon name={m.icon} size="0.44rem" />
                 </span>
                 <span class="ac-list__label">{m.label}</span>
               </span>
@@ -766,7 +766,7 @@ export function SecurityPage() {
                     {m.badge}
                   </span>
                 )}
-                <Icon name="chevron-right" size="0.28rem" class="ac-list__chev" />
+                <Icon name="chevron-right" size="0.3rem" class="ac-list__chev" />
               </span>
             </a>
           ))}

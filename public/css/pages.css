@@ -1075,8 +1075,8 @@
 .ac-list__left { display: flex; align-items: center; gap: 0.28rem; }
 
 .ac-list__icon {
-  width: 0.84rem;
-  height: 0.84rem;
+  width: 0.9rem;
+  height: 0.9rem;
   border-radius: 0.21rem;
   background: rgba(255, 255, 255, 0.03);
   display: flex;
@@ -1085,7 +1085,7 @@
   color: var(--ac-green);
 }
 
-.ac-list__label { font-size: 0.36rem; font-weight: 600; color: #e6edf3; }
+.ac-list__label { font-size: 0.38rem; font-weight: 400; color: #e6edf3; }
 .ac-list__right { display: flex; align-items: center; gap: 0.22rem; }
 .ac-list__chev { color: #555; }
 
@@ -1094,7 +1094,7 @@
   padding: 0.085rem 0.21rem;
   border-radius: 0.37rem;
   font-size: 0.28rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ac-text-2);
 }
 
@@ -1237,8 +1237,8 @@
 }
 
 .ac-security-icon img { width: 100%; height: 100%; object-fit: cover; }
-.ac-security-status h2 { font-size: 0.42rem; font-weight: 700; color: #fff; margin-bottom: 0.09rem; }
-.ac-security-status p { font-size: 0.31rem; color: var(--ac-green); font-weight: 600; }
+.ac-security-status h2 { font-size: 0.42rem; font-weight: 600; color: #fff; margin-bottom: 0.09rem; }
+.ac-security-status p { font-size: 0.31rem; color: var(--ac-green); font-weight: 500; }
 
 .ac-modal {
   background: var(--ac-card);
