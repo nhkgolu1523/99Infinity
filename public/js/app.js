@@ -2190,50 +2190,6 @@
       }).catch(() => {});
     };
 
-    /* No API key on the server yet (or the gateway is paused): instead of
-       dead-ending the user, fall back to the manual request the admin panel
-       already handles — the same flow the app used before the gateway existed. */
-    const manualRequest = async (value) => {
-      const btn = $('[data-dp-proceed]');
-      const label = $('[data-dp-proceed-label]');
-      if (btn) btn.disabled = true;
-      if (label) setText(label, 'Submitting…');
-      try {
-        const res = await fetch('/api/deposit', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ amount: value }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (res.status === 401) {
-            toast('Please log in first', 2000);
-            return setTimeout(() => spaNavigate('/login', true), 400);
-          }
-          if (isAccountBlock(data.code))
-            return showAccountBlock(data.error || 'Your account is restricted');
-          return toast(data.error || 'Could not submit the deposit request', 3500);
-        }
-
-        setText($('[data-dp-modal-title]'), 'Request Submitted!');
-        setText(
-          $('[data-dp-modal-text]'),
-          'Our team verifies your deposit and credits your wallet — usually within a few minutes.'
-        );
-        const ref = $('[data-dp-modal-ref]');
-        if (ref) ref.hidden = true;
-        const modal = $('[data-dp-modal]');
-        if (modal) modal.classList.add('active');
-        toast(data.message || 'Deposit request submitted!', 3500);
-        refreshUser(true);
-      } catch (err) {
-        toast('Network error, please try again', 3000);
-      } finally {
-        if (btn) btn.disabled = false;
-        if (label) setText(label, 'Proceed to Pay');
-      }
-    };
-
     /* step 1 → the gateway. The API key lives on the server; we only send an amount. */
     const createOrder = async (value) => {
       const btn = $('[data-dp-proceed]');
@@ -2259,13 +2215,9 @@
             toast('Please log in first', 2000);
             return setTimeout(() => spaNavigate('/login', true), 400);
           }
-          /* the server has no gateway key (or deposits are paused): don't
-             dead-end the user — submit the manual request the admin panel
-             already handles, exactly like the old flow */
-          if (data.code === 'gateway-missing' || data.code === 'deposits-off') {
-            dep.configured = false;
-            return manualRequest(value);
-          }
+          /* gateway key missing / deposits paused: tell the user plainly.
+             Nothing is created, nothing needs an admin — the QR flow starts
+             the moment the key is configured on the server. */
           if (isAccountBlock(data.code))
             return showAccountBlock(data.error || 'Your account is restricted');
           return toast(data.error || 'Could not start the payment', 3500);
@@ -2324,8 +2276,10 @@
       if (value < dep.min) return belowMin();
       if (!dep.enabled)
         return toast('Deposits are temporarily unavailable. Please try again later.', 3000);
-      /* gateway not configured yet → the manual request path (admin verifies) */
-      if (!dep.configured) return manualRequest(value);
+      /* the QR can only be created by the gateway, so without the server-side
+         key there is nothing to do — no manual request, no admin step */
+      if (!dep.configured)
+        return toast('The payment gateway is not configured yet. Please try again later.', 3500);
       if (order && !settled) abandon();
       createOrder(value);
     });

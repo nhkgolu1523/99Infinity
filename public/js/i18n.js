@@ -2065,6 +2065,19 @@
       'లైవ్ UPI QR సెట్ చేయబడుతోంది. మీ డిపాజిట్ రిక్వెస్ట్ను మా టీమ్ వెరిఫై చేసి వాలెట్కు జోడిస్తుంది.',
   })
 
+  Object.assign(DICTS.hi, {
+    'Live UPI payments are being set up. Please try again in a few minutes.':
+      'लाइव UPI पेमेंट सेट हो रहे हैं। कृपया कुछ मिनट बाद कोशिश करें।',
+  })
+  Object.assign(DICTS.ta, {
+    'Live UPI payments are being set up. Please try again in a few minutes.':
+      'நேரடி UPI பேமெண்ட் அமைக்கப்படுகிறது. சில நிமிடங்களில் மீண்டும் முயற்சிக்கவும்.',
+  })
+  Object.assign(DICTS.te, {
+    'Live UPI payments are being set up. Please try again in a few minutes.':
+      'లైవ్ UPI పేమెంట్స్ సెట్ చేయబడుతున్నాయి. కొన్ని నిమిషాల్లో మళ్లీ ప్రయత్నించండి.',
+  })
+
   /* --------------------------------------------------------------- runtime */
   var registry = [] /* captured text nodes / attributes + their English source */
   var phraseCache = {}
