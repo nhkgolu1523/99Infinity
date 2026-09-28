@@ -27,16 +27,39 @@ import {
   PrivacyPage,
 } from './pages/account'
 import { GamesPage, SupportPage, NotFoundPage } from './pages/misc'
+import { WalletOverviewPage } from './pages/wallet'
 import { DepositPage } from './pages/deposit'
+import { apiApp, sessionMiddleware } from './api'
+import { loadMessages, loadNotice } from './lib/site-content'
 
 const app = new Hono()
 
+/* session middleware runs first — it loads the logged-in user into the
+   request context so every SSR page (navbar balance etc.) can use it */
+app.use('*', sessionMiddleware)
+
 app.use(renderer)
 
+/* backend endpoints — the browser only ever talks to these */
+app.route('/api', apiApp)
+
+/* account pages hold personal user data — guests never see them, the server
+   itself sends them to the login page (covers first tap, direct URL, JS off) */
+const accountGate = (c: any, next: () => Promise<void>) => {
+  if (!c.get('user')) return c.redirect('/login')
+  return next()
+}
+app.use('/account', accountGate)
+app.use('/account/*', accountGate)
+
+/* backend endpoints — the browser only ever talks to these */
+app.route('/api', apiApp)
 /* --------------------------------------------------------------------------
    TABBED PAGES  (show the bottom navigation)
    -------------------------------------------------------------------------- */
-app.get('/', (c) => c.render(<HomePage />, { title: 'Home', active: 'home' }))
+app.get('/', async (c) =>
+  c.render(<HomePage notice={await loadNotice(c.env)} />, { title: 'Home', active: 'home' })
+)
 
 app.get('/activity', (c) =>
   c.render(<ActivityPage />, { title: 'Activity', active: 'activity' })
@@ -61,8 +84,11 @@ app.get('/account', (c) =>
 /* --------------------------------------------------------------------------
    FULL-SCREEN PAGES  (no bottom navigation)
    -------------------------------------------------------------------------- */
-app.get('/messages', (c) =>
-  c.render(<MessagesPage />, { title: 'Notifications', showTabbar: false })
+app.get('/messages', async (c) =>
+  c.render(<MessagesPage items={await loadMessages(c.env)} />, {
+    title: 'Notifications',
+    showTabbar: false,
+  })
 )
 
 app.get('/login', (c) => c.render(<LoginPage />, { title: 'Log in', showTabbar: false }))
@@ -84,6 +110,10 @@ app.get('/games', (c) => c.render(<GamesPage />, { title: 'Games', showTabbar: f
 app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTabbar: false }))
 
 /* wallet sub-pages */
+/* wallet overview — the two wallets (main / 3rd party) + quick actions */
+app.get('/account/wallet', (c) =>
+  c.render(<WalletOverviewPage />, { title: 'Wallet', showTabbar: false })
+)
 app.get('/account/deposit', (c) =>
   c.render(<DepositPage />, { title: 'Deposit', showTabbar: false })
 )

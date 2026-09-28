@@ -90,7 +90,7 @@ export function LogoutDialog() {
               class="ac-modal__btn ac-modal__btn--yes"
               type="button"
               data-dialog-close
-              data-toast="You have been logged out successfully!"
+              data-logout-confirm
             >
               Yes
             </button>

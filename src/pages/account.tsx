@@ -2,6 +2,53 @@ import { site } from '../data'
 import { NavbarInner, SiteFooter } from '../components/layout'
 import { Icon } from '../components/icons'
 import { SPRITE_SYMBOLS } from '../components/account-sprite'
+import { useRequestContext } from 'hono/jsx-renderer'
+import { WITHDRAW_MAX, WITHDRAW_MIN, WITHDRAW_QUICK, money, quickLabel } from '../lib/rewards'
+import { deviceList } from '../api'
+import { autoUsername } from '../lib/backend'
+
+/** ms timestamp → "YYYY-MM-DD HH:MM:SS" (server timezone = UTC) */
+function fmtTime(ms: any) {
+  const n = Number(ms) || 0
+  if (!n) return ''
+  const d = new Date(n)
+  const p = (x: number) => String(x).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+/** ms timestamp → "YYYY-MM-DD HH:MM" in IST — the timezone the platform runs on */
+function fmtIst(ms: any) {
+  const n = Number(ms) || 0
+  if (!n) return '—'
+  try {
+    return new Date(n).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Kolkata',
+    })
+  } catch {
+    return fmtTime(n)
+  }
+}
+
+/** Device icon class used by the Active Devices page. */
+function deviceIcon(type: string) {
+  if (type === 'mobile') return 'fa-mobile'
+  if (type === 'tablet') return 'fa-tablet'
+  return 'fa-laptop'
+}
+
+/* language codes → labels (kept in sync with public/js/i18n.js) */
+const LANG_NAMES: Record<string, string> = {
+  en: 'English',
+  hi: 'हिन्दी',
+  ta: 'தமிழ்',
+  te: 'తెలుగు',
+}
 
 /* ==========================================================================
    ACCOUNT – exact copy of the client reference (Account Tab.html):
@@ -9,8 +56,25 @@ import { SPRITE_SYMBOLS } from '../components/account-sprite'
    financial-services cards, settings list, service-center grid + logout.
    ========================================================================== */
 export function AccountPage() {
+  /* the real logged-in user — loaded server-side by the session middleware.
+     Everything below renders from the DB, nothing is hardcoded. */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const profile = user?.profile || {}
+  const uid = user?.uid || ''
+  const avatar =
+    !profile.avatar || profile.avatar === '/assets/img/avatar/avatar-original.png'
+      ? '/assets/img/account/avatar.png'
+      : profile.avatar
+  const balance =
+    '₹' +
+    Number(user?.balance?.total || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+
   const quick = [
-    { icon: 'icon-wallets', label: 'Wallet', href: '/account/history' },
+    { icon: 'icon-wallets', label: 'Wallet', href: '/account/wallet' },
     { icon: 'icon-rechargeIcon', label: 'Deposit', href: '/account/deposit' },
     { icon: 'icon-widthdrawBlue', label: 'Withdraw', href: '/account/withdraw' },
     { icon: 'icon-VipIcon', label: 'VIP', href: '/activity' },
@@ -30,7 +94,13 @@ export function AccountPage() {
     { icon: 'icon-statsIcon', label: 'Game statistics', href: '/account/bets' },
     { icon: 'fa-shield', label: 'Security Center', href: '/account/security' },
     { icon: 'user', label: 'Personal information', href: '/account/profile' },
-    { icon: 'icon-language', label: 'Language', value: 'English', href: '/account/language' },
+    {
+      icon: 'icon-language',
+      label: 'Language',
+      /* the language the user actually saved in the DB */
+      value: LANG_NAMES[String(profile.language || 'en')] || 'English',
+      href: '/account/language',
+    },
   ]
 
   const service = [
@@ -62,24 +132,29 @@ export function AccountPage() {
         <div class="userInfo__container-content">
           <div class="userInfo__container-content-wrapper">
             <div class="userInfo__container-content__avatar">
-              <img class="userAvatar" src="/assets/img/account/avatar.png" alt="" />
+              <img
+                class="userAvatar"
+                data-user-avatar
+                src={avatar}
+                alt=""
+              />
             </div>
             <div class="userInfo__container-content__name">
               <div class="userInfo__container-content-nickname">
-                <h3>Guest</h3>
+                <h3 data-user-name>{profile.name || autoUsername(uid)}</h3>
                 <div class="n0" style="background-image:url('/assets/img/account/vip-0.png')"></div>
               </div>
               <div class="userInfo__container-content-uid">
                 <span>UID</span>
                 <span>|</span>
-                <span>1426676</span>
-                <svg class="svg-icon icon-copy" data-copy="1426676" data-copy-toast="UID Copied!">
+                <span data-user-uid>{uid}</span>
+                <svg class="svg-icon icon-copy" data-copy={uid} data-copy-toast="UID Copied!">
                   <use href="#icon-copy"></use>
                 </svg>
               </div>
               <div class="userInfo__container-content-logintime">
                 <span>Last login:&nbsp;</span>
-                <span>2026-09-26 20:51:03</span>
+                <span data-user-logintime>{fmtTime(profile.lastLogin)}</span>
               </div>
             </div>
           </div>
@@ -96,7 +171,7 @@ export function AccountPage() {
                   <span>Total balance</span>
                 </div>
                 <p class="totalSavings__container-header__subtitle">
-                  <span>₹0.00</span>
+                  <span data-user-balance>{balance}</span>
                   <svg class="svg-icon icon-refreshBalance" data-toast="Balance refreshed!">
                     <use href="#icon-refreshBalance"></use>
                   </svg>
@@ -151,7 +226,11 @@ export function AccountPage() {
                   <span>{p.label}</span>
                 </div>
                 <div class="settingPanel__container-items-right">
-                  {p.value && <span>{p.value}</span>}
+                  {p.value && (
+                    <span data-i18n-skip data-lang-value={p.href === '/account/language' ? '' : undefined}>
+                      {p.value}
+                    </span>
+                  )}
                   <i class="van-icon-arrow">
                     <Icon name="chevron-right" size="0.4rem" />
                   </i>
@@ -227,12 +306,18 @@ export function WalletPage({ mode }: { mode: 'deposit' | 'withdraw' }) {
           </label>
 
           <div class="row gap-8 mt-12">
-            {[100, 500, 1000, 5000].map((v) => (
+            {(isDeposit ? [100, 500, 1000, 5000] : WITHDRAW_QUICK).map((v) => (
               <button class="btn-ghost grow" type="button" data-quick-amount={v}>
-                ₹{v}
+                {isDeposit ? `₹${v}` : `₹${quickLabel(v)}`}
               </button>
             ))}
           </div>
+
+          {!isDeposit && (
+            <p class="c-l3 t-sm mt-8">
+              Withdrawal limit: {money(WITHDRAW_MIN)} – {money(WITHDRAW_MAX)} per request
+            </p>
+          )}
 
           <button class="btn-primary mt-16" type="button" data-dialog-open={isDeposit ? 'deposit-confirm' : 'withdraw-confirm'}>
             {isDeposit ? 'Deposit now' : 'Request withdrawal'}
@@ -302,11 +387,15 @@ export function WithdrawPage() {
           </div>
 
           <div class="wd-quick">
-            {[100, 500, 1000, 5000].map((v) => (
+            {WITHDRAW_QUICK.map((v) => (
               <button class="wd-quick__btn" type="button" data-wd-quick={v}>
-                ₹{v}
+                ₹{quickLabel(v)}
               </button>
             ))}
+          </div>
+
+          <div class="wd-limit">
+            Withdrawal limit: <b>{money(WITHDRAW_MIN)}</b> – <b>{money(WITHDRAW_MAX)}</b> per request
           </div>
 
           <button class="wd-request" type="button" id="wdRequest">
@@ -502,24 +591,60 @@ export function WithdrawPage() {
 export function HistoryPage({
   mode = 'all',
 }: {
-  mode?: 'all' | 'deposit' | 'withdraw' | 'bets'
+  mode?: 'all' | 'deposit' | 'withdraw' | 'bets' | 'bonus'
 }) {
+  /* real transactions — read server-side from the logged-in user's DB node */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+
   const titles: Record<string, string> = {
     all: 'Transaction history',
     deposit: 'Deposit history',
     withdraw: 'Withdraw history',
     bets: 'Bet history',
+    bonus: 'Bonus history',
   }
 
-  const rows = [
-    { type: 'Deposit', method: 'UPI', date: '2026-09-20 14:22', amount: '+₹500.00', dir: 'credit', icon: 'arrow-down', cat: 'deposit' },
-    { type: 'Bet', method: 'Aviator', date: '2026-09-20 14:30', amount: '-₹50.00', dir: 'debit', icon: 'fa-dice', cat: 'bets' },
-    { type: 'Win', method: 'Win Go 30S', date: '2026-09-20 14:41', amount: '+₹180.00', dir: 'credit', icon: 'trophy', cat: 'bets' },
-    { type: 'Withdraw', method: 'Bank', date: '2026-09-21 09:02', amount: '-₹300.00', dir: 'debit', icon: 'arrow-up', cat: 'withdraw' },
-    { type: 'Deposit', method: 'USDT', date: '2026-09-21 11:15', amount: '+₹1,000.00', dir: 'credit', icon: 'arrow-down', cat: 'deposit' },
-    { type: 'Bet', method: 'Plinko', date: '2026-09-21 12:44', amount: '-₹200.00', dir: 'debit', icon: 'fa-dice', cat: 'bets' },
-    { type: 'Withdraw', method: 'UPI', date: '2026-09-22 08:30', amount: '-₹750.00', dir: 'debit', icon: 'arrow-up', cat: 'withdraw' },
-  ]
+  const fmt = (n: any) =>
+    Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  /* every money movement is labelled with where it came from */
+  const TYPE_LABELS: Record<string, string> = {
+    deposit: 'Deposit',
+    withdraw: 'Withdraw',
+    spin: 'Lucky Spin',
+    bonus: 'Bonus',
+    daily: 'Daily Reward',
+    bet: 'Bet',
+  }
+
+  const txs: any[] = Object.values(user?.transactions || {})
+  const rows = txs
+    .sort((a, b) => Number(b.time) - Number(a.time))
+    .map((t) => {
+      const type = String(t.type || 'tx')
+      const isDeposit = type === 'deposit'
+      const isWithdraw = type === 'withdraw'
+      const isReward = type === 'spin' || type === 'bonus' || type === 'daily'
+      return {
+        type: TYPE_LABELS[type] || type,
+        method:
+          String(t.label || t.source || t.method || '—') + (t.status ? ' · ' + String(t.status) : ''),
+        date: fmtTime(t.time),
+        amount: (isWithdraw ? '-' : '+') + '₹' + fmt(t.amount),
+        dir: isWithdraw ? 'debit' : 'credit',
+        icon: isDeposit
+          ? 'arrow-down'
+          : isWithdraw
+            ? 'arrow-up'
+            : type === 'spin'
+              ? 'refresh'
+              : isReward
+                ? 'gift'
+                : 'fa-dice',
+        cat: isReward ? 'bonus' : type,
+      }
+    })
 
   return (
     <div class="th-page">
@@ -535,6 +660,7 @@ export function HistoryPage({
           <div class={`th-tab${mode === 'all' ? ' active' : ''}`} data-tab="all">All</div>
           <div class={`th-tab${mode === 'deposit' ? ' active' : ''}`} data-tab="deposit">Deposit</div>
           <div class={`th-tab${mode === 'withdraw' ? ' active' : ''}`} data-tab="withdraw">Withdraw</div>
+          <div class={`th-tab${mode === 'bonus' ? ' active' : ''}`} data-tab="bonus">Bonus</div>
           <div class={`th-tab${mode === 'bets' ? ' active' : ''}`} data-tab="bets">Bets</div>
         </div>
 
@@ -571,10 +697,23 @@ export function HistoryPage({
    PROFILE / SETTINGS
    ========================================================================== */
 export function ProfilePage() {
+  /* real profile — pre-filled server-side from the user's DB node */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const profile = user?.profile || {}
+  const avatar =
+    !profile.avatar ||
+    profile.avatar === '/assets/img/avatar/avatar-original.png' ||
+    !/^\/assets\/img\/avatar\//.test(profile.avatar)
+      ? '/assets/img/avatar/avatar.png'
+      : profile.avatar
+  /* avatar.png is byte-identical to the old avatar-original.png, so it stands in
+     for it as option #1 — every option below points to a file that really exists */
   const avatars = [
-    '/assets/img/avatar/avatar-original.png',
+    '/assets/img/avatar/avatar.png',
     ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `/assets/img/avatar/avatar-${n}.png`),
   ]
+  const phone = String(user?.phone || user?.auth?.phone || '')
 
   return (
     <div class="ac-page">
@@ -590,16 +729,18 @@ export function ProfilePage() {
         <div class="pf-avatar-section">
           <div class="pf-avatar-wrapper">
             <div class="pf-avatar-ring">
-              <img id="profileAvatar" class="pf-avatar-img" src="/assets/img/avatar/avatar-original.png" alt="" />
+              <img id="profileAvatar" class="pf-avatar-img" src={avatar} alt="" />
             </div>
             <button class="pf-avatar-edit" type="button" data-dialog-open="avatarPicker" aria-label="Edit avatar">
               <Icon name="camera" size="0.32rem" />
             </button>
           </div>
           <div class="pf-user-info">
-            <div class="pf-user-name" id="profileName">Guest User</div>
+            <div class="pf-user-name" id="profileName">
+              {profile.name || autoUsername(user?.uid)}
+            </div>
             <div class="pf-user-id">
-              <Icon name="user" size="0.26rem" /> ID: 00000000
+              <Icon name="user" size="0.26rem" /> ID: <span data-pf-uid>{user?.uid || ''}</span>
             </div>
           </div>
         </div>
@@ -614,7 +755,14 @@ export function ProfilePage() {
             <label class="pf-label">Nickname</label>
             <div class="pf-input">
               <Icon name="user" size="0.36rem" class="pf-input__icon" />
-              <input type="text" id="pfNickname" placeholder="Enter your nickname" maxlength="20" data-pf-nickname />
+              <input
+                type="text"
+                id="pfNickname"
+                placeholder="Enter your nickname"
+                maxlength="20"
+                value={profile.name || ''}
+                data-pf-nickname
+              />
             </div>
           </div>
 
@@ -622,7 +770,7 @@ export function ProfilePage() {
             <label class="pf-label">Email Address</label>
             <div class="pf-input">
               <Icon name="mail" size="0.36rem" class="pf-input__icon" />
-              <input type="email" placeholder="you@example.com" />
+              <input type="email" placeholder="you@example.com" value={profile.email || ''} data-pf-email />
             </div>
           </div>
 
@@ -630,12 +778,12 @@ export function ProfilePage() {
             <label class="pf-label">Phone Number</label>
             <div class="pf-input pf-input--disabled">
               <Icon name="phone" size="0.36rem" class="pf-input__icon" />
-              <input type="tel" value="+91 98765 43210" disabled />
+              <input type="tel" value={phone ? '+91 ' + phone : ''} disabled data-pf-phone />
             </div>
           </div>
         </div>
 
-        <button class="pf-save" type="button" data-toast="Profile updated successfully!">
+        <button class="pf-save" type="button" data-pf-save>
           <Icon name="check" size="0.34rem" /> Save Changes
         </button>
 
@@ -658,8 +806,11 @@ export function ProfilePage() {
             <h3 class="pf-picker__title">Choose Your Avatar</h3>
             <p class="pf-picker__subtitle">Pick one of our preset avatars to personalize your profile</p>
             <div class="pf-picker__grid">
-              {avatars.map((src, i) => (
-                <div class={`pf-avatar-option${i === 0 ? ' selected' : ''}`} data-avatar-option={src}>
+              {avatars.map((src) => (
+                <div
+                  class={`pf-avatar-option${src === avatar ? ' selected' : ''}`}
+                  data-avatar-option={src}
+                >
                   <img src={src} alt="" />
                   <span class="pf-avatar-check">
                     <Icon name="check" size="0.22rem" />
@@ -681,11 +832,16 @@ export function ProfilePage() {
 }
 
 export function LanguagePage() {
+  /* the row the user picked last time is the selected one — straight from the DB */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const saved = String(user?.profile?.language || 'en')
+
   const langs = [
-    { name: 'English', flag: '/assets/img/flags/us.png', selected: true },
-    { name: 'हिन्दी', flag: '/assets/img/flags/in.png', cls: 'hindi' },
-    { name: 'தமிழ்', flag: '/assets/img/flags/in.png', cls: 'tamil' },
-    { name: 'తెలుగు', flag: '/assets/img/flags/in.png', cls: 'telugu' },
+    { code: 'en', name: 'English', flag: '/assets/img/flags/us.png' },
+    { code: 'hi', name: 'हिन्दी', flag: '/assets/img/flags/in.png', cls: 'hindi' },
+    { code: 'ta', name: 'தமிழ்', flag: '/assets/img/flags/in.png', cls: 'tamil' },
+    { code: 'te', name: 'తెలుగు', flag: '/assets/img/flags/in.png', cls: 'telugu' },
   ]
 
   return (
@@ -700,11 +856,17 @@ export function LanguagePage() {
       <main class="ac-content">
         <div class="lang-list">
           {langs.map((l) => (
-            <div class={`lang-item${l.selected ? ' selected' : ''}`} data-lang-item={l.name}>
+            <div
+              class={`lang-item${l.code === saved ? ' selected' : ''}`}
+              data-lang-item={l.name}
+              data-lang-code={l.code}
+            >
               <span class="lang-flag">
                 <img src={l.flag} alt="" />
               </span>
-              <span class={`lang-name${l.cls ? ` ${l.cls}` : ''}`}>{l.name}</span>
+              <span class={`lang-name${l.cls ? ` ${l.cls}` : ''}`} data-i18n-skip>
+                {l.name}
+              </span>
               <span class="lang-check">
                 <Icon name="check" size="0.26rem" />
               </span>
@@ -719,10 +881,10 @@ export function LanguagePage() {
 
 export function SettingsPage() {
   const toggles = [
-    { label: 'Push notifications', on: true },
-    { label: 'Promotional messages', on: false },
-    { label: 'Login alerts', on: true },
-    { label: 'Sound & Vibration', on: true },
+    { key: 'push', label: 'Push notifications', on: true },
+    { key: 'promo', label: 'Promotional messages', on: false },
+    { key: 'loginAlerts', label: 'Login alerts', on: true },
+    { key: 'sound', label: 'Sound & Vibration', on: true },
   ]
 
   return (
@@ -739,7 +901,7 @@ export function SettingsPage() {
           {toggles.map((t) => (
             <label class="ac-settings-item ac-settings-item--toggle">
               <span class="ac-settings-item__label">{t.label}</span>
-              <input type="checkbox" class="ac-toggle" checked={t.on} />
+              <input type="checkbox" class="ac-toggle" data-setting={t.key} checked={t.on} />
             </label>
           ))}
         </div>
@@ -830,11 +992,27 @@ export function AboutPage() {
    SECURITY CENTER
    ========================================================================== */
 export function SecurityPage() {
+  /* the real account data — avatar + how many devices are signed in */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const profile = user?.profile || {}
+  const avatar =
+    !profile.avatar || profile.avatar === '/assets/img/avatar/avatar-original.png'
+      ? '/assets/img/account/avatar.png'
+      : profile.avatar
+  const devices = deviceList(user, String(c.get('deviceSid') || ''))
+  const deviceCount = Math.max(1, devices.length)
+
   const items = [
     { icon: 'fa-key', label: 'Change Password', href: '/account/security/password' },
     { icon: 'fa-mobile', label: 'Two-Factor Auth (2FA)', badge: 'Off', red: true, href: '/account/security/2fa' },
     { icon: 'fa-lock', label: 'Transaction PIN', badge: 'Set', gold: true, href: '/account/security/pin' },
-    { icon: 'fa-laptop', label: 'Active Devices', badge: '1 Device', href: '/account/security/devices' },
+    {
+      icon: 'fa-laptop',
+      label: 'Active Devices',
+      badge: `${deviceCount} Device${deviceCount > 1 ? 's' : ''}`,
+      href: '/account/security/devices',
+    },
     { icon: 'fa-envelope', label: 'Anti-Phishing Code', href: '/account/security/antiphishing' },
   ]
 
@@ -850,7 +1028,7 @@ export function SecurityPage() {
       <main class="ac-content">
         <div class="ac-security-status">
           <div class="ac-security-icon">
-            <img src="/assets/img/avatar/guest.svg" alt="" />
+            <img src={avatar} alt="" data-user-avatar />
           </div>
           <h2>Your Account is Secure</h2>
           <p>All security measures are active</p>
@@ -1046,32 +1224,59 @@ export function TransactionPinPage() {
 }
 
 export function DevicesPage() {
+  /* every record here is one real logged-in device, read from the DB while the
+     page renders — the same records the API validates sessions against */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const devices = deviceList(user, String(c.get('deviceSid') || ''))
+  const count = devices.length
+
   return (
     <SecShell title="Active Devices">
       <p class="sec-info">
-        You are currently logged in on <strong>2 devices</strong>. If you see any unfamiliar device,
-        log it out immediately.
+        You are currently logged in on{' '}
+        <strong data-device-count>
+          {count} {count === 1 ? 'device' : 'devices'}
+        </strong>
+        . If you see any unfamiliar device, log it out immediately.
       </p>
 
-      <div class="sec-device" data-device>
-        <span class="sec-device__icon sec-device__icon--current">
-          <Icon name="fa-mobile" size="0.48rem" />
-        </span>
-        <span class="sec-device__info">
-          <h4>iPhone 14 Pro <span class="sec-device__tag">Current</span></h4>
-          <p>Mumbai, India · 2026-09-25 12:30</p>
-        </span>
-      </div>
+      <div data-devices-list>
+        {devices.map((d: any) => (
+          <div class={`sec-device${d.current ? ' sec-device--current' : ''}`} data-device data-device-sid={d.sid}>
+            <span class={`sec-device__icon${d.current ? ' sec-device__icon--current' : ''}`}>
+              <Icon name={deviceIcon(d.type)} size="0.48rem" />
+            </span>
+            <span class="sec-device__info">
+              <h4>
+                <span data-i18n-skip>{d.label}</span>
+                {d.current && <span class="sec-device__tag">Current</span>}
+              </h4>
+              <p>
+                <span class="sec-device__loc">
+                  {d.location || 'Unknown location'} · {d.browser || 'Browser'}
+                  {d.platform ? ' · ' + d.platform : ''}
+                </span>
+                <span class="sec-device__time" data-device-time={d.lastSeen}>
+                  {fmtIst(d.lastSeen)}
+                </span>
+              </p>
+            </span>
+            {d.current ? (
+              <span class="sec-device__self">This device</span>
+            ) : (
+              <button class="sec-device__logout" type="button" data-device-logout data-device-sid={d.sid}>
+                Logout
+              </button>
+            )}
+          </div>
+        ))}
 
-      <div class="sec-device" data-device>
-        <span class="sec-device__icon">
-          <Icon name="fa-laptop" size="0.48rem" />
-        </span>
-        <span class="sec-device__info">
-          <h4>Windows PC</h4>
-          <p>Delhi, India · 2026-09-20 18:15</p>
-        </span>
-        <button class="sec-device__logout" type="button" data-device-logout>Logout</button>
+        {!count && (
+          <p class="sec-empty" data-devices-empty>
+            No other devices are signed in.
+          </p>
+        )}
       </div>
 
       <button class="sec-btn-danger" type="button" data-logout-all>

@@ -76,6 +76,7 @@ export const renderer = jsxRenderer(
 
           <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+          <script src={`/js/i18n.js?v=${ASSET_V}`} defer></script>
           <script src={`/js/app.js?v=${ASSET_V}`} defer></script>
         </body>
       </html>

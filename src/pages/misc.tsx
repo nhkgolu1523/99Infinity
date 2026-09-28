@@ -50,7 +50,7 @@ export function GamesPage() {
 
         <div class="gm-grid" data-games-grid>
           {all.map((g) => (
-            <a class="gm-card" href="/games" data-game data-cat={g.cat} data-name={g.src}>
+            <a class="gm-card" href="/games" data-game data-cat={g.cat} data-name={g.src} data-requires-auth>
               <img src={g.src} alt={g.label} loading="lazy" />
               <span class="gm-card__title">{g.label}</span>
             </a>

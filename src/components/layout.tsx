@@ -5,8 +5,15 @@ import { Icon } from './icons'
    NAVBAR
    ========================================================================== */
 
-/** Home variant — logo on the left, register/login/lang on the right. */
-export function NavbarHome({ loggedIn = false }: { loggedIn?: boolean }) {
+/** Home variant — logo on the left, wallet chip (logged in) or register/login/lang on the right. */
+export function NavbarHome({
+  loggedIn = false,
+  balance = 0,
+}: {
+  loggedIn?: boolean
+  balance?: number
+}) {
+  const amount = '₹' + Number(balance || 0).toFixed(2)
   return (
     <header class="navbar">
       <div class="navbar-fixed">
@@ -27,9 +34,13 @@ export function NavbarHome({ loggedIn = false }: { loggedIn?: boolean }) {
             <div class="pc-header">
               {loggedIn ? (
                 <>
-                  <a class="balance" href="/account" aria-label="Wallet balance">
-                    <span class="amount num">₹0.00</span>
-                    <img class="add" src="/assets/img/ui/service.png" alt="" />
+                  <a class="balance wallet-chip" href="/account/wallet" aria-label="Wallet balance">
+                    <span class="amount num" data-nav-balance>
+                      {amount}
+                    </span>
+                    <span class="balance__plus">
+                      <Icon name="plus" size="0.36rem" />
+                    </span>
                   </a>
                   <a class="icon-btn" href="/messages" aria-label="Notifications">
                     <Icon name="bell" size="0.88rem" />

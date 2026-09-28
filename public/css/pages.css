@@ -1224,21 +1224,23 @@
 .ac-legal__updated { color: var(--ac-green); font-weight: 600; margin-bottom: 0.28rem; }
 .ac-legal h3 { color: var(--ac-gold); font-size: 0.32rem; font-weight: 700; margin: 0.28rem 0 0.09rem; }
 
-.ac-security-status { text-align: center; padding: 0.37rem 0 0.46rem 0; }
+.ac-security-status { text-align: center; padding: 0.42rem 0 0.52rem 0; }
 
+/* the account avatar itself — comfortably big so the photo reads clearly */
 .ac-security-icon {
-  width: 1.72rem;
-  height: 1.72rem;
+  width: 2.4rem;
+  height: 2.4rem;
   border-radius: 50%;
-  border: 2px solid var(--ac-green);
-  box-shadow: 0 0 0.37rem var(--ac-green-bg);
+  border: 0.06rem solid var(--ac-green);
+  box-shadow: 0 0 0.48rem var(--ac-green-bg);
   overflow: hidden;
-  margin: 0 auto 0.28rem;
+  margin: 0 auto 0.32rem;
+  background: var(--ac-card);
 }
 
 .ac-security-icon img { width: 100%; height: 100%; object-fit: cover; }
-.ac-security-status h2 { font-size: 0.42rem; font-weight: 600; color: #fff; margin-bottom: 0.09rem; }
-.ac-security-status p { font-size: 0.31rem; color: var(--ac-green); font-weight: 500; }
+.ac-security-status h2 { font-size: 0.44rem; font-weight: 600; color: #fff; margin-bottom: 0.1rem; }
+.ac-security-status p { font-size: 0.32rem; color: var(--ac-green); font-weight: 500; }
 
 .ac-modal {
   background: var(--ac-card);
@@ -1370,9 +1372,9 @@
 
 .wd-quick {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.192rem;
-  margin-bottom: 0.48rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.144rem;
+  margin-bottom: 0.192rem;
 }
 
 .wd-quick__btn {
@@ -1381,7 +1383,7 @@
   color: var(--ac-text-2);
   padding: 0.192rem 0;
   border-radius: 0.192rem;
-  font-size: 0.288rem;
+  font-size: 0.2688rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1394,6 +1396,16 @@
   border-color: #00c853;
   color: #00c853;
 }
+
+/* withdrawal limits — 1,000 to 10,000 per request */
+.wd-limit {
+  font-size: 0.2496rem;
+  color: #7d8794;
+  margin-bottom: 0.384rem;
+  line-height: 1.5;
+}
+
+.wd-limit b { color: #00c853; font-weight: 700; }
 
 .wd-request {
   width: 100%;
@@ -2539,8 +2551,21 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* claimed / locked reward buttons (Lucky Wheel + Daily Reward) — clearly inactive */
+.lw-spin:disabled,
+.dr-claim:disabled {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.lw-spin.is-done,
+.dr-claim.is-done {
+  box-shadow: none;
+}
+
 .lw-spin:active:not(:disabled) { transform: scale(0.96); }
 .lw-spin:disabled { cursor: not-allowed; }
+
 
 .lw-spin::before {
   content: '';
@@ -2931,6 +2956,12 @@
   margin-bottom: 0.288rem;
 }
 
+/* the device you are holding right now */
+.sec-device--current {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.06), #131a22);
+}
+
 .sec-device__icon {
   width: 1.104rem;
   height: 1.104rem;
@@ -2979,6 +3010,34 @@
   font-size: 0.264rem;
   color: #8b949e;
   line-height: 1.4;
+}
+
+/* location · browser · "last active" — wraps neatly on small screens */
+.sec-device__loc { color: #8b949e; }
+
+.sec-device__time {
+  display: block;
+  color: #6b7683;
+  font-size: 0.24rem;
+  margin-top: 0.048rem;
+}
+
+.sec-device__self {
+  font-size: 0.24rem;
+  font-weight: 700;
+  color: #d4af37;
+  flex-shrink: 0;
+}
+
+.sec-empty {
+  font-size: 0.288rem;
+  color: #8b949e;
+  text-align: center;
+  padding: 0.48rem 0.24rem;
+  background: #131a22;
+  border: 1px dashed #1e2532;
+  border-radius: 0.384rem;
+  margin-bottom: 0.288rem;
 }
 
 .sec-device__logout {
@@ -4391,6 +4450,289 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 0.24rem;
   margin-bottom: 0.6rem;
+}
+
+/* ==========================================================================
+   WALLET OVERVIEW  (balance banner + the two wallet circles + quick actions)
+   Layout mirrors the approved mock: gradient balance banner with the lifetime
+   deposit/withdrawal totals, then a card holding the main / 3rd-party wallets,
+   the transfer button and the 4 shortcuts. Values come from the DB.
+   ========================================================================== */
+.wl-page .ac-content {
+  padding: 0 0.31rem calc(var(--tabbar-h) + 0.6rem);
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---- balance banner ---- */
+.wl-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  /* full-bleed to both screen edges, exactly like the mock */
+  margin: 0 -0.31rem 0;
+  background: linear-gradient(90deg, #b8a016 0%, #4ac96b 50%, #00d4c8 100%);
+  padding: 0.56rem 0.51rem 0.62rem;
+  text-align: center;
+}
+
+/* soft light blob in the corner — same trick as the mock */
+.wl-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -20%;
+  width: 7.7rem;
+  height: 7.7rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  filter: blur(2.05rem);
+}
+
+.wl-banner__icon,
+.wl-banner__amount,
+.wl-banner__label,
+.wl-banner__stats {
+  position: relative;
+  z-index: 1;
+}
+
+.wl-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.18rem;
+  height: 1.18rem;
+  margin-bottom: 0.15rem;
+  color: #fff;
+}
+
+.wl-banner__icon svg {
+  filter: drop-shadow(0 0.1rem 0.2rem rgba(0, 0, 0, 0.2));
+}
+
+.wl-banner__amount {
+  font-size: 0.77rem;
+  font-weight: 900;
+  letter-spacing: 0.013rem;
+  color: #fff;
+  text-shadow: 0 0.05rem 0.2rem rgba(0, 0, 0, 0.15);
+}
+
+.wl-banner__label {
+  font-size: 0.33rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.46rem;
+}
+
+.wl-banner__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-top: 0.36rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wl-stat { flex: 1; text-align: center; }
+
+.wl-stat__value {
+  font-size: 0.51rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.05rem;
+  text-shadow: 0 0.05rem 0.15rem rgba(0, 0, 0, 0.15);
+}
+
+.wl-stat__label {
+  font-size: 0.28rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+}
+
+/* ---- card ---- */
+.wl-card {
+  background: var(--ac-card);
+  border: 1px solid var(--ac-border);
+  border-radius: 0.51rem;
+  margin-top: 0.36rem;
+  padding: 0.62rem 0.51rem;
+}
+
+/* ---- the two wallets ---- */
+.wl-circles {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-bottom: 0.66rem;
+}
+
+.wl-circle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.26rem;
+  flex: 1;
+}
+
+.wl-ring {
+  width: 2.69rem;
+  height: 2.69rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.077rem solid #0a0a0a;
+  box-shadow: 0 0 0 0.026rem #1a1a2e;
+  /* the ring fills with the wallet's share of the total — 0% looks exactly
+     like the mock (an empty ring) */
+  background: conic-gradient(
+    from -90deg,
+    #00c853 calc(var(--wl-pct, 0) * 1%),
+    #1a1a2e calc(var(--wl-pct, 0) * 1%)
+  );
+}
+
+.wl-ring--promo {
+  background: conic-gradient(
+    from -90deg,
+    #d4af37 calc(var(--wl-pct, 0) * 1%),
+    #1a1a2e calc(var(--wl-pct, 0) * 1%)
+  );
+}
+
+.wl-ring__inner {
+  width: 2.18rem;
+  height: 2.18rem;
+  border-radius: 50%;
+  background: var(--ac-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.46rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.008rem;
+}
+
+.wl-circle-value {
+  font-size: 0.38rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.wl-circle-label {
+  font-size: 0.31rem;
+  font-weight: 500;
+  color: var(--ac-text-2);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ---- transfer button ---- */
+.wl-transfer {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  background: linear-gradient(90deg, #b8a016 0%, #4ac96b 50%, #00d4c8 100%);
+  color: #fff;
+  padding: 0.38rem;
+  border-radius: 1.3rem;
+  font-size: 0.38rem;
+  font-weight: 800;
+  letter-spacing: 0.01rem;
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 200, 83, 0.15);
+  transition: transform 0.1s ease, opacity 0.1s ease;
+  margin-bottom: 0.62rem;
+}
+
+.wl-transfer:active { transform: scale(0.98); opacity: 0.9; }
+
+/* ---- quick actions ---- */
+.wl-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.2rem;
+}
+
+.wl-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+.wl-action:active { transform: scale(0.94); }
+
+.wl-action__icon {
+  position: relative;
+  width: 1.44rem;
+  height: 1.44rem;
+  border-radius: 0.41rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.wl-action__icon--deposit {
+  background: linear-gradient(135deg, #ffd966, #e6b84a);
+  box-shadow: 0 0.15rem 0.4rem rgba(230, 184, 74, 0.3);
+}
+
+.wl-action__icon--withdraw {
+  background: linear-gradient(135deg, #6cb8ff, #4a8fe6);
+  box-shadow: 0 0.15rem 0.4rem rgba(108, 184, 255, 0.3);
+}
+
+.wl-action__icon--dep {
+  background: linear-gradient(135deg, #ff8a8a, #e64a4a);
+  box-shadow: 0 0.15rem 0.4rem rgba(255, 138, 138, 0.3);
+}
+
+.wl-action__icon--wd {
+  background: linear-gradient(135deg, #6ce6b8, #3dc89a);
+  box-shadow: 0 0.15rem 0.4rem rgba(108, 230, 184, 0.3);
+}
+
+/* little green "done" badge, exactly like the mock */
+.wl-action__badge {
+  position: absolute;
+  bottom: -0.077rem;
+  right: -0.077rem;
+  width: 0.46rem;
+  height: 0.46rem;
+  border-radius: 50%;
+  background: #00c853;
+  color: #fff;
+  border: 0.05rem solid var(--ac-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wl-action__label {
+  font-size: 0.28rem;
+  font-weight: 500;
+  color: #e6edf3;
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* ---- small phones ---- */
+@media (max-width: 360px) {
+  .wl-banner__amount { font-size: 0.66rem; }
+  .wl-stat__value { font-size: 0.44rem; }
+  .wl-ring { width: 2.3rem; height: 2.3rem; }
+  .wl-ring__inner { width: 1.86rem; height: 1.86rem; font-size: 0.4rem; }
+  .wl-action__icon { width: 1.24rem; height: 1.24rem; }
+  .wl-action__label { font-size: 0.26rem; }
 }
 
 .dp-quick__btn {

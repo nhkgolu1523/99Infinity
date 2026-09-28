@@ -29,8 +29,7 @@ export function BannerSwiper() {
 /* ==========================================================================
    NOTICE BAR  (infinite marquee + Detail button)
    ========================================================================== */
-export function NoticeBar() {
-  const text = site.notice
+export function NoticeBar({ text = site.notice }: { text?: string }) {
   return (
     <div class="noticeBar__container">
       <span class="notice_svg" aria-hidden="true"></span>
@@ -135,7 +134,15 @@ export function TopGames() {
             <div class="swiper-page">
               <div class="top-games__list">
                 {page.map((g: any) => (
-                  <a class="top-games__item" href="/games">
+                  <a
+                    class="top-games__item"
+                    href="/games"
+                    data-game
+                    data-game-key={String(g.cover || '')
+                      .split('/')
+                      .pop()!
+                      .replace(/\.[a-z0-9]+$/i, '')}
+                  >
                     <div class="cover">
                       <img src={g.cover} alt="" loading="lazy" />
                       {g.crown && <img class="crown crown1" src={g.crown} alt="" />}

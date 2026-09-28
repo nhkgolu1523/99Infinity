@@ -1,47 +1,79 @@
+import { useRequestContext } from 'hono/jsx-renderer'
 import { Icon } from '../components/icons'
+import { cycleDay, dayKeyAt } from '../lib/rewards'
 
 /* ==========================================================================
    DAILY REWARD  (dr-* — opened from the home "Your Daily Bonus Awaits" card)
-   Demo state: streak day 4 of 7 — JS advances it on claim
+   The streak is stored in Firebase and resets for everybody at 04:00 AM IST;
+   a missed day drops the user back to Day 1 automatically.
    ========================================================================== */
 const TOTAL_DAYS = 30
-const TODAY = 1
 const UNLOCK_DAY = 7
 const WEEK_STARTS = [1, 8, 15, 22, 29]
 
-function CalendarGrid() {
+function CalendarGrid({ day, claimedToday }: { day: number; claimedToday: boolean }) {
   const cells: any[] = []
-  for (let day = 1; day <= TOTAL_DAYS; day++) {
-    if (WEEK_STARTS.includes(day)) {
-      const weekNum = Math.ceil(day / 7)
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
+    if (WEEK_STARTS.includes(d)) {
+      const weekNum = Math.ceil(d / 7)
       cells.push(
         <div class={`dr-divider ${weekNum === 1 ? 'dr-divider--first' : 'dr-divider--rest'}`}>
           {weekNum === 1 && <Icon name="star" size="0.24rem" />}
-          <span>Week {weekNum} — {weekNum === 1 ? 'Streak Building' : 'Free Game Daily'}</span>
+          <span>
+            Week {weekNum} — {weekNum === 1 ? 'Streak Building' : 'Free Game Daily'}
+          </span>
         </div>
       )
     }
 
     const state =
-      day < TODAY ? 'completed' : day === TODAY ? 'today' : day > UNLOCK_DAY ? 'unlocked' : ''
+      d < day
+        ? 'dr-day--completed'
+        : d === day
+          ? claimedToday
+            ? 'dr-day--completed'
+            : 'dr-day--today'
+          : d > UNLOCK_DAY
+            ? 'dr-day--unlocked'
+            : ''
 
     cells.push(
-      <div class={`dr-day ${state}`} data-dr-day={day}>
-        <span class="dr-day__label">Day {day}</span>
+      <div class={`dr-day ${state}`} data-dr-day={d}>
+        <span class="dr-day__label">Day {d}</span>
         <span class="dr-day__reward">
-          {day > UNLOCK_DAY ? (
+          {d > UNLOCK_DAY ? (
             <Icon name="gift" size="0.288rem" />
-          ) : day >= TODAY ? (
+          ) : d >= day && !(d === day && claimedToday) ? (
             <Icon name="lock" size="0.24rem" />
           ) : null}
         </span>
       </div>
     )
   }
-  return <div class="dr-grid" data-dr-grid data-dr-today={TODAY}>{cells}</div>
+  return (
+    <div class="dr-grid" data-dr-grid data-dr-today={day}>
+      {cells}
+    </div>
+  )
 }
 
 export function DailyRewardPage() {
+  /* real streak of THIS user — read from the DB while the page renders */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const stored = user?.rewards?.daily || {}
+  const today = dayKeyAt(Date.now())
+  const lastKey = Number(stored.lastClaimDayKey || 0)
+  const streak = lastKey >= today - 1 ? Number(stored.streak || 0) : 0
+  const claimedToday = !!user && lastKey === today
+  const day = cycleDay(streak, claimedToday, UNLOCK_DAY)
+  const unlocked = streak >= UNLOCK_DAY
+  const remaining = Math.max(0, UNLOCK_DAY - streak)
+  const statusTitle = unlocked ? 'Unlocked!' : `${streak} / ${UNLOCK_DAY} Days Completed`
+  const statusText = unlocked
+    ? 'You get 1 Free Game every day — keep logging in!'
+    : `Complete ${remaining} more ${remaining === 1 ? 'day' : 'days'} to unlock daily free games.`
+
   return (
     <div class="dr-page">
       <header class="ac-header">
@@ -56,7 +88,7 @@ export function DailyRewardPage() {
         <div class="dr-hero">
           <div class="dr-hero__wrap">
             <div class="dr-hero__cal">
-              <div class="dr-hero__cal-top">DAY {TODAY} / 7</div>
+              <div class="dr-hero__cal-top">DAY {day} / 7</div>
               <div class="dr-hero__cal-body">
                 <Icon name="gamepad" size="0.624rem" />
               </div>
@@ -70,7 +102,7 @@ export function DailyRewardPage() {
 
         {/* status card */}
         <div class="dr-status">
-          <div class="dr-status__icon is-locked" data-dr-status-icon>
+          <div class={`dr-status__icon${unlocked ? '' : ' is-locked'}`} data-dr-status-icon>
             <span class="dr-status__icon-lock">
               <Icon name="lock" size="0.624rem" />
             </span>
@@ -80,8 +112,8 @@ export function DailyRewardPage() {
           </div>
           <div class="dr-status__info">
             <div class="dr-status__label">Streak Progress</div>
-            <h3 data-dr-status-title>0 / 7 Days Completed</h3>
-            <p data-dr-status-text>Complete 7 more days to unlock daily free games.</p>
+            <h3 data-dr-status-title>{statusTitle}</h3>
+            <p data-dr-status-text>{statusText}</p>
           </div>
         </div>
 
@@ -96,7 +128,7 @@ export function DailyRewardPage() {
           </div>
 
           <div class="dr-collapse" data-dr-wrap>
-            <CalendarGrid />
+            <CalendarGrid day={day} claimedToday={claimedToday} />
             <div class="dr-collapse__fade"></div>
           </div>
 
@@ -107,9 +139,15 @@ export function DailyRewardPage() {
         </div>
 
         {/* claim */}
-        <button class="dr-claim" type="button" data-dr-claim>
+        <button
+          class={`dr-claim${claimedToday ? ' is-done' : ''}`}
+          type="button"
+          data-dr-claim
+          data-requires-auth
+          disabled={claimedToday}
+        >
           <Icon name="calendar-check" size="0.408rem" />
-          <span data-dr-claim-text>Mark Today's Login</span>
+          <span data-dr-claim-text>{claimedToday ? 'Already Claimed!' : "Mark Today's Login"}</span>
         </button>
 
         {/* how it works */}

@@ -144,6 +144,34 @@ lazy images · marquees that pause on hover · `prefers-reduced-motion` respecte
 The shell is ready for it — uncomment `d1_databases` in `wrangler.jsonc`, add
 `migrations/`, then bind `DB` in `src/index.tsx` via `new Hono<{ Bindings: { DB: D1Database } }>()`.
 
+## Admin panel (`ADMIN WEBSITE/index.html`)
+
+A complete control room in **one static file** — no build step, no libraries, no server.
+It talks straight to the same Firebase RTDB the app uses (the REST endpoint sends
+`Access-Control-Allow-Origin: *`, so opening the file from disk works).
+
+**Open it:** double-click `ADMIN WEBSITE/index.html` → password `admin123`
+(change `ADMIN_PASSWORD` inside the file, and the DB URL field lets you point it at
+another project; both are remembered in `localStorage`).
+
+| Section | What you control |
+|---|---|
+| Dashboard | users, total balance (main + 3rd-party split), pending deposits/withdrawals, spins & daily claims today, latest transactions, top balances |
+| Users | search by UID / phone / username / email, filters, pagination → per-user sheet: balance (credit/debit/set, logged as a transaction), profile (name, email, phone, VIP, language, invite), status (active / suspended / investigation + message), devices (per-device and “log out everywhere”), transactions (status + delete), rewards (streak, free games, spin total), danger zone (reset password — real PBKDF2 hash, clear log, delete account incl. the UID/phone indexes) |
+| Deposits | approve (credits the **main** wallet, completes the transaction, clears the pending counter) or reject |
+| Withdrawals | mark paid (bonus money leaves the 3rd-party wallet first, the rest from main; pending cleared) or reject |
+| Transactions | global log with type/status/text filters, delete rows |
+| Notifications | write the home notice bar (`CONFIG/NOTICE`) and broadcast app notifications (`MESSAGES`) |
+| Lucky Wheel | on/off, spins per day, reset hour, segment weights with a live chance column (`CONFIG/SPIN`) |
+| Daily reward | on/off, cycle days, unlock day, free games per day, money per streak day 1–7 (`CONFIG/DAILY`) |
+| Money limits | min/max withdrawal, quick chips, minimum deposit (`CONFIG/LIMITS`, live in ~5 s) |
+| Games | enable/disable any `GAMES/<key>` switch, add or remove keys |
+| Tools | raw node load/save/delete, seed or repair the config nodes, full JSON backup download |
+
+Everything the panel writes is read back by the app itself: balances, transaction
+statuses, pending counters, notifications, the notice bar, the wheel/daily config and
+the money limits.
+
 ## Notes / limitations
 
 - **UI only.** No real money, wagering, payments, accounts or persistence exist.

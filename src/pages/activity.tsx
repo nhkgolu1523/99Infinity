@@ -83,7 +83,7 @@ export function ActivityPage() {
 
         <div class="at-list" data-tab-panel="activity">
           {ACTIVITIES.map((a) => (
-            <a class="at-card" href={a.href || `/activity/${a.key}`} data-tab-item={a.cat}>
+            <a class="at-card" href={a.href || `/activity/${a.key}`} data-tab-item={a.cat} data-requires-auth>
               <div class="at-card__media">
                 <img src={a.art} alt="" loading="lazy" />
                 <span class={`at-badge at-badge--${a.badgeClass}`}>{a.badge}</span>

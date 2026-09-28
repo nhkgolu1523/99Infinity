@@ -1,8 +1,11 @@
+import { useRequestContext } from 'hono/jsx-renderer'
 import { Icon } from '../components/icons'
+import { dayKeyAt, nextResetAt } from '../lib/rewards'
 
 /* ==========================================================================
    LUCKY WHEEL  (lw-* — spin page opened from the tabbar centre wheel)
-   Segments order MUST match the SEGMENTS config in public/js/app.js
+   Segment order MUST match CONFIG/SPIN in Firebase + SEGMENTS in public/js/app.js
+   One spin per user per day — the cut-off for everybody is 04:00 AM IST.
    ========================================================================== */
 const SEGMENTS = [
   { lines: ['₹500'], cls: 'lw-label--dark' },
@@ -16,6 +19,28 @@ const SEGMENTS = [
 ]
 
 export function LuckyWheelPage() {
+  /* real state of THIS user, read from the DB while the page renders */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const spin = user?.rewards?.spin || {}
+  const now = Date.now()
+  const claimedToday = !!user && Number(spin.dayKey) === dayKeyAt(now)
+  const resetAt = nextResetAt(now)
+  let resetLabel = '04:00 AM'
+  try {
+    resetLabel = new Date(resetAt).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+    })
+  } catch {
+    /* keep the fallback label */
+  }
+  const lastAmount = Number(spin.lastAmount || 0)
+  const info = claimedToday
+    ? `${lastAmount > 0 ? `You won ₹${lastAmount}. ` : ''}Next spin unlocks at 4:00 AM (${resetLabel})`
+    : 'Tap the button to spin the wheel!'
+
   return (
     <div class="lw-page">
       <header class="ac-header">
@@ -59,11 +84,20 @@ export function LuckyWheelPage() {
           </div>
         </div>
 
-        <button class="lw-spin" type="button" data-spin-btn>
-          <Icon name="refresh" size="0.432rem" /> SPIN NOW
+        <button
+          class={`lw-spin${claimedToday ? ' is-done' : ''}`}
+          type="button"
+          data-spin-btn
+          data-requires-auth
+          disabled={claimedToday}
+        >
+          <Icon name="refresh" size="0.432rem" />{' '}
+          <span data-spin-label>{claimedToday ? 'Already Claimed!' : 'SPIN NOW'}</span>
         </button>
 
-        <div class="lw-info" data-wheel-info>Tap the button to spin the wheel!</div>
+        <div class="lw-info" data-wheel-info>
+          {info}
+        </div>
       </main>
 
       <div class="lw-modal" data-wheel-modal>
