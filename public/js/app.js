@@ -1870,16 +1870,33 @@
   }
 
   /* ------------------------------------------------------------------ deposit */
+  /* REAL UPI deposits (FamGateway). The flow:
+       1. Proceed  → POST /api/deposit/order — the SERVER opens the order and
+          answers with a QR image, a UPI intent link and a 5-minute window.
+       2. This page polls GET /api/deposit/status every 3s. The server (never the
+          browser) talks to the gateway with the merchant key and credits the
+          wallet exactly once. The gateway's own webhook can land first — both
+          paths share one settlement function (src/lib/payments.ts).
+       3. The pending order is also kept on the device, so a refresh or a trip
+          into the UPI app and back resumes the same QR. */
+  const DP_STORE = 'vg_deposit_order';
+  const DP_POLL_MS = 3000;
+
   function initDeposit() {
     const amount = $('[data-dp-amount]');
     if (!amount) return;
 
     /* the minimum deposit is editable in the admin panel (CONFIG/LIMITS) */
-    const dep = { min: 100 };
+    const dep = { min: 100, enabled: true, configured: true, window: 300 };
     fetch('/api/config/rewards', { silent: true })
       .then((r) => r.json())
       .then((d) => {
         if (d && d.deposit && Number(d.deposit.min) > 0) dep.min = Number(d.deposit.min);
+        if (d && d.payments) {
+          dep.enabled = d.payments.enabled !== 0;
+          dep.configured = d.payments.configured !== false;
+          if (Number(d.payments.windowSeconds) > 0) dep.window = Number(d.payments.windowSeconds);
+        }
       })
       .catch(() => {});
     const belowMin = (v) => toast('Minimum deposit is ₹' + dep.min);
@@ -1890,37 +1907,371 @@
     const payAmount = $('[data-dp-pay-amount]');
     const instrAmount = $('[data-dp-instr-amount]');
     const timerEl = $('[data-dp-timer]');
-    let timerInterval = null;
-    let timeLeft = 600;
-    let verified = false;
+    const qrImg = $('[data-dp-qr-img]');
+    const qrBox = $('[data-dp-qr-placeholder]');
+    const upiLink = $('[data-dp-upi]');
+    const openLink = $('[data-dp-open]');
+    const statusEl = $('[data-dp-status]');
+    const statusText = $('[data-dp-status-text]');
+    const refBox = $('[data-dp-ref]');
+    const utrEl = $('[data-dp-utr]');
+    const checkBtn = $('[data-dp-check]');
+    const retryBtn = $('[data-dp-retry]');
 
-    const fmt = (v) => v.toLocaleString('en-IN');
+    let order = null; /* the live order (mirrored to localStorage) */
+    let timerInterval = null; /* 1s countdown */
+    let pollInterval = null; /* 3s server check */
+    let timeLeft = dep.window;
+    let settled = false; /* paid or expired — polling has stopped */
 
-    const setVerify = (text, disabled) => {
-      const verify = $('[data-dp-verify]');
-      if (!verify) return;
-      verify.disabled = disabled;
-      verify.classList.toggle('is-loading', text === 'Verifying...');
-      const label = verify.querySelector('span');
-      if (label) setText(label, text);
+    const fmt = (v) => Number(v || 0).toLocaleString('en-IN');
+
+    /* pending orders survive a reload or a trip into the bank app */
+    const store = {
+      read() {
+        try {
+          return JSON.parse(localStorage.getItem(DP_STORE) || 'null');
+        } catch (e) {
+          return null;
+        }
+      },
+      write(v) {
+        try {
+          if (v) localStorage.setItem(DP_STORE, JSON.stringify(v));
+          else localStorage.removeItem(DP_STORE);
+        } catch (e) {
+          /* private mode — the payment still works, it just cannot be resumed */
+        }
+      },
     };
 
-    const goStep1 = () => {
-      clearInterval(timerInterval);
-      if (step2) step2.classList.remove('active');
-      if (step1) step1.classList.add('active');
-      if (title) setText(title, 'Deposit');
-      verified = false;
-      setVerify('Verify Payment', false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const stopAll = () => {
+      if (timerInterval) clearInterval(timerInterval);
+      if (pollInterval) clearInterval(pollInterval);
+      timerInterval = null;
+      pollInterval = null;
     };
 
     const updateTimer = () => {
       if (!timerEl) return;
-      const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-      const secs = String(timeLeft % 60).padStart(2, '0');
-      timerEl.textContent = `${mins}:${secs}`;
+      const t = Math.max(0, Math.floor(timeLeft));
+      setText(
+        timerEl,
+        String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0')
+      );
     };
+
+    const setStatus = (kind, text) => {
+      if (statusEl) statusEl.dataset.dpStatus = kind;
+      setText(statusText, text);
+    };
+
+    const CHECK_LABEL = 'I have paid — Check status';
+
+    const setCheck = (text, disabled) => {
+      if (!checkBtn) return;
+      checkBtn.disabled = !!disabled;
+      checkBtn.classList.toggle('is-loading', text === 'Checking…');
+      setText(checkBtn.querySelector('span'), text);
+    };
+
+    const goStep1 = () => {
+      stopAll();
+      settled = false;
+      order = null;
+      store.write(null);
+      if (step2) step2.classList.remove('active');
+      if (step1) step1.classList.add('active');
+      if (title) setText(title, 'Deposit');
+      if (retryBtn) retryBtn.hidden = true;
+      if (checkBtn) checkBtn.hidden = false;
+      setCheck(CHECK_LABEL, false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    /* the countdown is only a hint — the server has the last word on a paid order */
+    const startTimer = () => {
+      if (timerInterval) clearInterval(timerInterval);
+      updateTimer();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimer();
+        if (timeLeft <= 60 && timeLeft > 0 && statusEl && statusEl.dataset.dpStatus === 'pending')
+          setStatus('pending', 'Almost out of time — please finish the payment now');
+        if (timeLeft <= 0) handleExpired();
+      }, 1000);
+    };
+
+    const handleExpired = () => {
+      stopAll();
+      settled = true;
+      store.write(null);
+      setStatus('expired', 'This payment window has closed. Generate a new QR to try again.');
+      if (checkBtn) checkBtn.hidden = true;
+      if (retryBtn) retryBtn.hidden = false;
+      if (qrImg) qrImg.classList.add('is-dead');
+    };
+
+    /* the bank reference was already used by another order — it can never be
+       matched to this one, so the session is over */
+    const handleRejected = () => {
+      stopAll();
+      settled = true;
+      store.write(null);
+      setStatus('expired', 'This payment could not be matched to your order. Generate a new QR.');
+      if (checkBtn) checkBtn.hidden = true;
+      if (retryBtn) retryBtn.hidden = false;
+      if (qrImg) qrImg.classList.add('is-dead');
+      toast('Payment not accepted — please create a new QR', 3500);
+    };
+
+    const handlePaid = (data) => {
+      stopAll();
+      settled = true;
+      store.write(null);
+      if (checkBtn) checkBtn.hidden = true;
+      if (retryBtn) retryBtn.hidden = true;
+
+      const money = Number(data.amount || (order && order.amount) || 0);
+      if (data.credited) setStatus('success', 'Payment received — ₹' + fmt(money) + ' added to your wallet');
+      else setStatus('success', 'Payment received — your balance will be updated after verification');
+
+      if (data.utr) {
+        setText(utrEl, String(data.utr));
+        if (refBox) refBox.hidden = false;
+      }
+
+      /* the success dialog tells the user exactly what happened */
+      const modal = $('[data-dp-modal]');
+      const mText = $('[data-dp-modal-text]');
+      const mRef = $('[data-dp-modal-ref]');
+      setText($('[data-dp-modal-title]'), 'Payment Received!');
+      setText(
+        mText,
+        data.credited
+          ? '₹' + fmt(money) + ' has been added to your wallet.'
+          : 'We are verifying your payment — your balance will update shortly.'
+      );
+      if (mRef) {
+        mRef.hidden = !data.utr;
+        if (data.utr) setText(mRef, 'UTR ' + data.utr);
+      }
+      if (modal) modal.classList.add('active');
+
+      /* navbar + wallet are refreshed from the server, so the new balance is real */
+      refreshUser(true);
+    };
+
+    /* fills the whole payment step from one order object (server or localStorage) */
+    const showOrder = (ord) => {
+      order = ord;
+      settled = false;
+      store.write(ord);
+
+      if (qrBox) qrBox.hidden = false;
+      if (qrImg) {
+        qrImg.classList.remove('is-dead');
+        qrImg.hidden = true;
+        qrImg.onload = () => {
+          qrImg.hidden = false;
+          if (qrBox) qrBox.hidden = true;
+        };
+        qrImg.onerror = () => {
+          if (qrBox) {
+            qrBox.hidden = false;
+            setText(qrBox.querySelector('span'), 'QR unavailable — use the UPI app button');
+          }
+        };
+        qrImg.src = ord.qrUrl || '';
+      }
+      if (upiLink) {
+        upiLink.href = ord.upiIntent || '#';
+        upiLink.hidden = !ord.upiIntent;
+      }
+      if (openLink) {
+        openLink.href = ord.checkoutUrl || '#';
+        openLink.hidden = !ord.checkoutUrl;
+      }
+
+      const payable = Number(ord.payableAmount || ord.amount || 0);
+      setText(payAmount, fmt(payable));
+      setText(instrAmount, '₹' + fmt(payable));
+      if (refBox) refBox.hidden = true;
+      if (retryBtn) retryBtn.hidden = true;
+      if (checkBtn) checkBtn.hidden = false;
+      setCheck(CHECK_LABEL, false);
+      setStatus('pending', 'Waiting for payment confirmation…');
+
+      if (step1) step1.classList.remove('active');
+      if (step2) step2.classList.add('active');
+      if (title) setText(title, 'Complete Payment');
+
+      timeLeft = Math.max(
+        5,
+        Math.round(((Number(ord.expiresAt) || Date.now() + dep.window * 1000) - Date.now()) / 1000)
+      );
+      startTimer();
+      startPolling();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    let checking = false;
+
+    /* the server check — and the thing that actually credits the wallet */
+    const check = async (manual) => {
+      /* one request at a time: the interval, a manual tap and a slow answer
+         must never stack up into parallel settles */
+      if (!order || settled || checking) return;
+      checking = true;
+      if (manual) setCheck('Checking…', true);
+      try {
+        const res = await fetch('/api/deposit/status?order_id=' + encodeURIComponent(order.orderId), {
+          cache: 'no-store',
+          silent: true,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (manual) setCheck(CHECK_LABEL, false);
+        if (!res.ok) {
+          if (res.status === 409) return handleRejected();
+          if (manual) toast(data.error || 'Could not check the payment', 3000);
+          return;
+        }
+        if (data.status === 'success') return handlePaid(data);
+        if (data.status === 'expired') return handleExpired();
+        if (data.status === 'duplicate') return handleRejected();
+        if (typeof data.secondsLeft === 'number' && data.secondsLeft > 0) {
+          timeLeft = data.secondsLeft;
+          updateTimer();
+        }
+        if (manual)
+          toast(
+            data.checked === false
+              ? 'Gateway unreachable — please keep waiting'
+              : 'No payment received yet',
+            3000
+          );
+      } catch (err) {
+        if (manual) {
+          setCheck(CHECK_LABEL, false);
+          toast('Network error, please try again', 3000);
+        }
+      } finally {
+        checking = false;
+      }
+    };
+
+    const startPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      /* every 3 seconds, one at a time — the server tells the gateway the truth
+         (the API key never reaches the browser) */
+      pollInterval = setInterval(() => check(false), DP_POLL_MS);
+    };
+
+    /* closes an abandoned order server-side so its transaction does not stay pending */
+    const abandon = () => {
+      const id = order && order.orderId;
+      if (!id || settled) return;
+      fetch('/api/deposit/cancel', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ order_id: id }),
+        silent: true,
+      }).catch(() => {});
+    };
+
+    /* No API key on the server yet (or the gateway is paused): instead of
+       dead-ending the user, fall back to the manual request the admin panel
+       already handles — the same flow the app used before the gateway existed. */
+    const manualRequest = async (value) => {
+      const btn = $('[data-dp-proceed]');
+      const label = $('[data-dp-proceed-label]');
+      if (btn) btn.disabled = true;
+      if (label) setText(label, 'Submitting…');
+      try {
+        const res = await fetch('/api/deposit', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ amount: value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 401) {
+            toast('Please log in first', 2000);
+            return setTimeout(() => spaNavigate('/login', true), 400);
+          }
+          if (data.code) showAccountBlock(data.error || 'Your account is restricted');
+          return toast(data.error || 'Could not submit the deposit request', 3500);
+        }
+
+        setText($('[data-dp-modal-title]'), 'Request Submitted!');
+        setText(
+          $('[data-dp-modal-text]'),
+          'Our team verifies your deposit and credits your wallet — usually within a few minutes.'
+        );
+        const ref = $('[data-dp-modal-ref]');
+        if (ref) ref.hidden = true;
+        const modal = $('[data-dp-modal]');
+        if (modal) modal.classList.add('active');
+        toast(data.message || 'Deposit request submitted!', 3500);
+        refreshUser(true);
+      } catch (err) {
+        toast('Network error, please try again', 3000);
+      } finally {
+        if (btn) btn.disabled = false;
+        if (label) setText(label, 'Proceed to Pay');
+      }
+    };
+
+    /* step 1 → the gateway. The API key lives on the server; we only send an amount. */
+    const createOrder = async (value) => {
+      const btn = $('[data-dp-proceed]');
+      const label = $('[data-dp-proceed-label]');
+      if (btn) btn.disabled = true;
+      if (label) setText(label, 'Creating order…');
+      const restore = () => {
+        if (btn) btn.disabled = false;
+        if (label) setText(label, 'Proceed to Pay');
+      };
+
+      let data = {};
+      try {
+        const res = await fetch('/api/deposit/order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ amount: value }),
+        });
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          restore();
+          if (res.status === 401) {
+            toast('Please log in first', 2000);
+            return setTimeout(() => spaNavigate('/login', true), 400);
+          }
+          if (data.code) showAccountBlock(data.error || 'Your account is restricted');
+          return toast(data.error || 'Could not start the payment', 3500);
+        }
+      } catch (err) {
+        restore();
+        return toast('Network error, please try again', 3000);
+      }
+
+      restore();
+      showOrder({
+        orderId: data.orderId,
+        qrUrl: data.qrUrl,
+        checkoutUrl: data.checkoutUrl,
+        upiIntent: data.upiIntent,
+        amount: Number(data.amount) || value,
+        payableAmount: Number(data.payableAmount) || value,
+        expiresAt:
+          Number(data.expiresAt) || Date.now() + (Number(data.secondsLeft) || dep.window) * 1000,
+      });
+    };
+
+    /* an unfinished order from a previous visit resumes here (refresh / bank app) */
+    const saved = store.read();
+    if (saved && saved.orderId && Number(saved.expiresAt) > Date.now() + 15000) showOrder(saved);
+    else if (saved) store.write(null);
 
     /* quick amounts — fill + active state */
     $$('[data-dp-quick]').forEach((btn) =>
@@ -1932,83 +2283,40 @@
       })
     );
 
-    /* header back + cancel link return to step 1 when on the payment step */
+    /* header back + cancel link return to step 1 and release the pending order */
     on($('[data-dp-back]'), 'click', (e) => {
       if (step2 && step2.classList.contains('active')) {
         e.preventDefault();
+        abandon();
         goStep1();
       }
     });
     on($('[data-dp-cancel]'), 'click', (e) => {
       e.preventDefault();
+      abandon();
       goStep1();
     });
 
-    /* proceed — validate then show the QR step with a 10-minute timer */
+    /* proceed — validate, then ask the server for a real UPI order */
     on($('[data-dp-proceed]'), 'click', () => {
-      const value = parseFloat(amount.value);
+      const value = Math.floor(parseFloat(amount.value) || 0);
       if (!value || value <= 0) return toast('Please enter a valid amount');
       if (value < dep.min) return belowMin();
-
-      if (payAmount) payAmount.textContent = fmt(value);
-      if (instrAmount) instrAmount.textContent = '₹' + fmt(value);
-
-      if (step1) step1.classList.remove('active');
-      if (step2) step2.classList.add('active');
-      if (title) setText(title, 'Complete Payment');
-
-      timeLeft = 600;
-      verified = false;
-      updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimer();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          toast('Time expired. Please try again.');
-          goStep1();
-        }
-      }, 1000);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (!dep.enabled)
+        return toast('Deposits are temporarily unavailable. Please try again later.', 3000);
+      /* gateway not configured yet → the manual request path (admin verifies) */
+      if (!dep.configured) return manualRequest(value);
+      if (order && !settled) abandon();
+      createOrder(value);
     });
 
-    /* verify — fake 1.5s check then success modal */
-    on($('[data-dp-verify]'), 'click', async () => {
-      if (verified) return;
-      const value = parseFloat(amount ? amount.value : '');
-      if (!value || value < dep.min) return belowMin();
+    /* manual status check — the automatic poll does exactly the same thing */
+    on($('[data-dp-check]'), 'click', () => check(true));
 
-      verified = true;
-      setVerify('Verifying...', true);
-      try {
-        /* register the deposit request on the backend before showing success */
-        const res = await fetch('/api/deposit', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ amount: value }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          verified = false;
-          setVerify('Verify Payment', false);
-          if (res.status === 401) {
-            toast('Please log in first', 2000);
-            return setTimeout(() => spaNavigate('/login', true), 400);
-          }
-          if (data.code) showAccountBlock(data.error || 'Your account is restricted');
-          return toast(data.error || 'Deposit failed', 3000);
-        }
-      } catch (err) {
-        verified = false;
-        setVerify('Verify Payment', false);
-        return toast('Network error, try again', 3000);
-      }
-      setTimeout(() => {
-        clearInterval(timerInterval);
-        const modal = $('[data-dp-modal]');
-        if (modal) modal.classList.add('active');
-      }, 800);
+    /* expired window — back to step 1 to create a fresh QR */
+    on($('[data-dp-retry]'), 'click', () => {
+      goStep1();
+      if (amount) amount.focus();
     });
 
     on($('[data-dp-modal-close]'), 'click', () => {

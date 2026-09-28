@@ -159,6 +159,7 @@ another project; both are remembered in `localStorage`).
 | Dashboard | users, total balance (main + 3rd-party split), pending deposits/withdrawals, spins & daily claims today, latest transactions, top balances |
 | Users | search by UID / phone / username / email, filters, pagination → per-user sheet: balance (credit/debit/set, logged as a transaction), profile (name, email, phone, VIP, language, invite), status (active / suspended / investigation + message), devices (per-device and “log out everywhere”), transactions (status + delete), rewards (streak, free games, spin total), danger zone (reset password — real PBKDF2 hash, clear log, delete account incl. the UID/phone indexes) |
 | Deposits | approve (credits the **main** wallet, completes the transaction, clears the pending counter) or reject |
+| UPI payments | the live gateway feed (`PAYMENT_ORDERS`): collected total, waiting/expired/replayed counters, one row per order (user, amount, state, bank UTR, age), a 1-click *Close* for a stuck order, per-order field dump for debugging, and the gateway switches — deposits on/off + auto-credit vs manual approval (`CONFIG/PAYMENTS`) |
 | Withdrawals | mark paid (bonus money leaves the 3rd-party wallet first, the rest from main; pending cleared) or reject |
 | Transactions | global log with type/status/text filters, delete rows |
 | Notifications | write the home notice bar (`CONFIG/NOTICE`) and broadcast app notifications (`MESSAGES`) |
@@ -172,13 +173,102 @@ Everything the panel writes is read back by the app itself: balances, transactio
 statuses, pending counters, notifications, the notice bar, the wheel/daily config and
 the money limits.
 
+## Payments — real UPI deposits (`src/lib/payments.ts` + `/api/deposit/*`)
+
+Deposits go through **[FamGateway](https://famgateway.in)** — a free, non-custodial
+UPI gateway: it reserves an order, returns a dynamic UPI QR + intent link, watches
+the merchant's bank credits and confirms the payment (webhook + polling).
+
+### One-time setup
+
+| Step | Where | What |
+|---|---|---|
+| 1 | FamGateway dashboard | connect the FamPay **Gmail + App Password + UPI ID** (their Integrations page; IMAP must be enabled in Gmail) |
+| 2 | FamGateway → API Keys | copy the merchant API key |
+| 3 | this project | `npx wrangler secret put FAMGATEWAY_API_KEY` (paste the key). Local dev: put `FAMGATEWAY_API_KEY=...` in `.dev.vars` |
+| 4 | FamGateway → Webhooks (optional) | the app passes `webhook_url` per order, so nothing has to be registered — but adding `https://<your-domain>/api/payment/webhook` is a good backup |
+
+Nothing else is needed: the callback URL and the redirect URL are derived from the
+request host, so the same code works on `*.workers.dev` and on a custom domain.
+`FAMGATEWAY_BASE` can override the gateway host (staging / an offline mock).
+
+### Flow
+
+1. **Step 1 (amount)** → `POST /api/deposit/order` — validates `CONFIG/LIMITS.depositMin`,
+   opens the order at the gateway (`POST /api/create-order`), stores
+   `PAYMENT_ORDERS/<order_id>` + a pending transaction and returns `orderId`, `qrUrl`,
+   `checkoutUrl`, `upiIntent`, `payableAmount` and the 5-minute window.
+2. **Step 2 (payment)** — the page renders the gateway's QR, a **Pay via UPI App**
+   button (NPCI deep link) and a hosted-checkout link, then polls
+   `GET /api/deposit/status?order_id=…` **every 3 seconds**. The *server* asks the
+   gateway (`GET /api/verify-order.php`, API key stays server-side) and credits the
+   wallet; the browser never sees the key.
+3. **Webhook** — `POST /api/payment/webhook` (public route) verifies the
+   `X-FamGateway-Signature` header (HMAC-SHA256 of the raw body, signed with the API
+   key) and settles the order instantly. A wrong/missing signature is a `401`.
+4. **Success** — the receipt dialog shows the amount + the bank **UTR**, the navbar
+   and wallet refresh from `/api/me`, and the pending order is cleared from the device.
+   **Expired** — the QR is greyed out and *Generate a new QR* appears.
+   **Cancel / back** → `POST /api/deposit/cancel` closes the order (`expired`) so no
+   transaction stays pending forever.
+
+### Money safety
+
+- **Exactly once, by construction.** The credit is a *keyed* entry —
+  `USERS/<uid>/balance/deposits/<order_id> = amount` — written in the same atomic
+  Firebase PATCH as the order, transaction and deposit-request updates. Writing the
+  same order id twice stores the same number, so the webhook, a browser poll and a
+  retried request can all run at the same instant and the wallet still gains the
+  amount once.
+  *(Measured before this design: 8 parallel polls of one paid order credited a plain
+  counter up to 8 times — Firebase's `If-Match` conditional PUT does not reliably
+  gate two writes that reach the server in the same instant. Do not "optimise" this
+  back into an `increment`.)*
+- The spendable total is therefore `balance.total + sum(balance.deposits)` —
+  `totalBalance()` / `walletSplit()` in `src/lib/wallet.ts` are the only places that
+  compute money, and the withdraw/spin/daily/navbar/account paths all use them.
+- **UTR idempotency.** A bank reference can only ever pay one order: `UTR_INDEX/<utr>`
+  is checked first, a replay is marked `duplicate` and the caller gets
+  `409 duplicate-utr`.
+- **Never lose a real payment.** If the user pays a QR that we already closed (a
+  cancel or an expired window), the next poll still settles it and credits the money.
+- **Auto-credit switch.** `CONFIG/PAYMENTS` = `{ enabled, autoCredit }` — the admin
+  panel can pause deposits or require manual approval (then a paid order lands in the
+  Deposits queue as `paid` with the UTR attached).
+
+### Files
+
+| File | Role |
+|---|---|
+| `src/lib/payments.ts` | gateway client, `claim`-free idempotent settle, expiry, HMAC verify, `CONFIG/PAYMENTS` |
+| `src/api.ts` | `/deposit/order`, `/deposit/status`, `/deposit/cancel`, `/payment/webhook`, `payments` block in `/config/rewards` |
+| `src/pages/deposit.tsx` | SSR step 1/step 2 markup (QR, status, UTR, receipt dialog), server-rendered balance |
+| `public/js/app.js` → `initDeposit()` | order creation, 3 s polling (one request at a time), resume after a reload, success/expired/rejected states |
+| `src/lib/wallet.ts` | `depositCredits()`, `totalBalance()`, corrected `walletSplit()` |
+
+### Testing without losing money
+
+FamGateway is free and fee-free, so **deposit ₹1 live** from the deposit page — the
+order appears in the admin panel's *UPI payments* view with pending → success and the
+UTR. A mock gateway can be pointed at with `FAMGATEWAY_BASE` (that is how the flow
+above was verified: create order → pay → 8 parallel polls → exactly one credit →
+webhook replay rejected).
+
+
 ## Notes / limitations
 
-- **UI only.** No real money, wagering, payments, accounts or persistence exist.
-  Buttons are wired to demo toasts and dialogs, not to a backend.
+- **Live money paths:** accounts, sessions, the wallet (main + 3rd-party), the lucky
+  wheel, the daily reward, notifications, deposit limits and **real UPI deposits**
+  (FamGateway, see above) all read and write the live Firebase RTDB and are enforced
+  server-side. Static reference copy for promotions/VIP/games is still presentation
+  only (no wagering or game logic is wired yet).
+- The spin/daily reward guard is a read-then-write (`rewards/spin/dayKey`): a truly
+  parallel double tap could still claim twice. Deposits are protected by the keyed
+  ledger above; do the same trick (or a Durable Object) before those two ever pay real
+  money.
 - Reference game thumbnails and provider logos are hosted third-party brand assets
   kept only so the layout matches the reference; replace them before any public use.
 - The reference bundle's own JS/CSS was **not** copied — all styling is newly authored
   against the extracted measurements (rem values, gradients, radii, timings).
 
-**Last updated**: 2026-09-24
+**Last updated**: 2026-09-28

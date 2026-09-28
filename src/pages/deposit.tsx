@@ -1,9 +1,21 @@
+import { useRequestContext } from 'hono/jsx-renderer'
 import { Icon } from '../components/icons'
+import { totalBalance } from '../lib/wallet'
 
 /* ==========================================================================
-   DEPOSIT  (dp-* — step 1 amount → step 2 QR payment flow)
+   DEPOSIT  (dp-* — step 1 amount → step 2 live UPI QR payment)
+   The QR, the UPI intent link and the status come from the real gateway
+   (FamGateway) through /api/deposit/*; nothing here is a placeholder.
    ========================================================================== */
 export function DepositPage() {
+  /* the real balance, server-rendered so the page never flashes ₹0.00 */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const balance = '₹ ' + totalBalance(user).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
   return (
     <div class="dp-page">
       <header class="ac-header">
@@ -19,7 +31,7 @@ export function DepositPage() {
           <div class="dp-card">
             <div class="dp-balance">
               <span>Available balance</span>
-              <span class="dp-balance__amount">₹ 0.00</span>
+              <span class="dp-balance__amount" data-user-balance>{balance}</span>
             </div>
 
             <div class="dp-input">
@@ -43,7 +55,7 @@ export function DepositPage() {
             </div>
 
             <button class="dp-proceed" type="button" data-dp-proceed>
-              Proceed to Pay
+              <span data-dp-proceed-label>Proceed to Pay</span>
               <Icon name="arrow-right" size="0.36rem" />
             </button>
           </div>
@@ -55,7 +67,7 @@ export function DepositPage() {
             <div class="dp-timer">
               <Icon name="clock" size="0.336rem" />
               <span>
-                Complete payment within <b class="dp-timer__count" data-dp-timer>10:00</b>
+                Complete payment within <b class="dp-timer__count" data-dp-timer>05:00</b>
               </span>
             </div>
 
@@ -68,12 +80,38 @@ export function DepositPage() {
 
             <div class="dp-qr">
               <div class="dp-qr__wrap">
-                <div class="dp-qr__placeholder">
+                <div class="dp-qr__placeholder" data-dp-qr-placeholder>
                   <Icon name="qrcode" size="1.008rem" />
-                  <span>QR Code Here</span>
+                  <span>Generating QR…</span>
                 </div>
+                <img class="dp-qr__img" data-dp-qr-img alt="UPI QR code" hidden />
               </div>
               <div class="dp-qr__hint">Scan this QR with any UPI app</div>
+
+              {/* one tap on a phone — standard NPCI deep link into GPay / PhonePe / Paytm */}
+              <a class="dp-upi" href="#" data-dp-upi hidden>
+                <Icon name="fa-mobile" size="0.36rem" />
+                <span>Pay via UPI App</span>
+              </a>
+
+              {/* the gateway's hosted checkout page — handy on desktop */}
+              <a class="dp-open" href="#" data-dp-open target="_blank" rel="noopener" hidden>
+                <Icon name="arrow-right" size="0.34rem" />
+                <span>Open payment page</span>
+              </a>
+
+              {/* live state — the page polls the server every 3 seconds */}
+              <div class="dp-status" data-dp-status="pending">
+                <span class="dp-status__dot"></span>
+                <span class="dp-status__text" data-dp-status-text>Waiting for payment confirmation…</span>
+              </div>
+
+              <div class="dp-ref" data-dp-ref hidden>
+                <span class="dp-ref__label">Payment reference (UTR)</span>
+                <span class="dp-ref__value" data-dp-utr>
+                  —
+                </span>
+              </div>
             </div>
 
             <div class="dp-instructions">
@@ -86,27 +124,31 @@ export function DepositPage() {
                   <strong>Open any UPI app</strong> — Paytm, PhonePe, GPay, or your bank app.
                 </li>
                 <li>
-                  <strong>Scan the QR code</strong> shown above.
+                  <strong>Scan the QR code</strong> above, or tap{' '}
+                  <strong>Pay via UPI App</strong> on your phone.
                 </li>
                 <li>
-                  Enter the exact amount <b class="dp-gold" data-dp-instr-amount>₹0</b> and complete
-                  the payment.
+                  Pay the exact amount <b class="dp-gold" data-dp-instr-amount>₹0</b> and complete the
+                  transfer.
                 </li>
                 <li>
-                  <strong>Wait for payment confirmation</strong> in your UPI app.
+                  <strong>Keep this page open</strong> — it checks your payment automatically every few
+                  seconds.
                 </li>
                 <li>
-                  Come back here and tap <strong>Verify Payment</strong> below.
-                </li>
-                <li>
-                  Your balance will be credited within <strong>10 minutes</strong> after verification.
+                  Your balance is added the moment the bank confirms, usually <strong>within a minute</strong>.
                 </li>
               </ol>
             </div>
 
-            <button class="dp-verify" type="button" data-dp-verify>
+            <button class="dp-verify" type="button" data-dp-check>
               <Icon name="fa-circle-check" size="0.384rem" />
-              <span>Verify Payment</span>
+              <span>I have paid — Check status</span>
+            </button>
+
+            <button class="dp-retry" type="button" data-dp-retry hidden>
+              <Icon name="refresh" size="0.36rem" />
+              <span>Generate a new QR</span>
             </button>
 
             <a class="dp-cancel" href="#" data-dp-cancel>
@@ -116,14 +158,15 @@ export function DepositPage() {
         </div>
       </main>
 
-      {/* success modal */}
+      {/* success modal — filled by the poll that confirmed the payment */}
       <div class="dp-modal" data-dp-modal>
         <div class="dp-modal__box">
           <div class="dp-modal__icon">✅</div>
-          <h3 class="dp-modal__title">Payment Submitted!</h3>
-          <p class="dp-modal__text">
-            We're verifying your payment. Your balance will be credited within 10 minutes.
+          <h3 class="dp-modal__title" data-dp-modal-title>Payment Received!</h3>
+          <p class="dp-modal__text" data-dp-modal-text>
+            Your wallet has been updated.
           </p>
+          <p class="dp-modal__ref" data-dp-modal-ref hidden>UTR —</p>
           <button class="dp-modal__btn" type="button" data-dp-modal-close>
             Great, Thanks!
           </button>

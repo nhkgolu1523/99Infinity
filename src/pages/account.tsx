@@ -6,6 +6,7 @@ import { useRequestContext } from 'hono/jsx-renderer'
 import { WITHDRAW_MAX, WITHDRAW_MIN, WITHDRAW_QUICK, money, quickLabel } from '../lib/rewards'
 import { deviceList } from '../api'
 import { autoUsername } from '../lib/backend'
+import { totalBalance } from '../lib/wallet'
 
 /** ms timestamp → "YYYY-MM-DD HH:MM:SS" (server timezone = UTC) */
 function fmtTime(ms: any) {
@@ -68,7 +69,7 @@ export function AccountPage() {
       : profile.avatar
   const balance =
     '₹' +
-    Number(user?.balance?.total || 0).toLocaleString('en-IN', {
+    totalBalance(user).toLocaleString('en-IN', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })

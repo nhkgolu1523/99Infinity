@@ -45,7 +45,20 @@ import {
   autoUsername,
   isPlaceholderName,
 } from './lib/backend'
-import { walletSplit, walletTotals } from './lib/wallet'
+import { walletSplit, walletTotals, totalBalance } from './lib/wallet'
+import {
+  PAYMENT_WINDOW_SECONDS,
+  createFamOrder,
+  expirePaymentOrder,
+  famConfigured,
+  getPaymentOrder,
+  loadPaymentConfig,
+  orderPath,
+  settlePayment,
+  verifyFamOrder,
+  verifyFamSignature,
+  type PaymentOrder,
+} from './lib/payments'
 
 export type UserNode = {
   uid: string
@@ -370,12 +383,20 @@ apiApp.get('/config/rewards', async (c) => {
   const spin = await loadConfig(c.env, 'CONFIG/SPIN', DEFAULT_SPIN_CONFIG)
   const daily = await loadConfig(c.env, 'CONFIG/DAILY', DEFAULT_DAILY_CONFIG)
   const limits = await loadLimits(c.env)
+  const pay = await loadPaymentConfig(c.env)
   return c.json({
     ok: true,
     spin,
     daily,
     withdraw: { min: limits.withdrawMin, max: limits.withdrawMax, quick: limits.withdrawQuick },
     deposit: { min: limits.depositMin },
+    /* UPI gateway state — the deposit page reads this instead of guessing */
+    payments: {
+      enabled: pay.enabled,
+      configured: famConfigured(c.env),
+      autoCredit: pay.autoCredit,
+      windowSeconds: PAYMENT_WINDOW_SECONDS,
+    },
     resetHour: 4,
     timezone: 'Asia/Kolkata',
   })
@@ -596,7 +617,8 @@ apiApp.get('/me', async (c) => {
     uid: u.uid,
     profile: u.profile || {},
     status: u.status || { code: 'active', message: '' },
-    balance: u.balance || { total: 0, deposit: 0, withdraw: 0 },
+    /* the spendable total = plain counter + every credited gateway deposit */
+    balance: { ...(u.balance || { deposit: 0, withdraw: 0 }), total: totalBalance(u) },
     /* main wallet vs 3rd-party wallet (claims) — the wallet page renders this */
     wallet: walletSplit(u),
     walletTotals: walletTotals(u),
@@ -779,7 +801,279 @@ apiApp.post('/deposit', async (c) => {
   return c.json({ ok: true, txId, message: 'Deposit request submitted! Balance updates after verification.' })
 })
 
+/* ------------------------------------------------------------------ deposit · live UPI */
+
+/** POST /api/deposit/order — opens a REAL UPI order at the gateway.
+ *  The merchant API key never leaves the server: the browser only receives the
+ *  QR image URL, the UPI intent link and the order id it has to poll. */
+apiApp.post('/deposit/order', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first' }, 401)
+
+  const block = statusBlock(user)
+  if (block) return c.json({ error: block.message, code: block.code }, 403)
+
+  const body = await c.req.json().catch(() => ({} as any))
+  const amount = Math.floor(Number(body.amount) || 0)
+  const limits = await loadLimits(c.env)
+  if (amount < limits.depositMin)
+    return c.json(
+      { error: `Minimum deposit is ${money(limits.depositMin)}`, code: 'min-deposit' },
+      400,
+    )
+
+  const pay = await loadPaymentConfig(c.env)
+  if (!pay.enabled)
+    return c.json(
+      { error: 'Deposits are temporarily unavailable. Please try again later.', code: 'deposits-off' },
+      503,
+    )
+  if (!famConfigured(c.env))
+    return c.json(
+      {
+        error: 'The payment gateway is not configured yet. Please try again later.',
+        code: 'gateway-missing',
+      },
+      503,
+    )
+
+  /* the callback + redirect always point back at whatever host served this
+     request, so the same code works on workers.dev and on the custom domain */
+  const origin = new URL(c.req.url).origin
+  const profile = user.profile || {}
+  const created = await createFamOrder(c.env, {
+    amount,
+    name: String(profile.name || ''),
+    email: String(profile.email || ''),
+    phone: String(user.auth?.phone || ''),
+    webhookUrl: `${origin}/api/payment/webhook`,
+    redirectUrl: `${origin}/account/deposit`,
+  })
+  if (!created.ok) return c.json({ error: created.error, code: created.code }, created.status as any)
+
+  const d = created.data
+  const txId = genTxId()
+  const now = Date.now()
+  const expiresAt = now + PAYMENT_WINDOW_SECONDS * 1000
+  const payable = Math.max(0, Number(d.payableAmount) || amount)
+
+  const order: PaymentOrder = {
+    orderId: d.orderId,
+    uid: user.uid,
+    txId,
+    amount,
+    payable,
+    status: 'pending',
+    provider: 'famgateway',
+    method: 'UPI',
+    createdAt: now,
+    expiresAt,
+    counted: true,
+  }
+  const tx = {
+    type: 'deposit',
+    amount,
+    method: 'UPI',
+    status: 'pending',
+    time: now,
+    uid: user.uid,
+    orderId: d.orderId,
+    payable,
+    label: 'UPI QR',
+  }
+
+  await dbPatch(c.env, {
+    [`USERS/${user.uid}/transactions/${txId}`]: tx,
+    [`depositRequests/${user.uid}/${txId}`]: tx,
+    [`USERS/${user.uid}/pending/depositCount`]: increment(1),
+    [orderPath(d.orderId)]: order,
+  })
+
+  return c.json({
+    ok: true,
+    txId,
+    orderId: d.orderId,
+    qrUrl: d.qrUrl,
+    checkoutUrl: d.checkoutUrl,
+    upiIntent: d.upiIntent,
+    upiId: d.upiId,
+    amount,
+    payableAmount: payable,
+    expiresAt,
+    expiresAtIst: d.expiresAtIst,
+    secondsLeft: PAYMENT_WINDOW_SECONDS,
+  })
+})
+/** GET /api/deposit/status?order_id=… — authoritative check (server → gateway)
+ *  and the place where a confirmed payment is credited — exactly once. */
+apiApp.get('/deposit/status', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first' }, 401)
+
+  const orderId = String(c.req.query('order_id') || '')
+  const order = await getPaymentOrder(c.env, orderId)
+  if (!order) return c.json({ error: 'Payment order not found', code: 'not-found' }, 404)
+  if (order.uid !== user.uid)
+    return c.json({ error: 'This payment order belongs to another account', code: 'forbidden' }, 403)
+
+  /* live wallet snapshot for the success screen (balance + both buckets) */
+  const snapshot = async () => {
+    const fresh = await dbGet<UserNode>(c.env, `USERS/${user.uid}`)
+    const u: any = fresh || user
+    return {
+      balance: { ...(u.balance || {}), total: totalBalance(u) },
+      wallet: walletSplit(u),
+      walletTotals: walletTotals(u),
+    }
+  }
+
+  if (order.status === 'success')
+    return c.json({
+      ok: true,
+      status: 'success',
+      credited: Number(order.creditedAmount || 0) > 0,
+      pendingApproval: order.credited === false,
+      amount: Number(order.creditedAmount || order.amount) || order.amount,
+      payableAmount: order.payable,
+      utr: order.utr || '',
+      senderName: order.senderName || '',
+      ...(await snapshot()),
+    })
+
+  /* a blocked duplicate is final: that bank reference already paid another
+     order, so this one must never be settled (ask again is pointless) */
+  if (order.status === 'duplicate')
+    return c.json({ ok: true, status: 'duplicate', payableAmount: order.payable })
+
+  const live = await verifyFamOrder(c.env, order.orderId)
+
+  /* the gateway is the money authority: a success settles even when we had
+     already closed the order (the user paid the old QR from a screenshot) */
+  if (live.status === 'success') {
+    const settled = await settlePayment(c.env, {
+      orderId: order.orderId,
+      utr: live.utr,
+      senderName: live.senderName,
+      paidAmount: live.amount,
+      paidAt: live.paidAt,
+    })
+    if (settled.reason === 'duplicate-utr')
+      return c.json(
+        {
+          error: 'This bank reference was already used for another deposit.',
+          code: 'duplicate-utr',
+        },
+        409,
+      )
+
+    /* the money write failed midway — keep the browser waiting, the next poll
+       simply runs the (idempotent) settle again */
+    if (settled.reason === 'write-failed')
+      return c.json({
+        ok: true,
+        status: 'pending',
+        retry: true,
+        payableAmount: order.payable,
+        secondsLeft: Math.max(0, Math.round((Number(order.expiresAt || 0) - Date.now()) / 1000)),
+      })
+
+    return c.json({
+      ok: true,
+      status: 'success',
+      /* `already-settled` means the webhook (or a parallel poll) credited it a
+         moment ago — the money IS in the wallet, so never tell the user to wait
+         for verification in that case */
+      credited: settled.reason === 'settled' || settled.reason === 'already-settled',
+      pendingApproval: settled.reason === 'pending-approval',
+      amount: Number(settled.amount || order.amount) || order.amount,
+      payableAmount: order.payable,
+      utr: live.utr,
+      senderName: live.senderName,
+      ...(await snapshot()),
+    })
+  }
+
+  /* an order we already closed stays closed — no point asking again */
+  if (order.status === 'expired')
+    return c.json({ ok: true, status: 'expired', payableAmount: order.payable })
+
+  /* the gateway says expired, or the local 5-minute window is long gone */
+  const gracePassed = Number(order.expiresAt || 0) > 0 && Date.now() > Number(order.expiresAt) + 5 * 60 * 1000
+  if (live.status === 'expired' || gracePassed) {
+    await expirePaymentOrder(c.env, order.orderId)
+    return c.json({ ok: true, status: 'expired', payableAmount: order.payable })
+  }
+
+  return c.json({
+    ok: true,
+    status: 'pending',
+    checked: live.status !== 'unknown',
+    payableAmount: order.payable,
+    expiresAt: order.expiresAt,
+    secondsLeft: Math.max(0, Math.round((Number(order.expiresAt || 0) - Date.now()) / 1000)),
+  })
+})
+
+
+
 /* ------------------------------------------------------------------ withdraw */
+/** POST /api/deposit/cancel — the user closed the QR without paying. The gateway
+ *  kills the session itself after 5 minutes; this keeps our own books clean
+ *  (no transaction left hanging in "pending" forever). */
+apiApp.post('/deposit/cancel', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first' }, 401)
+
+  const body = await c.req.json().catch(() => ({} as any))
+  const orderId = String(body.order_id || '')
+  const order = await getPaymentOrder(c.env, orderId)
+  if (!order) return c.json({ error: 'Payment order not found', code: 'not-found' }, 404)
+  if (order.uid !== user.uid)
+    return c.json({ error: 'This payment order belongs to another account', code: 'forbidden' }, 403)
+
+  if (order.status === 'pending') await expirePaymentOrder(c.env, order.orderId)
+  return c.json({ ok: true })
+})
+
+/* ------------------------------------------------------------------ gateway webhook */
+
+/** POST /api/payment/webhook — FamGateway's own callback. The route is public
+ *  (the gateway cannot log in) but the body is HMAC-SHA256 signed with the
+ *  merchant key: a missing/incorrect `X-FamGateway-Signature` is a 401 and no
+ *  money ever moves. This is the fast path — the browser poll is the safety net. */
+apiApp.post('/payment/webhook', async (c) => {
+  const raw = await c.req.text()
+  const signature = c.req.header('x-famgateway-signature')
+  if (!(await verifyFamSignature(c.env, raw, signature)))
+    return c.json({ error: 'invalid signature' }, 401)
+
+  let event: any = {}
+  try {
+    event = raw ? JSON.parse(raw) : {}
+  } catch {
+    return c.json({ error: 'invalid payload' }, 400)
+  }
+
+  const orderId = String(event?.order_id || '')
+  if (!orderId) return c.json({ error: 'order_id missing' }, 400)
+
+  const paid =
+    String(event?.status || '').toLowerCase() === 'success' ||
+    String(event?.event || '') === 'payment.success'
+  if (!paid) return c.json({ ok: true, ignored: true })
+
+  const settled = await settlePayment(c.env, {
+    orderId,
+    utr: event?.utr,
+    senderName: event?.sender_name,
+    paidAmount: Number(event?.amount) || 0,
+    paidAt: event?.payment_time_ist,
+  })
+
+  return c.json({ ok: true, credited: settled.credited, reason: settled.reason })
+})
+
+
 
 apiApp.post('/withdraw', async (c) => {
   const user = c.get('user') as UserNode | null
@@ -808,7 +1102,7 @@ apiApp.post('/withdraw', async (c) => {
     )
 
   /* server-side balance check — pending requests already count against it */
-  const total = Number(user.balance?.total || 0)
+  const total = totalBalance(user)
   const reserved = Number(user.pending?.withdrawTotal || 0)
   if (amount > total - reserved)
     return c.json({ error: 'Insufficient balance', code: 'insufficient' }, 400)
@@ -920,7 +1214,7 @@ apiApp.post('/spin', async (c) => {
   const seg = pickWeighted(spinSegments(cfg))
   const amount = Number(seg.amount) || 0
   const freeGame = seg.bonus === 'freeGame'
-  const balanceBefore = Number(user.balance?.total || 0)
+  const balanceBefore = totalBalance(user)
 
   const txId = genTxId()
   const tx: Record<string, any> = {
@@ -1066,7 +1360,7 @@ apiApp.post('/daily', async (c) => {
   /* after the 7-day unlock every further day keeps paying the day-7 reward */
   const rewardAmount = streakRewardOf(rewards, unlocked ? cycleDays : streak)
   const freeGames = unlocked ? Math.max(0, Number(cfg.freeGamePerDay) || 0) : 0
-  const balanceBefore = Number(user.balance?.total || 0)
+  const balanceBefore = totalBalance(user)
 
   const txId = genTxId()
   const tx: Record<string, any> = {

@@ -14,6 +14,33 @@
    the bonus bucket behind their back.
    ========================================================================== */
 
+/** Money that came in through the UPI gateway.
+ *
+ *  Every gateway deposit is stored under its own order id
+ *  (`USERS/<uid>/balance/deposits/<orderId> = amount`), which makes a credit
+ *  idempotent BY CONSTRUCTION: the webhook, the browser poll and a retried
+ *  request can all write the same key and the wallet still gains the amount
+ *  exactly once (see src/lib/payments.ts). The spendable total is therefore the
+ *  plain counter plus the sum of these keys.
+ */
+export function depositCredits(user: any): number {
+  const map = user?.balance?.deposits
+  if (!map || typeof map !== 'object') return 0
+  let sum = 0
+  for (const v of Object.values<any>(map)) {
+    const n = Number(v && typeof v === 'object' ? (v as any).amount : v)
+    if (n > 0) sum += n
+  }
+  return Math.round(sum * 100) / 100
+}
+
+/** The one true balance: the plain counter + every credited gateway deposit.
+ *  Everything that reads money (withdrawals, the wallet page, the navbar) must
+ *  go through this, otherwise a deposit would look missing. */
+export function totalBalance(user: any): number {
+  return Math.max(0, Number(user?.balance?.total || 0)) + depositCredits(user)
+}
+
 export type WalletSplit = {
   main: number
   promo: number
@@ -26,12 +53,12 @@ export type WalletSplit = {
  *
  *  `promo` is only ever written by the claim endpoints (spin / daily), so it is
  *  always trustworthy. `main` is then "everything else in the account", which
- *  means a deposit credited by an admin (they only touch `balance.total`) can
- *  never hide inside the bonus bucket — real money always stays in main.
+ *  means real money — a gateway deposit or an admin credit — can never hide
+ *  inside the bonus bucket.
  */
 export function walletSplit(user: any): WalletSplit {
   const b = user?.balance || {}
-  const rawTotal = Math.max(0, Number(b.total || 0))
+  const rawTotal = totalBalance(user)
   const promo = Math.max(0, Number(b.promo ?? b.thirdParty ?? 0))
   const storedMain = b.main === undefined || b.main === null ? 0 : Number(b.main)
   /* the bigger of "what we stored" and "whatever the total does not explain" */
@@ -51,9 +78,23 @@ export type WalletTotals = {
 
 /** Lifetime deposit / withdrawal totals, read straight from the transactions. */
 export function walletTotals(user: any): WalletTotals {
-  const done = (status: any) => {
+  /* done   → the money moved (or will move, for an approved request)
+     pending→ still waiting for the bank or for an approval
+     dead   → the request was closed without money (expired QR, rejected,
+              a blocked duplicate) — it must not count as "on the way" */
+  const stateOf = (status: any): 'done' | 'dead' | 'pending' => {
     const s = String(status || '').toLowerCase()
-    return s === 'completed' || s === 'success' || s === 'approved' || s === 'paid'
+    if (s === 'completed' || s === 'success' || s === 'approved' || s === 'paid') return 'done'
+    if (
+      s === 'expired' ||
+      s === 'rejected' ||
+      s === 'cancelled' ||
+      s === 'canceled' ||
+      s === 'failed' ||
+      s === 'duplicate'
+    )
+      return 'dead'
+    return 'pending'
   }
   const out: WalletTotals = {
     depositTotal: 0,
@@ -64,7 +105,9 @@ export function walletTotals(user: any): WalletTotals {
   for (const tx of Object.values<any>(user?.transactions || {})) {
     const amount = Number(tx?.amount || 0)
     if (amount <= 0) continue
-    const paid = done(tx?.status)
+    const state = stateOf(tx?.status)
+    if (state === 'dead') continue
+    const paid = state === 'done'
     if (tx?.type === 'deposit') {
       if (paid) out.depositTotal += amount
       else out.depositPending += amount

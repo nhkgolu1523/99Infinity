@@ -1925,6 +1925,133 @@
     'Withdrawal history': 'విత్డ్రా చరిత్ర',
   })
 
+  /* ------------------------------------------- deposit · live UPI payments (new UI) */
+  Object.assign(DICTS.hi, {
+    'Generating QR…': 'QR बन रहा है…',
+    'Pay via UPI App': 'UPI ऐप से पेमेंट करें',
+    'Open payment page': 'पेमेंट पेज खोलें',
+    'Waiting for payment confirmation…': 'पेमेंट कन्फर्मेशन का इंतज़ार…',
+    'Payment reference (UTR)': 'पेमेंट रेफरेंस (UTR)',
+    'I have paid — Check status': 'पेमेंट कर दिया — स्टेटस देखें',
+    'Generate a new QR': 'नया QR बनाएं',
+    'Checking…': 'चेक हो रहा है…',
+    'Creating order…': 'ऑर्डर बन रहा है…',
+    'Payment Received!': 'पेमेंट मिल गई!',
+    'Your wallet has been updated.': 'आपका वॉलेट अपडेट हो गया है।',
+    'Minimum deposit is': 'कम से कम डिपॉज़िट',
+    'Deposits are temporarily unavailable. Please try again later.':
+      'डिपॉज़िट अभी उपलब्ध नहीं है। कृपया थोड़ी देर बाद कोशिश करें।',
+    'The payment gateway is not configured yet. Please try again later.':
+      'पेमेंट गेटवे अभी सेट नहीं हुआ है। कृपया थोड़ी देर बाद कोशिश करें।',
+    'QR unavailable — use the UPI app button': 'QR नहीं दिख रहा — UPI ऐप बटन इस्तेमाल करें',
+    'Almost out of time — please finish the payment now': 'समय लगभग खत्म — कृपया अभी पेमेंट पूरी करें',
+    'This payment window has closed. Generate a new QR to try again.':
+      'पेमेंट का समय खत्म हो गया है। दोबारा कोशिश के लिए नया QR बनाएं।',
+    'Payment received — your balance will be updated after verification':
+      'पेमेंट मिल गई — वेरिफिकेशन के बाद बैलेंस अपडेट होगा',
+    'Gateway unreachable — please keep waiting': 'गेटवे से संपर्क नहीं हो पाया — कृपया इंतज़ार करें',
+    'No payment received yet': 'अभी कोई पेमेंट नहीं मिली',
+    'Could not start the payment': 'पेमेंट शुरू नहीं हो सकी',
+    'Could not check the payment': 'पेमेंट चेक नहीं हो सकी',
+    'We are verifying your payment — your balance will update shortly.':
+      'हम आपकी पेमेंट वेरिफाई कर रहे हैं — बैलेंस थोड़ी देर में अपडेट हो जाएगा।',
+    'has been added to your wallet.': 'आपके वॉलेट में जोड़ दिए गए हैं।',
+    'added to your wallet': 'वॉलेट में जोड़ा गया',
+  })
+
+  Object.assign(DICTS.ta, {
+    'Generating QR…': 'QR உருவாக்கப்படுகிறது…',
+    'Pay via UPI App': 'UPI ஆப் மூலம் செலுத்து',
+    'Open payment page': 'பேமெண்ட் பக்கத்தைத் திற',
+    'Waiting for payment confirmation…': 'பேமெண்ட் உறுதிப்படுத்தலுக்காக காத்திருக்கிறது…',
+    'Payment reference (UTR)': 'பேமெண்ட் குறிப்பு (UTR)',
+    'I have paid — Check status': 'பணம் செலுத்திவிட்டேன் — நிலையைப் பார்',
+    'Generate a new QR': 'புதிய QR உருவாக்கு',
+    'Checking…': 'சரிபார்க்கப்படுகிறது…',
+    'Creating order…': 'ஆர்டர் உருவாக்கப்படுகிறது…',
+    'Payment Received!': 'பேமெண்ட் பெறப்பட்டது!',
+    'Your wallet has been updated.': 'உங்கள் வாலட் புதுப்பிக்கப்பட்டது.',
+    'Minimum deposit is': 'குறைந்தபட்ச டெபாசிட்',
+    'Deposits are temporarily unavailable. Please try again later.':
+      'டெபாசிட் தற்காலிகமாக இல்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
+    'The payment gateway is not configured yet. Please try again later.':
+      'பேமெண்ட் கேட்வே இன்னும் அமைக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
+    'QR unavailable — use the UPI app button': 'QR கிடைக்கவில்லை — UPI ஆப் பொத்தானைப் பயன்படுத்தவும்',
+    'Almost out of time — please finish the payment now': 'நேரம் முடியப்போகிறது — இப்போதே பேமெண்டை முடிக்கவும்',
+    'This payment window has closed. Generate a new QR to try again.':
+      'பேமெண்ட் நேரம் முடிந்தது. மீண்டும் முயற்சிக்க புதிய QR உருவாக்கவும்.',
+    'Payment received — your balance will be updated after verification':
+      'பேமெண்ட் பெறப்பட்டது — சரிபார்ப்புக்குப் பிறகு இருப்பு புதுப்பிக்கப்படும்',
+    'Gateway unreachable — please keep waiting': 'கேட்வேயை அணுக முடியவில்லை — காத்திருக்கவும்',
+    'No payment received yet': 'இன்னும் பேமெண்ட் வரவில்லை',
+    'Could not start the payment': 'பேமெண்டைத் தொடங்க முடியவில்லை',
+    'Could not check the payment': 'பேமெண்டைச் சரிபார்க்க முடியவில்லை',
+    'We are verifying your payment — your balance will update shortly.':
+      'உங்கள் பேமெண்டை சரிபார்க்கிறோம் — இருப்பு விரைவில் புதுப்பிக்கப்படும்.',
+    'has been added to your wallet.': 'உங்கள் வாலட்டில் சேர்க்கப்பட்டது.',
+    'added to your wallet': 'வாலட்டில் சேர்க்கப்பட்டது',
+  })
+
+
+  Object.assign(DICTS.te, {
+    'Generating QR…': 'QR సృష్టించబడుతోంది…',
+    'Pay via UPI App': 'UPI యాప్తో పేమెంట్ చేయండి',
+    'Open payment page': 'పేమెంట్ పేజీ తెరవండి',
+    'Waiting for payment confirmation…': 'పేమెంట్ నిర్ధారణ కోసం వేచి ఉంది…',
+    'Payment reference (UTR)': 'పేమెంట్ రెఫరెన్స్ (UTR)',
+    'I have paid — Check status': 'పేమెంట్ చేశాను — స్థితి చూడండి',
+    'Generate a new QR': 'కొత్త QR సృష్టించండి',
+    'Checking…': 'చెక్ చేస్తోంది…',
+    'Creating order…': 'ఆర్డర్ సృష్టించబడుతోంది…',
+    'Payment Received!': 'పేమెంట్ అందింది!',
+    'Your wallet has been updated.': 'మీ వాలెట్ అప్డేట్ అయింది.',
+    'Minimum deposit is': 'కనీస డిపాజిట్',
+    'Deposits are temporarily unavailable. Please try again later.':
+      'డిపాజిట్లు తాత్కాలికంగా అందుబాటులో లేవు. కొద్దిసేపటి తర్వాత ప్రయత్నించండి.',
+    'The payment gateway is not configured yet. Please try again later.':
+      'పేమెంట్ గేట్వే ఇంకా సెట్ చేయబడలేదు. కొద్దిసేపటి తర్వాత ప్రయత్నించండి.',
+    'QR unavailable — use the UPI app button': 'QR అందుబాటులో లేదు — UPI యాప్ బటన్ వాడండి',
+    'Almost out of time — please finish the payment now':
+      'సమయం దాదాపు ముగిసింది — దయచేసి ఇప్పుడే పేమెంట్ పూర్తి చేయండి',
+    'This payment window has closed. Generate a new QR to try again.':
+      'పేమెంట్ సమయం ముగిసింది. మళ్లీ ప్రయత్నించడానికి కొత్త QR సృష్టించండి.',
+    'Payment received — your balance will be updated after verification':
+      'పేమెంట్ అందింది — వెరిఫికేషన్ తర్వాత బ్యాలెన్స్ అప్డేట్ అవుతుంది',
+    'Gateway unreachable — please keep waiting': 'గేట్వే అందుబాటులో లేదు — వేచి ఉండండి',
+    'No payment received yet': 'ఇంకా పేమెంట్ రాలేదు',
+    'Could not start the payment': 'పేమెంట్ ప్రారంభించలేకపోయాం',
+    'Could not check the payment': 'పేమెంట్ చెక్ చేయలేకపోయాం',
+    'We are verifying your payment — your balance will update shortly.':
+      'మీ పేమెంట్ను వెరిఫై చేస్తున్నాం — బ్యాలెన్స్ కొద్దిసేపట్లో అప్డేట్ అవుతుంది.',
+    'has been added to your wallet.': 'మీ వాలెట్కు జోడించబడింది.',
+    'added to your wallet': 'వాలెట్కు జోడించబడింది',
+  })
+
+  /* ------------------------------------------- deposit · manual request fallback */
+  Object.assign(DICTS.hi, {
+    'Request Submitted!': 'रिक्वेस्ट सबमिट हो गई!',
+    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
+      'हमारी टीम आपका डिपॉज़िट वेरिफाई करके वॉलेट में क्रेडिट कर देगी — आमतौर पर कुछ ही मिनटों में।',
+    'Submitting…': 'सबमिट हो रहा है…',
+    'Could not submit the deposit request': 'डिपॉज़िट रिक्वेस्ट सबमिट नहीं हो सकी',
+  })
+
+  Object.assign(DICTS.ta, {
+    'Request Submitted!': 'கோரிக்கை சமர்ப்பிக்கப்பட்டது!',
+    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
+      'எங்கள் குழு உங்கள் டெபாசிட்டை சரிபார்த்து வாலட்டில் சேர்க்கும் — வழக்கமாக சில நிமிடங்களில்.',
+    'Submitting…': 'சமர்ப்பிக்கப்படுகிறது…',
+    'Could not submit the deposit request': 'டெபாசிட் கோரிக்கையை சமர்ப்பிக்க முடியவில்லை',
+  })
+
+  Object.assign(DICTS.te, {
+    'Request Submitted!': 'రిక్వెస్ట్ సబ్మిట్ అయింది!',
+    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
+      'మా టీమ్ మీ డిపాజిట్ను వెరిఫై చేసి వాలెట్కు జోడిస్తుంది — సాధారణంగా కొన్ని నిమిషాల్లో.',
+    'Submitting…': 'సబ్మిట్ అవుతోంది…',
+    'Could not submit the deposit request': 'డిపాజిట్ రిక్వెస్ట్ సబ్మిట్ చేయలేకపోయాం',
+  })
+
   /* --------------------------------------------------------------- runtime */
   var registry = [] /* captured text nodes / attributes + their English source */
   var phraseCache = {}

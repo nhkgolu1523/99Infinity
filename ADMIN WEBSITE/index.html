@@ -357,6 +357,7 @@ const VIEWS = [
   { group: 'navTop', key: 'users', label: 'Users', icon: '👥' },
   { group: 'navMoney', key: 'deposits', label: 'Deposit requests', icon: '⬇️', badge: 'deposits' },
   { group: 'navMoney', key: 'withdrawals', label: 'Withdraw requests', icon: '⬆️', badge: 'withdrawals' },
+  { group: 'navMoney', key: 'payments', label: 'UPI payments', icon: '⚡' },
   { group: 'navMoney', key: 'transactions', label: 'Transactions', icon: '🧾' },
   { group: 'navPlatform', key: 'notifications', label: 'Notifications', icon: '🔔' },
   { group: 'navPlatform', key: 'wheel', label: 'Lucky Wheel', icon: '🎡' },
@@ -413,6 +414,7 @@ async function go(key, opts = {}) {
     else if (key === 'deposits') await viewRequests(view, 'deposit');
     else if (key === 'withdrawals') await viewRequests(view, 'withdraw');
     else if (key === 'transactions') await viewTransactions(view, opts);
+    else if (key === 'payments') await viewPayments(view);
     else if (key === 'notifications') await viewNotifications(view);
     else if (key === 'wheel') await viewWheel(view);
     else if (key === 'daily') await viewDaily(view);
@@ -1571,6 +1573,144 @@ async function viewLimits(view) {
       .split(',').map((v) => Math.floor(Number(v.trim()) || 0)).filter((v) => v > 0),
   });
   $('#lmReset').onclick = () => write(DEFAULT_LIMITS);
+}
+
+/* ------------------------------------------- 9b. live UPI payments (gateway) --- */
+/* PAYMENT_ORDERS/<order_id> is written by the Worker the moment a QR is created,
+   and updated automatically when the bank confirms (webhook or the browser poll
+   — both settle through the same idempotent code, so an order can never be
+   credited twice). The merchant API key is a Worker secret and is never stored
+   here, so this screen shows the setup values instead of the key itself. */
+async function viewPayments(view) {
+  const [ordersNode, cfgRaw, users] = await Promise.all([
+    dbGet('PAYMENT_ORDERS'),
+    dbGet('CONFIG/PAYMENTS'),
+    loadUsers(),
+  ]);
+  const cfg = { enabled: 1, autoCredit: 1, ...(cfgRaw || {}) };
+  const orders = Object.values(ordersNode || {})
+    .map((o) => o || {})
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+
+  const by = (s) => orders.filter((o) => String(o.status || '') === s);
+  const done = by('success');
+  const pending = by('pending');
+  const expired = by('expired');
+  const dup = by('duplicate');
+  const collected = done.reduce((sum, o) => sum + Number(o.creditedAmount || 0), 0);
+
+  const nameOf = (uid) => {
+    const u = users[uid] || {};
+    return (u.profile && u.profile.name) || 'user' + String(uid || '').replace(/\D/g, '').slice(-4);
+  };
+
+  const row = (o) => {
+    const id = esc(o.orderId || '');
+    return (
+      '<tr>' +
+      '<td class="mono">' + id + '<div class="muted" style="font-size:11px">' +
+        esc(nameOf(o.uid)) + ' · ' + esc(o.uid || '') + '</div></td>' +
+      '<td>' + inr(o.payable || o.amount) + '</td>' +
+      '<td>' + statusBadge(o.status) +
+        (o.credited ? ' <span class="badge g">credited</span>' : '') +
+        (o.credited === false && String(o.status) === 'success'
+          ? ' <span class="badge y">manual</span>' : '') +
+      '</td>' +
+      '<td class="mono">' + (o.utr ? esc(o.utr) : '<span class="muted">—</span>') + '</td>' +
+      '<td>' + esc(ago(o.createdAt)) + '<div class="muted" style="font-size:11px">' +
+        esc(fmtTime(o.createdAt)) + '</div></td>' +
+      '<td><div class="row">' +
+        '<button class="btn sm" onclick="openPayment(\'' + id + '\')">Details</button>' +
+        (String(o.status) === 'pending'
+          ? '<button class="btn sm danger" onclick="killPayment(\'' + id + '\')">Close</button>'
+          : '') +
+      '</div></td></tr>'
+    );
+  };
+
+  view.innerHTML =
+    '<div class="kpis">' +
+      kpi('Collected (credited)', inr(collected), done.length + ' successful orders', 'green') +
+      kpi('Waiting for payment', String(pending.length), 'QR stays live for 5 minutes',
+        pending.length ? 'gold' : '') +
+      kpi('Expired / unpaid', String(expired.length), 'nobody paid in time') +
+      kpi('Replays blocked', String(dup.length), 'bank reference already used',
+        dup.length ? 'red' : '') +
+    '</div>' +
+
+    '<div class="card"><h2>Gateway settings</h2>' +
+      '<div class="sub">Deposits go through FamGateway (famgateway.in) — UPI QR with instant ' +
+      'bank confirmation. The app reads CONFIG/PAYMENTS live, so these switches bite in seconds.</div>' +
+      '<div class="grid2">' +
+        field('Deposits enabled (1 = on, 0 = maintenance)', 'payOn',
+          Number(cfg.enabled) === 0 ? 0 : 1, 'number') +
+        field('Auto-credit wallet (1 = instant, 0 = approve here)', 'payAuto',
+          Number(cfg.autoCredit) === 0 ? 0 : 1, 'number') +
+      '</div>' +
+      '<div class="row" style="margin-top:14px">' +
+        '<button class="btn primary" id="paySave">Save gateway settings</button>' +
+        '<button class="btn" id="payReload">Refresh</button>' +
+      '</div>' +
+      '<div style="margin-top:16px">' +
+        line('Merchant API key (Worker secret)', '<b class="mono">FAMGATEWAY_API_KEY</b>') +
+        line('Set / rotate it', '<b class="mono">npx wrangler secret put FAMGATEWAY_API_KEY</b>') +
+        line('Webhook URL (FamGateway → Webhooks)', '<b class="mono">/api/payment/webhook</b>') +
+        line('Signature', '<b class="mono">X-FamGateway-Signature · HMAC-SHA256</b>') +
+        line('Order window', '<b class="mono">300 seconds</b>') +
+      '</div></div>' +
+
+    '<div class="card"><h2>Orders (' + orders.length + ')</h2>' +
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Order / user</th><th>Amount</th><th>State</th><th>UTR</th><th>Created</th><th></th>' +
+      '</tr></thead><tbody>' +
+      (orders.length
+        ? orders.slice(0, 300).map(row).join('')
+        : '<tr><td colspan="6" class="empty">No UPI orders yet — they appear the moment a ' +
+          'player taps “Proceed to Pay”.</td></tr>') +
+      '</tbody></table></div>' +
+      (orders.length > 300
+        ? '<div class="sub" style="margin-top:10px">Showing the newest 300.</div>' : '') +
+    '</div>';
+
+  $('#paySave').onclick = async () => {
+    const enabled = Number($('#payOn').value) === 0 ? 0 : 1;
+    const autoCredit = Number($('#payAuto').value) === 0 ? 0 : 1;
+    await dbPatch({
+      'CONFIG/PAYMENTS': { enabled, autoCredit },
+      'CONFIG/updatedAt': Date.now(),
+    });
+    toast('Gateway settings saved');
+    go('payments');
+  };
+  $('#payReload').onclick = () => go('payments');
+}
+
+/** every field of one order — the fastest way to debug a stuck payment */
+function openPayment(orderId) {
+  (async () => {
+    const o = (await dbGet('PAYMENT_ORDERS/' + orderId)) || {};
+    const rows = Object.keys(o).sort().map((k) => {
+      const v = typeof o[k] === 'object' ? JSON.stringify(o[k]) : String(o[k]);
+      return '<div class="stat-line"><span class="muted">' + esc(k) + '</span>' +
+        '<b class="mono">' + esc(v) + '</b></div>';
+    }).join('');
+    openSheet('Order ' + orderId, '<div class="card">' +
+      (rows || '<div class="empty">Empty</div>') + '</div>');
+  })();
+}
+
+/** force-close a pending order (invalidates the QR and keeps the books straight) */
+async function killPayment(orderId) {
+  if (!confirm('Close order ' + orderId + '?')) return;
+  const o = (await dbGet('PAYMENT_ORDERS/' + orderId)) || {};
+  await dbPatch({
+    ['PAYMENT_ORDERS/' + orderId + '/status']: 'expired',
+    ['PAYMENT_ORDERS/' + orderId + '/closedByAdmin']: true,
+    ['USERS/' + o.uid + '/transactions/' + o.txId + '/status']: 'expired',
+    ['depositRequests/' + o.uid + '/' + o.txId + '/status']: 'expired',
+  });
+  toast('Order closed');
+  go('payments');
 }
 
 async function viewGames(view) {

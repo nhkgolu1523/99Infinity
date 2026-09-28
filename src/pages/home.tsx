@@ -1,6 +1,7 @@
 import { site } from '../data'
 import { NavbarHome, SiteFooter } from '../components/layout'
 import { useRequestContext } from 'hono/jsx-renderer'
+import { totalBalance } from '../lib/wallet'
 import {
   BannerSwiper,
   NoticeBar,
@@ -19,7 +20,7 @@ export function HomePage({ notice }: { notice?: string }) {
 
   return (
     <>
-      <NavbarHome loggedIn={!!user} balance={Number(user?.balance?.total || 0)} />
+      <NavbarHome loggedIn={!!user} balance={totalBalance(user)} />
 
       <main class="pchome">
         <BannerSwiper />
