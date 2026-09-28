@@ -2027,57 +2027,6 @@
     'added to your wallet': 'వాలెట్కు జోడించబడింది',
   })
 
-  /* ------------------------------------------- deposit · manual request fallback */
-  Object.assign(DICTS.hi, {
-    'Request Submitted!': 'रिक्वेस्ट सबमिट हो गई!',
-    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
-      'हमारी टीम आपका डिपॉज़िट वेरिफाई करके वॉलेट में क्रेडिट कर देगी — आमतौर पर कुछ ही मिनटों में।',
-    'Submitting…': 'सबमिट हो रहा है…',
-    'Could not submit the deposit request': 'डिपॉज़िट रिक्वेस्ट सबमिट नहीं हो सकी',
-  })
-
-  Object.assign(DICTS.ta, {
-    'Request Submitted!': 'கோரிக்கை சமர்ப்பிக்கப்பட்டது!',
-    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
-      'எங்கள் குழு உங்கள் டெபாசிட்டை சரிபார்த்து வாலட்டில் சேர்க்கும் — வழக்கமாக சில நிமிடங்களில்.',
-    'Submitting…': 'சமர்ப்பிக்கப்படுகிறது…',
-    'Could not submit the deposit request': 'டெபாசிட் கோரிக்கையை சமர்ப்பிக்க முடியவில்லை',
-  })
-
-  Object.assign(DICTS.te, {
-    'Request Submitted!': 'రిక్వెస్ట్ సబ్మిట్ అయింది!',
-    'Our team verifies your deposit and credits your wallet — usually within a few minutes.':
-      'మా టీమ్ మీ డిపాజిట్ను వెరిఫై చేసి వాలెట్కు జోడిస్తుంది — సాధారణంగా కొన్ని నిమిషాల్లో.',
-    'Submitting…': 'సబ్మిట్ అవుతోంది…',
-    'Could not submit the deposit request': 'డిపాజిట్ రిక్వెస్ట్ సబ్మిట్ చేయలేకపోయాం',
-  })
-
-  Object.assign(DICTS.hi, {
-    'Live UPI QR is being set up. Your deposit request will be verified by our team and credited to your wallet.':
-      'लाइव UPI QR सेट हो रहा है। आपकी डिपॉज़िट रिक्वेस्ट हमारी टीम वेरिफाई करके वॉलेट में क्रेडिट करेगी।',
-  })
-  Object.assign(DICTS.ta, {
-    'Live UPI QR is being set up. Your deposit request will be verified by our team and credited to your wallet.':
-      'நேரடி UPI QR அமைக்கப்படுகிறது. உங்கள் டெபாசிட் கோரிக்கையை எங்கள் குழு சரிபார்த்து வாலட்டில் சேர்க்கும்.',
-  })
-  Object.assign(DICTS.te, {
-    'Live UPI QR is being set up. Your deposit request will be verified by our team and credited to your wallet.':
-      'లైవ్ UPI QR సెట్ చేయబడుతోంది. మీ డిపాజిట్ రిక్వెస్ట్ను మా టీమ్ వెరిఫై చేసి వాలెట్కు జోడిస్తుంది.',
-  })
-
-  Object.assign(DICTS.hi, {
-    'Live UPI payments are being set up. Please try again in a few minutes.':
-      'लाइव UPI पेमेंट सेट हो रहे हैं। कृपया कुछ मिनट बाद कोशिश करें।',
-  })
-  Object.assign(DICTS.ta, {
-    'Live UPI payments are being set up. Please try again in a few minutes.':
-      'நேரடி UPI பேமெண்ட் அமைக்கப்படுகிறது. சில நிமிடங்களில் மீண்டும் முயற்சிக்கவும்.',
-  })
-  Object.assign(DICTS.te, {
-    'Live UPI payments are being set up. Please try again in a few minutes.':
-      'లైవ్ UPI పేమెంట్స్ సెట్ చేయబడుతున్నాయి. కొన్ని నిమిషాల్లో మళ్లీ ప్రయత్నించండి.',
-  })
-
   /* --------------------------------------------------------------- runtime */
   var registry = [] /* captured text nodes / attributes + their English source */
   var phraseCache = {}

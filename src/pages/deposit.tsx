@@ -46,12 +46,6 @@ export function DepositPage() {
               />
             </div>
 
-            {/* shown only while the live gateway key is missing on the server */}
-            <div class="dp-note" data-dp-note hidden>
-              <Icon name="fa-circle-info" size="0.3rem" />
-              <span>Live UPI payments are being set up. Please try again in a few minutes.</span>
-            </div>
-
             <div class="dp-quick">
               {[100, 500, 1000, 5000].map((v) => (
                 <button class="dp-quick__btn" type="button" data-dp-quick={v}>
@@ -94,31 +88,26 @@ export function DepositPage() {
               </div>
               <div class="dp-qr__hint">Scan this QR with any UPI app</div>
 
-              {/* one tap on a phone — standard NPCI deep link into GPay / PhonePe / Paytm */}
-              <a class="dp-upi" href="#" data-dp-upi hidden>
-                <Icon name="fa-mobile" size="0.36rem" />
-                <span>Pay via UPI App</span>
-              </a>
-
-              {/* the gateway's hosted checkout page — handy on desktop */}
-              <a class="dp-open" href="#" data-dp-open target="_blank" rel="noopener" hidden>
-                <Icon name="arrow-right" size="0.34rem" />
-                <span>Open payment page</span>
-              </a>
-
               {/* live state — the page polls the server every 3 seconds */}
               <div class="dp-status" data-dp-status="pending">
                 <span class="dp-status__dot"></span>
                 <span class="dp-status__text" data-dp-status-text>Waiting for payment confirmation…</span>
               </div>
-
-              <div class="dp-ref" data-dp-ref hidden>
-                <span class="dp-ref__label">Payment reference (UTR)</span>
-                <span class="dp-ref__value" data-dp-utr>
-                  —
-                </span>
-              </div>
             </div>
+
+            <button class="dp-verify" type="button" data-dp-check>
+              <Icon name="fa-circle-check" size="0.384rem" />
+              <span>Verify Payment</span>
+            </button>
+
+            <button class="dp-retry" type="button" data-dp-retry hidden>
+              <Icon name="refresh" size="0.36rem" />
+              <span>Generate a new QR</span>
+            </button>
+
+            <a class="dp-cancel" href="#" data-dp-cancel>
+              Cancel &amp; Go Back
+            </a>
 
             <div class="dp-instructions">
               <div class="dp-instructions__title">
@@ -130,36 +119,18 @@ export function DepositPage() {
                   <strong>Open any UPI app</strong> — Paytm, PhonePe, GPay, or your bank app.
                 </li>
                 <li>
-                  <strong>Scan the QR code</strong> above, or tap{' '}
-                  <strong>Pay via UPI App</strong> on your phone.
+                  <strong>Scan the QR code</strong> above and pay the exact amount{' '}
+                  <b class="dp-gold" data-dp-instr-amount>₹0</b>.
                 </li>
                 <li>
-                  Pay the exact amount <b class="dp-gold" data-dp-instr-amount>₹0</b> and complete the
-                  transfer.
-                </li>
-                <li>
-                  <strong>Keep this page open</strong> — it checks your payment automatically every few
-                  seconds.
+                  <strong>Keep this page open</strong> — the payment is checked automatically every few
+                  seconds, or tap <strong>Verify Payment</strong>.
                 </li>
                 <li>
                   Your balance is added the moment the bank confirms, usually <strong>within a minute</strong>.
                 </li>
               </ol>
             </div>
-
-            <button class="dp-verify" type="button" data-dp-check>
-              <Icon name="fa-circle-check" size="0.384rem" />
-              <span>I have paid — Check status</span>
-            </button>
-
-            <button class="dp-retry" type="button" data-dp-retry hidden>
-              <Icon name="refresh" size="0.36rem" />
-              <span>Generate a new QR</span>
-            </button>
-
-            <a class="dp-cancel" href="#" data-dp-cancel>
-              Cancel &amp; Go Back
-            </a>
           </div>
         </div>
       </main>

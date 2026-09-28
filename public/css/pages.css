@@ -4368,6 +4368,12 @@
   background: radial-gradient(circle at top, #111a28 0%, #080b12 100%);
 }
 
+/* the `hidden` attribute must always win — several elements below set
+   `display:flex`, which silently overrides the browser default. Without this
+   the "Generating QR…" placeholder stayed visible BEHIND the QR image and
+   pushed it sideways. */
+.dp-page [hidden] { display: none !important; }
+
 .dp-content {
   padding: 0.48rem 0.384rem 1rem;
   display: flex;
@@ -4859,24 +4865,6 @@
 
 .dp-qr__placeholder .icon { color: #ccc; }
 
-/* gateway-setup note on step 1 (hidden as soon as the API key is configured) */
-.dp-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.192rem;
-  margin-top: 0.288rem;
-  padding: 0.288rem 0.336rem;
-  border-radius: 0.288rem;
-  background: rgba(230, 194, 122, 0.1);
-  border: 1px solid rgba(230, 194, 122, 0.25);
-  color: #e6c27a;
-  font-size: 0.288rem;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.dp-note .icon { flex: none; margin-top: 0.024rem; }
-
 .dp-qr__hint {
   font-size: 0.288rem;
   color: #8b949e;
@@ -4894,38 +4882,6 @@
 
 /* an expired QR is greyed out so it can never be scanned by mistake */
 .dp-qr__img.is-dead { opacity: 0.22; filter: grayscale(1); }
-
-/* ---- one-tap UPI app + the hosted checkout page ---- */
-.dp-upi,
-.dp-open {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.192rem;
-  margin-top: 0.288rem;
-  padding: 0.336rem;
-  border-radius: 0.336rem;
-  font-size: 0.336rem;
-  font-weight: 800;
-  text-decoration: none;
-  letter-spacing: 0.012rem;
-}
-
-.dp-upi {
-  background: linear-gradient(135deg, #00c853, #00a844);
-  color: #ffffff;
-  box-shadow: 0 0.144rem 0.432rem rgba(0, 200, 83, 0.25);
-}
-
-.dp-upi:active { transform: scale(0.98); }
-
-.dp-open {
-  background: #1a222c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #c9c9c9;
-}
-
-.dp-open:active { opacity: 0.8; }
 
 /* ---- live payment status (pending / success / expired) ---- */
 .dp-status {
@@ -4969,29 +4925,6 @@
   0%,
   100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(0.7); }
-}
-
-/* ---- bank reference (UTR) ---- */
-.dp-ref {
-  margin-top: 0.288rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.096rem;
-  text-align: left;
-  background: #1a222c;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0.288rem;
-  padding: 0.288rem 0.336rem;
-}
-
-.dp-ref__label { font-size: 0.264rem; color: #8b949e; font-weight: 600; }
-
-.dp-ref__value {
-  font-size: 0.312rem;
-  color: #ffffff;
-  font-weight: 800;
-  letter-spacing: 0.024rem;
-  word-break: break-all;
 }
 
 /* ---- instructions ---- */

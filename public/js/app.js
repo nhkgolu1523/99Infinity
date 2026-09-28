@@ -1903,10 +1903,6 @@
           dep.enabled = d.payments.enabled !== 0;
           dep.configured = d.payments.configured !== false;
           if (Number(d.payments.windowSeconds) > 0) dep.window = Number(d.payments.windowSeconds);
-          /* no server-side gateway key yet → say so on step 1 instead of
-             surprising the user with a manual-verification dialog */
-          const note = $('[data-dp-note]');
-          if (note) note.hidden = dep.configured;
         }
       })
       .catch(() => {});
@@ -1920,12 +1916,8 @@
     const timerEl = $('[data-dp-timer]');
     const qrImg = $('[data-dp-qr-img]');
     const qrBox = $('[data-dp-qr-placeholder]');
-    const upiLink = $('[data-dp-upi]');
-    const openLink = $('[data-dp-open]');
     const statusEl = $('[data-dp-status]');
     const statusText = $('[data-dp-status-text]');
-    const refBox = $('[data-dp-ref]');
-    const utrEl = $('[data-dp-utr]');
     const checkBtn = $('[data-dp-check]');
     const retryBtn = $('[data-dp-retry]');
 
@@ -1977,7 +1969,7 @@
       setText(statusText, text);
     };
 
-    const CHECK_LABEL = 'I have paid — Check status';
+    const CHECK_LABEL = 'Verify Payment';
 
     const setCheck = (text, disabled) => {
       if (!checkBtn) return;
@@ -2047,11 +2039,6 @@
       if (data.credited) setStatus('success', 'Payment received — ₹' + fmt(money) + ' added to your wallet');
       else setStatus('success', 'Payment received — your balance will be updated after verification');
 
-      if (data.utr) {
-        setText(utrEl, String(data.utr));
-        if (refBox) refBox.hidden = false;
-      }
-
       /* the success dialog tells the user exactly what happened */
       const modal = $('[data-dp-modal]');
       const mText = $('[data-dp-modal-text]');
@@ -2090,24 +2077,15 @@
         qrImg.onerror = () => {
           if (qrBox) {
             qrBox.hidden = false;
-            setText(qrBox.querySelector('span'), 'QR unavailable — use the UPI app button');
+            setText(qrBox.querySelector('span'), 'QR unavailable — try again');
           }
         };
         qrImg.src = ord.qrUrl || '';
-      }
-      if (upiLink) {
-        upiLink.href = ord.upiIntent || '#';
-        upiLink.hidden = !ord.upiIntent;
-      }
-      if (openLink) {
-        openLink.href = ord.checkoutUrl || '#';
-        openLink.hidden = !ord.checkoutUrl;
       }
 
       const payable = Number(ord.payableAmount || ord.amount || 0);
       setText(payAmount, fmt(payable));
       setText(instrAmount, '₹' + fmt(payable));
-      if (refBox) refBox.hidden = true;
       if (retryBtn) retryBtn.hidden = true;
       if (checkBtn) checkBtn.hidden = false;
       setCheck(CHECK_LABEL, false);
