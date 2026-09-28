@@ -185,12 +185,43 @@ the merchant's bank credits and confirms the payment (webhook + polling).
 |---|---|---|
 | 1 | FamGateway dashboard | connect the FamPay **Gmail + App Password + UPI ID** (their Integrations page; IMAP must be enabled in Gmail) |
 | 2 | FamGateway → API Keys | copy the merchant API key |
-| 3 | this project | `npx wrangler secret put FAMGATEWAY_API_KEY` (paste the key). Local dev: put `FAMGATEWAY_API_KEY=...` in `.dev.vars` |
+| 3 | this project | run **`set-gateway-key.bat`** (double-click) — it logs you in, sets the secret and verifies it. Same thing by hand: `npx wrangler secret put FAMGATEWAY_API_KEY --name www` (the live Worker is **`www`**, not `99infinity`). Local dev: put `FAMGATEWAY_API_KEY=...` in `.dev.vars` |
 | 4 | FamGateway → Webhooks (optional) | the app passes `webhook_url` per order, so nothing has to be registered — but adding `https://<your-domain>/api/payment/webhook` is a good backup |
 
 Nothing else is needed: the callback URL and the redirect URL are derived from the
 request host, so the same code works on `*.workers.dev` and on a custom domain.
 `FAMGATEWAY_BASE` can override the gateway host (staging / an offline mock).
+
+### “The payment gateway is not configured yet”
+
+That toast is **not** a UI bug — it means the running Worker has no
+`FAMGATEWAY_API_KEY`, so `/api/deposit/order` answers `503 gateway-missing`.
+Local dev looks fine because `.dev.vars` supplies the key.
+
+Check the live value (phone-friendly, plain JSON — `payments.configured` must be
+`true`):
+
+```
+https://www.99infinity.workers.dev/api/config/rewards
+```
+
+The admin panel's **UPI payments** screen shows the same value as the
+*Gateway key* KPI (green `LIVE` / red `MISSING`), read live from the app.
+
+To fix it, set the secret on the project that actually serves the site —
+**`www`** (`www.99infinity.workers.dev`), not `99infinity`:
+
+- double-click `set-gateway-key.bat` (checks the login, sets the secret, then
+  verifies `/api/config/rewards`), **or**
+- dashboard → Workers & Pages → `www` → Settings → Variables and Secrets → add
+  `FAMGATEWAY_API_KEY` (type *Secret*) → Deploy.
+
+Secrets only reach the running code through a **new deployment**, so if
+`configured` stays `false`, open Deployments → *Retry deployment* once. After
+that, reopen the deposit page so the client re-reads the gateway flags.
+
+The key is deliberately **never** stored in Firebase: the RTDB is world-readable,
+so a key kept there could be lifted by anyone and used to fake orders/webhooks.
 
 ### Flow
 

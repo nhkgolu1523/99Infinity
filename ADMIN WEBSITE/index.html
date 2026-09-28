@@ -237,6 +237,14 @@ const LS = {
 };
 let DB_URL = LS.get('vgAdminDb', DEFAULT_DB);
 
+/* The Worker that serves the app itself. The merchant API key is a Worker
+   secret, so it can never be read out of the database (the RTDB is public) —
+   the panel asks the app's own /api/config/rewards instead, see appPayments().
+   Move hosts? set localStorage.vgAdminApp once. */
+const DEFAULT_APP_URL = 'https://www.99infinity.workers.dev';
+const APP_URL = String(LS.get('vgAdminApp', DEFAULT_APP_URL) || DEFAULT_APP_URL)
+  .replace(/\/+$/, '');
+
 /* ------------------------------------------------------------- db layer ---- */
 async function dbFetch(path, method = 'GET', body) {
   const url = DB_URL.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '') + '.json';
@@ -256,6 +264,21 @@ const dbDelete = (path) => dbFetch(path, 'DELETE');
 /** PATCH with { 'USERS/uid/balance/main': 100 } paths — one atomic write */
 const dbPatch = (paths) => dbFetch('', 'PATCH', paths);
 const inc = (n) => ({ '.sv': { increment: n } });
+
+/** Live gateway flags straight from the app — { enabled, configured, autoCredit }
+ *  or null when the Worker is not reachable from this browser. `configured` is
+ *  the one that matters: it is true only once FAMGATEWAY_API_KEY is set on the
+ *  Worker, which is exactly what makes the QR flow work on a phone. */
+async function appPayments() {
+  try {
+    const res = await fetch(APP_URL + '/api/config/rewards', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.payments ? data.payments : null;
+  } catch {
+    return null;
+  }
+}
 
 /* ------------------------------------------------------------- 2. helpers -- */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1582,10 +1605,11 @@ async function viewLimits(view) {
    credited twice). The merchant API key is a Worker secret and is never stored
    here, so this screen shows the setup values instead of the key itself. */
 async function viewPayments(view) {
-  const [ordersNode, cfgRaw, users] = await Promise.all([
+  const [ordersNode, cfgRaw, users, gwLive] = await Promise.all([
     dbGet('PAYMENT_ORDERS'),
     dbGet('CONFIG/PAYMENTS'),
     loadUsers(),
+    appPayments(),
   ]);
   const cfg = { enabled: 1, autoCredit: 1, ...(cfgRaw || {}) };
   const orders = Object.values(ordersNode || {})
@@ -1630,6 +1654,12 @@ async function viewPayments(view) {
 
   view.innerHTML =
     '<div class="kpis">' +
+      kpi('Gateway key', gwLive ? (gwLive.configured ? 'LIVE' : 'MISSING') : 'unknown',
+        gwLive
+          ? (gwLive.configured ? 'QR + auto-verify works on the phone'
+              : 'set FAMGATEWAY_API_KEY on the Worker')
+          : 'app not reachable from this browser',
+        gwLive ? (gwLive.configured ? 'green' : 'red') : '') +
       kpi('Collected (credited)', inr(collected), done.length + ' successful orders', 'green') +
       kpi('Waiting for payment', String(pending.length), 'QR stays live for 5 minutes',
         pending.length ? 'gold' : '') +
@@ -1653,7 +1683,9 @@ async function viewPayments(view) {
       '</div>' +
       '<div style="margin-top:16px">' +
         line('Merchant API key (Worker secret)', '<b class="mono">FAMGATEWAY_API_KEY</b>') +
-        line('Set / rotate it', '<b class="mono">npx wrangler secret put FAMGATEWAY_API_KEY</b>') +
+        line('Set / rotate it', '<b class="mono">npx wrangler secret put FAMGATEWAY_API_KEY --name www</b>') +
+        line('One-click helper (PC)', '<b class="mono">set-gateway-key.bat</b>') +
+        line('Live key status', '<b class="mono">' + esc(APP_URL) + '/api/config/rewards</b>') +
         line('Webhook URL (FamGateway → Webhooks)', '<b class="mono">/api/payment/webhook</b>') +
         line('Signature', '<b class="mono">X-FamGateway-Signature · HMAC-SHA256</b>') +
         line('Order window', '<b class="mono">300 seconds</b>') +
