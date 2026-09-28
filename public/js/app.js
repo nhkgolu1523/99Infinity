@@ -486,6 +486,13 @@
   let currentUser = null;
 
   /* full-screen block overlay for suspended / under-investigation accounts */
+  /** Only a REAL account block may show the blocking dialog. Other API codes
+   *  (gateway missing, deposits paused, wrong amount …) are normal answers and
+   *  must never lock the user out of the app. */
+  function isAccountBlock(code) {
+    return code === 'suspended' || code === 'investigation';
+  }
+
   function showAccountBlock(message) {
     if (document.getElementById('accountBlock')) return;
     const overlay = document.createElement('div');
@@ -1896,6 +1903,10 @@
           dep.enabled = d.payments.enabled !== 0;
           dep.configured = d.payments.configured !== false;
           if (Number(d.payments.windowSeconds) > 0) dep.window = Number(d.payments.windowSeconds);
+          /* no server-side gateway key yet → say so on step 1 instead of
+             surprising the user with a manual-verification dialog */
+          const note = $('[data-dp-note]');
+          if (note) note.hidden = dep.configured;
         }
       })
       .catch(() => {});
@@ -2199,7 +2210,8 @@
             toast('Please log in first', 2000);
             return setTimeout(() => spaNavigate('/login', true), 400);
           }
-          if (data.code) showAccountBlock(data.error || 'Your account is restricted');
+          if (isAccountBlock(data.code))
+            return showAccountBlock(data.error || 'Your account is restricted');
           return toast(data.error || 'Could not submit the deposit request', 3500);
         }
 
@@ -2247,7 +2259,15 @@
             toast('Please log in first', 2000);
             return setTimeout(() => spaNavigate('/login', true), 400);
           }
-          if (data.code) showAccountBlock(data.error || 'Your account is restricted');
+          /* the server has no gateway key (or deposits are paused): don't
+             dead-end the user — submit the manual request the admin panel
+             already handles, exactly like the old flow */
+          if (data.code === 'gateway-missing' || data.code === 'deposits-off') {
+            dep.configured = false;
+            return manualRequest(value);
+          }
+          if (isAccountBlock(data.code))
+            return showAccountBlock(data.error || 'Your account is restricted');
           return toast(data.error || 'Could not start the payment', 3500);
         }
       } catch (err) {

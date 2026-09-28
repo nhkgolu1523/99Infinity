@@ -46,6 +46,15 @@ export function DepositPage() {
               />
             </div>
 
+            {/* shown only while the live gateway key is missing on the server */}
+            <div class="dp-note" data-dp-note hidden>
+              <Icon name="fa-circle-info" size="0.3rem" />
+              <span>
+                Live UPI QR is being set up. Your deposit request will be verified by our team and
+                credited to your wallet.
+              </span>
+            </div>
+
             <div class="dp-quick">
               {[100, 500, 1000, 5000].map((v) => (
                 <button class="dp-quick__btn" type="button" data-dp-quick={v}>
