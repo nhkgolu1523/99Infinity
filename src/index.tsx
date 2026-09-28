@@ -14,6 +14,7 @@ import {
   WithdrawPage,
   HistoryPage,
   ProfilePage,
+  LanguagePage,
   SettingsPage,
   AboutPage,
   SecurityPage,
@@ -103,6 +104,9 @@ app.get('/account/withdraw-history', (c) =>
 )
 app.get('/account/profile', (c) =>
   c.render(<ProfilePage />, { title: 'Profile', showTabbar: false })
+)
+app.get('/account/language', (c) =>
+  c.render(<LanguagePage />, { title: 'Language', showTabbar: false })
 )
 app.get('/account/settings', (c) =>
   c.render(<SettingsPage />, { title: 'Settings', showTabbar: false })

@@ -30,7 +30,7 @@ export function AccountPage() {
     { icon: 'icon-statsIcon', label: 'Game statistics', href: '/account/bets' },
     { icon: 'fa-shield', label: 'Security Center', href: '/account/security' },
     { icon: 'user', label: 'Personal information', href: '/account/profile' },
-    { icon: 'icon-language', label: 'Language', value: 'English', href: '/account/settings' },
+    { icon: 'icon-language', label: 'Language', value: 'English', href: '/account/language' },
   ]
 
   const service = [
@@ -571,44 +571,149 @@ export function HistoryPage({
    PROFILE / SETTINGS
    ========================================================================== */
 export function ProfilePage() {
-  return (
-    <>
-      <NavbarInner title="Profile" back="/account" />
+  const avatars = [
+    '/assets/img/avatar/avatar-original.png',
+    ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `/assets/img/avatar/avatar-${n}.png`),
+  ]
 
-      <main class="page">
-        <section class="panel">
-          <div class="row gap-6" style="align-items:flex-start">
-            <img class="account-hero__avatar" src="/assets/img/avatar/avatar-2.png" alt="" />
-            <div class="grow">
-              <div class="account-hero__name">Guest User</div>
-              <div class="account-hero__id">ID: 00000000</div>
+  return (
+    <div class="ac-page">
+      <header class="ac-subheader">
+        <a class="ac-header__btn" href="/account" aria-label="Back">
+          <Icon name="chevron-left" size="0.37rem" />
+        </a>
+        <h2 class="ac-subheader__title">Profile</h2>
+      </header>
+
+      <main class="ac-content">
+        {/* avatar + identity */}
+        <div class="pf-avatar-section">
+          <div class="pf-avatar-wrapper">
+            <div class="pf-avatar-ring">
+              <img id="profileAvatar" class="pf-avatar-img" src="/assets/img/avatar/avatar-original.png" alt="" />
+            </div>
+            <button class="pf-avatar-edit" type="button" data-dialog-open="avatarPicker" aria-label="Edit avatar">
+              <Icon name="camera" size="0.32rem" />
+            </button>
+          </div>
+          <div class="pf-user-info">
+            <div class="pf-user-name" id="profileName">Guest User</div>
+            <div class="pf-user-id">
+              <Icon name="user" size="0.26rem" /> ID: 00000000
+            </div>
+          </div>
+        </div>
+
+        {/* edit form */}
+        <div class="pf-card">
+          <div class="pf-card__title">
+            <Icon name="user" size="0.3rem" /> Edit Profile
+          </div>
+
+          <div class="pf-group">
+            <label class="pf-label">Nickname</label>
+            <div class="pf-input">
+              <Icon name="user" size="0.36rem" class="pf-input__icon" />
+              <input type="text" id="pfNickname" placeholder="Enter your nickname" maxlength="20" data-pf-nickname />
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="field-group">
-            <label class="field">
-              <Icon name="user" class="field__icon" />
-              <input type="text" name="nickname" placeholder="Nickname" />
-            </label>
-            <label class="field">
-              <Icon name="mail" class="field__icon" />
-              <input type="email" name="email" placeholder="Email address" />
-            </label>
-            <label class="field">
-              <Icon name="phone" class="field__icon" />
-              <input type="tel" name="phone" placeholder="Phone number" />
-            </label>
+          <div class="pf-group">
+            <label class="pf-label">Email Address</label>
+            <div class="pf-input">
+              <Icon name="mail" size="0.36rem" class="pf-input__icon" />
+              <input type="email" placeholder="you@example.com" />
+            </div>
           </div>
 
-          <button class="btn-primary mt-16" type="button" data-dialog-open="save-profile">
-            Save changes
-          </button>
-        </section>
+          <div class="pf-group">
+            <label class="pf-label">Phone Number</label>
+            <div class="pf-input pf-input--disabled">
+              <Icon name="phone" size="0.36rem" class="pf-input__icon" />
+              <input type="tel" value="+91 98765 43210" disabled />
+            </div>
+          </div>
+        </div>
+
+        <button class="pf-save" type="button" data-toast="Profile updated successfully!">
+          <Icon name="check" size="0.34rem" /> Save Changes
+        </button>
+
+        <a class="pf-back" href="/account">
+          <Icon name="arrow-left" size="0.32rem" /> Go Back
+        </a>
       </main>
 
-    </>
+      {/* avatar picker dialog — local avatars only */}
+      <div
+        class="dialog-host dialog-host--center"
+        id="avatarPicker"
+        data-dialog="avatarPicker"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="dialog-host__overlay" data-dialog-close></div>
+        <div class="dialog-host__content">
+          <div class="pf-picker">
+            <h3 class="pf-picker__title">Choose Your Avatar</h3>
+            <p class="pf-picker__subtitle">Pick one of our preset avatars to personalize your profile</p>
+            <div class="pf-picker__grid">
+              {avatars.map((src, i) => (
+                <div class={`pf-avatar-option${i === 0 ? ' selected' : ''}`} data-avatar-option={src}>
+                  <img src={src} alt="" />
+                  <span class="pf-avatar-check">
+                    <Icon name="check" size="0.22rem" />
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button class="pf-picker__btn pf-picker__btn--primary" type="button" data-dialog-close>
+              Done
+            </button>
+            <button class="pf-picker__btn pf-picker__btn--dark" type="button" data-dialog-close>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function LanguagePage() {
+  const langs = [
+    { name: 'English', flag: '/assets/img/flags/us.png', selected: true },
+    { name: 'हिन्दी', flag: '/assets/img/flags/in.png', cls: 'hindi' },
+    { name: 'தமிழ்', flag: '/assets/img/flags/in.png', cls: 'tamil' },
+    { name: 'తెలుగు', flag: '/assets/img/flags/in.png', cls: 'telugu' },
+  ]
+
+  return (
+    <div class="ac-page">
+      <header class="ac-subheader">
+        <a class="ac-header__btn" href="/account" aria-label="Back">
+          <Icon name="chevron-left" size="0.37rem" />
+        </a>
+        <h2 class="ac-subheader__title">Language</h2>
+      </header>
+
+      <main class="ac-content">
+        <div class="lang-list">
+          {langs.map((l) => (
+            <div class={`lang-item${l.selected ? ' selected' : ''}`} data-lang-item={l.name}>
+              <span class="lang-flag">
+                <img src={l.flag} alt="" />
+              </span>
+              <span class={`lang-name${l.cls ? ` ${l.cls}` : ''}`}>{l.name}</span>
+              <span class="lang-check">
+                <Icon name="check" size="0.26rem" />
+              </span>
+              <span class="lang-radio"></span>
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
   )
 }
 
@@ -756,7 +861,7 @@ export function SecurityPage() {
             <a class="ac-list__item" href={m.href}>
               <span class="ac-list__left">
                 <span class="ac-list__icon">
-                  <Icon name={m.icon} size="0.44rem" />
+                  <Icon name={m.icon} size="0.46rem" />
                 </span>
                 <span class="ac-list__label">{m.label}</span>
               </span>
@@ -766,7 +871,7 @@ export function SecurityPage() {
                     {m.badge}
                   </span>
                 )}
-                <Icon name="chevron-right" size="0.3rem" class="ac-list__chev" />
+                <Icon name="chevron-right" size="0.32rem" class="ac-list__chev" />
               </span>
             </a>
           ))}

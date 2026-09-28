@@ -47,6 +47,8 @@ const GLYPHS: Record<string, string> = {
   'calendar-check':
     '<rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18M8 3v4M16 3v4M9 15.5l2 2 4-4" />',
   clock: '<circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />',
+  camera:
+    '<path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" />',
   qrcode:
     '<rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3h-3z" /><path d="M20 14h1M14 20h1M20 20h1" />',
   dharmachakra:

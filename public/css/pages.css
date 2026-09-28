@@ -1075,8 +1075,8 @@
 .ac-list__left { display: flex; align-items: center; gap: 0.28rem; }
 
 .ac-list__icon {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 0.94rem;
+  height: 0.94rem;
   border-radius: 0.21rem;
   background: rgba(255, 255, 255, 0.03);
   display: flex;
@@ -1085,7 +1085,7 @@
   color: var(--ac-green);
 }
 
-.ac-list__label { font-size: 0.38rem; font-weight: 400; color: #e6edf3; }
+.ac-list__label { font-size: 0.4rem; font-weight: 500; color: #e6edf3; }
 .ac-list__right { display: flex; align-items: center; gap: 0.22rem; }
 .ac-list__chev { color: #555; }
 
@@ -3053,6 +3053,377 @@
 }
 
 .sec-hint strong { color: #ffffff; }
+
+/* ==========================================================================
+   LANGUAGE PICKER (lang-*) — flag list with radio/check circles
+   ========================================================================== */
+.lang-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.lang-item {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.44rem 0.48rem;
+  border-radius: 0.34rem;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lang-item:not(.selected):active { background: rgba(255, 255, 255, 0.03); }
+.lang-item.selected { background: #1a222c; }
+
+.lang-item:not(.selected):not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: -0.05rem;
+  left: 1.82rem;
+  right: 0.48rem;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lang-flag {
+  width: 0.82rem;
+  height: 0.82rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 0.05rem 0.15rem rgba(0, 0, 0, 0.4);
+  background: #1a222c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lang-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.lang-name {
+  flex: 1;
+  font-size: 0.39rem;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 0.005rem;
+}
+
+.lang-name.hindi { font-family: 'Noto Sans Devanagari', 'Inter', sans-serif; }
+.lang-name.tamil { font-family: 'Noto Sans Tamil', 'Inter', sans-serif; }
+.lang-name.telugu { font-family: 'Noto Sans Telugu', 'Inter', sans-serif; }
+
+.lang-radio {
+  width: 0.53rem;
+  height: 0.53rem;
+  border-radius: 50%;
+  border: 1.5px solid #3a4452;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.lang-check {
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 50%;
+  background: #00c853;
+  color: #ffffff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0.29rem rgba(0, 200, 83, 0.35);
+}
+
+.lang-item.selected .lang-check { display: flex; animation: langPop 0.3s ease; }
+.lang-item.selected .lang-radio { display: none; }
+
+@keyframes langPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   PROFILE (pf-*) — avatar ring, edit form, avatar picker
+   ========================================================================== */
+.pf-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.34rem;
+  padding: 0.24rem 0 0.2rem;
+}
+
+.pf-avatar-wrapper {
+  position: relative;
+  width: 2.64rem;
+  height: 2.64rem;
+}
+
+.pf-avatar-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 0.072rem;
+  background: linear-gradient(135deg, #00c853, #00d09c, #00c853);
+  box-shadow: 0 0 0.6rem rgba(0, 200, 83, 0.15);
+}
+
+.pf-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 0.072rem solid var(--ac-bg);
+  background: #1a222c;
+}
+
+.pf-avatar-edit {
+  position: absolute;
+  bottom: 0.05rem;
+  right: 0.05rem;
+  width: 0.82rem;
+  height: 0.82rem;
+  border-radius: 50%;
+  background: #00c853;
+  color: #ffffff;
+  border: 0.072rem solid var(--ac-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0.1rem 0.29rem rgba(0, 200, 83, 0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.pf-avatar-edit:active { transform: scale(0.92); background: #00b248; }
+
+.pf-user-info { text-align: center; }
+
+.pf-user-name {
+  font-size: 0.48rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.007rem;
+  margin-bottom: 0.1rem;
+}
+
+.pf-user-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.14rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  padding: 0.1rem 0.29rem;
+  border-radius: 0.48rem;
+  font-size: 0.27rem;
+  font-weight: 600;
+  color: var(--ac-gold);
+  letter-spacing: 0.012rem;
+}
+
+.pf-card {
+  background: var(--ac-card);
+  border: 1px solid var(--ac-border);
+  border-radius: 0.48rem;
+  padding: 0.53rem;
+}
+
+.pf-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.19rem;
+  font-size: 0.29rem;
+  font-weight: 600;
+  color: var(--ac-green);
+  text-transform: uppercase;
+  letter-spacing: 0.024rem;
+  margin-bottom: 0.43rem;
+  padding-bottom: 0.34rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pf-group { margin-bottom: 0.38rem; }
+.pf-group:last-child { margin-bottom: 0; }
+
+.pf-label {
+  display: block;
+  font-size: 0.29rem;
+  font-weight: 500;
+  color: var(--ac-text-2);
+  margin-bottom: 0.19rem;
+  letter-spacing: 0.007rem;
+}
+
+.pf-input {
+  display: flex;
+  align-items: center;
+  background: #1a222c;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.34rem;
+  padding: 0.34rem 0.38rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pf-input:focus-within {
+  border-color: #00c853;
+  box-shadow: 0 0 0 2px var(--ac-green-bg);
+}
+
+.pf-input--disabled { opacity: 0.5; }
+
+.pf-input__icon {
+  color: var(--ac-text-2);
+  margin-right: 0.29rem;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.pf-input:focus-within .pf-input__icon { color: #00c853; }
+
+.pf-input input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.35rem;
+  font-weight: 500;
+  width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pf-input input::placeholder { color: #555; font-weight: 400; }
+.pf-input input:disabled { cursor: not-allowed; color: var(--ac-text-2); }
+
+.pf-save {
+  width: 100%;
+  background: #00c853;
+  color: #ffffff;
+  border: none;
+  padding: 0.38rem;
+  border-radius: 0.38rem;
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.012rem;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.24rem;
+  cursor: pointer;
+  box-shadow: 0 0.19rem 0.48rem rgba(0, 200, 83, 0.25);
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.pf-save:active { transform: scale(0.98); opacity: 0.9; }
+
+.pf-back {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.24rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  padding: 0.38rem;
+  border-radius: 0.38rem;
+  font-size: 0.34rem;
+  font-weight: 600;
+  letter-spacing: 0.012rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.2s ease;
+}
+
+.pf-back:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.1); }
+
+.pf-picker {
+  background: var(--ac-card);
+  border: 1px solid var(--ac-border);
+  border-radius: 0.58rem;
+  padding: 0.62rem 0.53rem;
+  width: 90%;
+  max-width: 8.64rem;
+  text-align: center;
+  box-shadow: 0 0.48rem 0.96rem rgba(0, 0, 0, 0.5);
+}
+
+.pf-picker__title {
+  font-size: 0.41rem;
+  font-weight: 600;
+  margin-bottom: 0.14rem;
+  color: #ffffff;
+}
+
+.pf-picker__subtitle {
+  font-size: 0.3rem;
+  color: var(--ac-text-2);
+  margin-bottom: 0.53rem;
+  line-height: 1.5;
+}
+
+.pf-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.34rem;
+  margin-bottom: 0.53rem;
+}
+
+.pf-avatar-option {
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: #1a222c;
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px solid transparent;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.pf-avatar-option:active { transform: scale(0.92); }
+.pf-avatar-option img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pf-avatar-option.selected { border-color: #00c853; box-shadow: 0 0 0.36rem rgba(0, 200, 83, 0.25); }
+
+.pf-avatar-check {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0.48rem;
+  height: 0.48rem;
+  background: #00c853;
+  color: #ffffff;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ac-card);
+}
+
+.pf-avatar-option.selected .pf-avatar-check { display: flex; }
+
+.pf-picker__btn {
+  width: 100%;
+  padding: 0.34rem;
+  border-radius: 0.34rem;
+  font-size: 0.34rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s ease;
+}
+
+.pf-picker__btn:active { transform: scale(0.97); }
+.pf-picker__btn--primary { background: #00c853; color: #ffffff; }
+.pf-picker__btn--dark { background: rgba(255, 255, 255, 0.06); color: #ffffff; margin-top: 0.19rem; }
 
 /* ==========================================================================
    DAILY REWARD  (dr-* — 30-day login streak calendar page)

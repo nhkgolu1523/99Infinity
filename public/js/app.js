@@ -1189,6 +1189,40 @@
     });
   }
 
+  /* ------------------------------------------------ language + profile extras */
+  function initProfileExtras() {
+    /* language picker — tap a row to select it (green check + toast) */
+    $$('[data-lang-item]').forEach((item) => {
+      on(item, 'click', () => {
+        if (item.classList.contains('selected')) return;
+        $$('[data-lang-item]').forEach((i) => i.classList.remove('selected'));
+        item.classList.add('selected');
+        toast('Language changed to ' + item.dataset.langItem);
+      });
+    });
+
+    /* avatar picker — tap an option to preview it on the profile instantly */
+    $$('[data-avatar-option]').forEach((opt) => {
+      on(opt, 'click', () => {
+        if (opt.classList.contains('selected')) return;
+        $$('[data-avatar-option]').forEach((o) => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        const target = document.getElementById('profileAvatar');
+        if (target) target.src = opt.dataset.avatarOption;
+        toast('Avatar updated!');
+      });
+    });
+
+    /* live nickname preview on the profile page */
+    const nick = $('[data-pf-nickname]');
+    if (nick) {
+      on(nick, 'input', () => {
+        const name = document.getElementById('profileName');
+        if (name) name.innerText = nick.value.trim() || 'Guest User';
+      });
+    }
+  }
+
   /* ------------------------------------------------------------------ boot */
   function initAll() {
     initLazyImages();
@@ -1203,6 +1237,7 @@
     initQuickAmounts();
     initWithdraw();
     initEntryPoints();
+    initProfileExtras();
   }
 
   /* ------------------------------------------------ SPA navigation + loader */
