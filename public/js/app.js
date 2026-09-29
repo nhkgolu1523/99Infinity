@@ -489,6 +489,26 @@
      browser that wipes cookies on restart can be logged back in silently */
   const REMEMBER_KEY = 'vg_remember';
 
+  /* The first /api/me round-trip decides guest vs logged-in. Until it lands the
+     login gates must NOT treat a logged-in user as a guest — a fast tap right
+     after the site opens (fresh browser start) used to bounce real users to the
+     login page. Gates `await whenUserKnown()` first; that settles in the time
+     one API call takes, and resolves instantly on every tap after it. */
+  let userKnown = false;
+  let userKnownWaiters = [];
+
+  function whenUserKnown() {
+    if (userKnown) return Promise.resolve();
+    return new Promise((res) => userKnownWaiters.push(res));
+  }
+
+  function markUserKnown() {
+    if (userKnown) return;
+    userKnown = true;
+    userKnownWaiters.forEach((res) => res());
+    userKnownWaiters = [];
+  }
+
   /* full-screen block overlay for suspended / under-investigation accounts */
   /** Only a REAL account block may show the blocking dialog. Other API codes
    *  (gateway missing, deposits paused, wrong amount …) are normal answers and
@@ -832,8 +852,11 @@
         currentUser = null;
         /* cookie gone (browser restart) but the login is remembered —
            restore it silently and re-render the page logged in */
-        if (await restoreRememberedSession())
+        if (await restoreRememberedSession()) {
+          markUserKnown();
           return spaNavigate(location.pathname + location.search, false);
+        }
+        markUserKnown();
         /* guest somehow sitting on an account page (direct URL / edge case)
            — the server gate normally handles this, this is the safety net */
         if (/^\/account(\/|$)/.test(location.pathname))
@@ -842,17 +865,22 @@
       }
       me = await res.json();
     } catch (err) {
+      markUserKnown(); /* offline — the gates fall back to guest behaviour */
       return;
     }
     if (!me || !me.ok) {
       currentUser = null;
       /* same story for a 200 "not logged in" answer */
-      if (await restoreRememberedSession())
+      if (await restoreRememberedSession()) {
+        markUserKnown();
         return spaNavigate(location.pathname + location.search, false);
+      }
+      markUserKnown();
       return;
     }
     currentUser = me;
     applyUserData(me);
+    markUserKnown();
 
     /* profile page — prefill the editable fields with the server values */
     const pfNick = $('[data-pf-nickname]');
@@ -928,8 +956,18 @@
         const a = e.target && e.target.closest ? e.target.closest('a[href="/account"]') : null;
         if (!a || !a.closest('.tabbar')) return;
         if (currentUser) return;
+        /* decide only after the first user sync (see whenUserKnown) — blocking
+           the tap for a moment is what stops the guest bounce on fast opens */
         e.preventDefault();
         e.stopImmediatePropagation(); /* keep the generic interceptor out of it */
+        if (!userKnown) {
+          whenUserKnown().then(() => {
+            if (currentUser) return spaNavigate('/account', true); /* logged in after all */
+            toast('Please log in to continue', 2000);
+            spaNavigate('/login', true); /* first tap itself → login, no delay */
+          });
+          return;
+        }
         toast('Please log in to continue', 2000);
         spaNavigate('/login', true); /* first tap itself → login, no delay */
       },
@@ -1026,6 +1064,7 @@
         e.preventDefault();
         e.stopImmediatePropagation();
 
+        await whenUserKnown();
         if (!currentUser) {
           toast('Please log in to play', 2000);
           return setTimeout(() => spaNavigate('/login', true), 350);
@@ -1290,6 +1329,20 @@
         if (currentUser) return; /* logged in — the real handler takes over */
         e.preventDefault();
         e.stopImmediatePropagation();
+        if (!userKnown) {
+          /* decide after the first user sync — for a logged-in user hand the
+             tap back with a fresh click so the real handler runs */
+          whenUserKnown().then(() => {
+            if (!currentUser) {
+              toast('Please log in to continue', 2000);
+              return setTimeout(() => spaNavigate('/login', true), 350);
+            }
+            el.dispatchEvent(
+              new MouseEvent('click', { bubbles: true, cancelable: true, view: window })
+            );
+          });
+          return;
+        }
         toast('Please log in to continue', 2000);
         setTimeout(() => spaNavigate('/login', true), 350);
       })
@@ -1459,6 +1512,7 @@
           if (!cur) return toast('Please enter your current password');
           if (!nw || nw.length < 8) return toast('Password must be at least 8 characters');
           if (nw !== cf) return toast('Passwords do not match');
+          await whenUserKnown();
           if (!currentUser) {
             toast('Please log in first', 2000);
             return setTimeout(() => spaNavigate('/login', true), 400);
@@ -1738,6 +1792,7 @@
     /* SPIN — the server decides the prize, we animate to that segment */
     on(spinBtn, 'click', async () => {
       if (spinning) return;
+      await whenUserKnown();
       if (!currentUser) {
         toast('Please log in to play', 2000);
         return setTimeout(() => spaNavigate('/login', true), 350);
@@ -1932,6 +1987,7 @@
     const claim = $('[data-dr-claim]');
     const claimText = $('[data-dr-claim-text]');
     on(claim, 'click', async () => {
+      await whenUserKnown();
       if (!currentUser) {
         toast('Please log in to play', 2000);
         return setTimeout(() => spaNavigate('/login', true), 350);
@@ -2465,6 +2521,7 @@
     const save = $('[data-pf-save]');
     if (save) {
       on(save, 'click', async () => {
+        await whenUserKnown();
         if (!currentUser) {
           toast('Please log in first', 2000);
           return setTimeout(() => spaNavigate('/login', true), 400);
