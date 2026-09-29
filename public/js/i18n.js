@@ -648,7 +648,7 @@
     'Super Jackpot': 'सुपर जैकपॉट',
     'When you win a super jackpot, you will receive additional rewards':
       'सुपर जैकपॉट जीतने पर आपको अतिरिक्त रिवॉर्ड मिलते हैं',
-    'Dragon Streak': 'ड्रैगन स्ट्रीक',
+    'Winning Streak': 'विनिंग स्ट्रीक',
     'Ride the winning streak for extra cash rewards.':
       'जीत की स्ट्रीक पर चलें और अतिरिक्त कैश रिवॉर्ड पाएं।',
     'VIP Wheel': 'VIP व्हील',
@@ -1001,7 +1001,7 @@
     'Super Jackpot': 'சூப்பர் ஜாக்பாட்',
     'When you win a super jackpot, you will receive additional rewards':
       'சூப்பர் ஜாக்பாட் வென்றால் கூடுதல் பரிசுகள் கிடைக்கும்',
-    'Dragon Streak': 'டிராகன் ஸ்ட்ரீக்',
+    'Winning Streak': 'வின்னிங் ஸ்ட்ரீக்',
     'Ride the winning streak for extra cash rewards.':
       'வெற்றித் தொடரில் சென்று கூடுதல் பண பரிசுகளை பெறுங்கள்.',
     'VIP Wheel': 'VIP சக்கரம்',
@@ -1356,7 +1356,7 @@
     'Super Jackpot': 'సూపర్ జాక్పాట్',
     'When you win a super jackpot, you will receive additional rewards':
       'సూపర్ జాక్పాట్ గెలిస్తే అదనపు రివార్డులు లభిస్తాయి',
-    'Dragon Streak': 'డ్రాగన్ స్ట్రీక్',
+    'Winning Streak': 'విన్నింగ్ స్ట్రీక్',
     'Ride the winning streak for extra cash rewards.':
       'గెలుపు స్ట్రీక్లో కొనసాగి అదనపు క్యాష్ రివార్డులు పొందండి.',
     'VIP Wheel': 'VIP వీల్',

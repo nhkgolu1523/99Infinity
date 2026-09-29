@@ -307,7 +307,8 @@
 .activity-card__media {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 11;
+  /* kept in step with .at-card__media: the activity art is a 16:9 banner */
+  aspect-ratio: 16 / 9;
   background: linear-gradient(160deg, #0b3f38, #143033);
   overflow: hidden;
 }
@@ -2020,7 +2021,11 @@
 .at-card__media {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  /* 16:9 on purpose — the activity art is exported at exactly 16:9, so nothing
+     is cropped by the object-fit: cover below (the baked-in text sits close to
+     the edges of these banners). Art in another ratio is padded upstream by
+     tools/make-activity-images.ps1. */
+  aspect-ratio: 16 / 9;
   background: linear-gradient(135deg, #1a1408, #0f0f0f);
   overflow: hidden;
   display: flex;

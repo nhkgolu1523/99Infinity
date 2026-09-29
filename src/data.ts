@@ -14,13 +14,13 @@ export const site = {
     {
       "title": "Your Daily Bonus Awaits",
       "desc": "Log in today and claim free rewards instantly.",
-      "art": "/assets/img/activity/bonus.png",
+      "art": "/assets/img/activity/daily-bonus-thumb.jpg",
       "href": "/daily-reward"
     },
     {
       "title": "Spin for Luck",
       "desc": "One spin could unlock your next big win.",
-      "art": "/assets/img/activity/wheel.png",
+      "art": "/assets/img/activity/lucky-wheel-thumb.jpg",
       "href": "/spin"
     }
   ],

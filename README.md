@@ -71,6 +71,21 @@ file so any single detail can be changed later without touching the rest.
   ```bash
   python3 tools/gen-data.py
   ```
+- **Activity banner art** goes through `tools/make-activity-images.ps1` and always
+  comes out at exactly **16:9**. The activity cards (`.at-card__media`,
+  `.activity-card__media`) paint with `object-fit: cover`, and the letters/logos
+  baked into these banners sit hard against the frame edge — so a 1.5:1 or a
+  differently-cropped source would clip them. The script also drops the 1280 px
+  2.5 MB PNGs to 1280×720 JPEGs (~250–300 KB) and derives the 256 px square
+  thumbs used by the home + promotion tiles.
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File tools\make-activity-images.ps1
+  ```
+  Source folder defaults to `Desktop\Activity images`; the file names are mapped
+  to `daily-bonus.jpg`, `lucky-wheel.jpg`, `super-jackpot.jpg`,
+  `invite-friends.jpg`, `winning-streak.jpg`, `vip-wheel.jpg` (+ `-thumb.jpg`).
+  Anything that is not 16:9 gets defocused edge-extended wings that fade into the
+  card background, so nothing is ever cropped.
 - **No database.** The build is a static UI shell; there is no persistence, no
   accounts and no transactions. Adding D1 later is a drop-in: see below.
 
@@ -99,7 +114,9 @@ webapp/
 │       ├── brand/ banner/ tabbar/ title/ category/ activity/
 │       ├── float/ partner/ avatar/ ui/
 │       └── game/{jili,jdb,tb_chess,inplay…}  vendor/  fonts/
-└── tools/gen-data.py          # asset → data.ts generator
+└── tools/
+    ├── gen-data.py             # asset → data.ts generator
+    └── make-activity-images.ps1 # activity banners → 16:9 web JPEGs + square thumbs
 ```
 
 ## Editing guide (change one small thing, nothing else breaks)
@@ -114,6 +131,7 @@ webapp/
 | An icon | `src/components/icons.tsx` |
 | A behaviour (swipe, autoplay, drag…) | `public/js/app.js` (one module per feature) |
 | A new image | drop it in `public/assets/img/…` then re-run `tools/gen-data.py` |
+| The 6 Activity banners | put the new art in `Desktop\Activity images`, run `tools/make-activity-images.ps1`, then `tools/gen-data.py` |
 
 ## Interactions implemented
 
