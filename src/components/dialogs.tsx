@@ -164,7 +164,7 @@ export const SUPPORT_FAQS = [
   },
   {
     q: 'What is the minimum deposit?',
-    a: 'The minimum deposit is ₹100. There is no maximum limit on most payment methods.',
+    a: 'The minimum deposit is ₹500. There is no maximum limit on most payment methods.',
   },
 ]
 
@@ -197,7 +197,7 @@ export function DepositAlertDialog() {
           {/* coin + rupee badge */}
           <div class="dep-popup__icon-wrap">
             <div class="dep-popup__icon">
-              <Icon name="fa-coins" size="0.74rem" />
+              <Icon name="fa-coins" size="0.93rem" />
             </div>
             <div class="dep-popup__badge">₹</div>
           </div>
@@ -213,7 +213,7 @@ export function DepositAlertDialog() {
 
           <div class="dep-popup__info">
             <div class="dep-popup__info-icon">
-              <Icon name="fa-bolt" size="0.28rem" />
+              <Icon name="fa-bolt" size="0.35rem" />
             </div>
             <div class="dep-popup__info-text">
               <span class="dep-popup__info-line">
@@ -228,7 +228,7 @@ export function DepositAlertDialog() {
           </div>
 
           <button class="dep-popup__cta" type="button" data-deposit-cta>
-            <Icon name="wallet" size="0.32rem" />
+            <Icon name="wallet" size="0.4rem" />
             <span>Deposit Now</span>
           </button>
 

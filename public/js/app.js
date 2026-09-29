@@ -485,6 +485,10 @@
   /* currently logged-in user (from /api/me) — null means guest */
   let currentUser = null;
 
+  /* remember-me — login token kept in localStorage as well as the cookie, so a
+     browser that wipes cookies on restart can be logged back in silently */
+  const REMEMBER_KEY = 'vg_remember';
+
   /* full-screen block overlay for suspended / under-investigation accounts */
   /** Only a REAL account block may show the blocking dialog. Other API codes
    *  (gateway missing, deposits paused, wrong amount …) are normal answers and
@@ -649,6 +653,13 @@
               return showAccountBlock(data.error || 'Your account is restricted');
             return toast(data.error || 'Something went wrong, try again', 3000);
           }
+          /* the token comes back in the body too — remember it for the
+             auto-restore below (browsers that clear cookies on restart) */
+          if (data.token) {
+            try {
+              localStorage.setItem(REMEMBER_KEY, data.token);
+            } catch (err) { /* private mode — the cookie alone still works */ }
+          }
           toast(data.message || (kind === 'login' ? 'Logged in successfully!' : 'Account created!'), 2500);
           setTimeout(() => spaNavigate('/', true), 500);
         } catch (err) {
@@ -774,12 +785,55 @@
     }
   }
 
+  /** the browser wiped its cookies (restart, privacy cleaner, "clear on exit")
+   *  but the account is still valid — trade the remembered token (localStorage)
+   *  for a fresh cookie. Attempted at most once per page load, so a browser
+   *  that refuses cookies can never put us into a restore loop. */
+  let restoreAttempted = false;
+
+  async function restoreRememberedSession() {
+    if (restoreAttempted) return false;
+    restoreAttempted = true;
+    let saved = null;
+    try {
+      saved = localStorage.getItem(REMEMBER_KEY);
+    } catch (err) {
+      return false;
+    }
+    if (!saved) return false;
+    try {
+      const res = await fetch('/api/auth/restore', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: saved }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !data.ok) {
+        /* expired, or that device was logged out — the memory is stale */
+        try { localStorage.removeItem(REMEMBER_KEY); } catch (err) {}
+        return false;
+      }
+      /* the server rolled the session forward — keep the fresh copy */
+      if (data.token) {
+        try { localStorage.setItem(REMEMBER_KEY, data.token); } catch (err) {}
+      }
+      currentUser = data.user || null;
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   async function initUserSync() {
     let me;
     try {
       const res = await fetch('/api/me', { cache: 'no-store', silent: true });
       if (!res.ok) {
         currentUser = null;
+        /* cookie gone (browser restart) but the login is remembered —
+           restore it silently and re-render the page logged in */
+        if (await restoreRememberedSession())
+          return spaNavigate(location.pathname + location.search, false);
         /* guest somehow sitting on an account page (direct URL / edge case)
            — the server gate normally handles this, this is the safety net */
         if (/^\/account(\/|$)/.test(location.pathname))
@@ -792,6 +846,9 @@
     }
     if (!me || !me.ok) {
       currentUser = null;
+      /* same story for a 200 "not logged in" answer */
+      if (await restoreRememberedSession())
+        return spaNavigate(location.pathname + location.search, false);
       return;
     }
     currentUser = me;
@@ -1529,6 +1586,7 @@
           }
           if (data.self) {
             currentUser = null;
+            try { localStorage.removeItem(REMEMBER_KEY); } catch (err) {}
             toast(data.message || 'Logged out from this device', 2500);
             return setTimeout(() => spaNavigate('/login', true), 400);
           }
@@ -1964,7 +2022,7 @@
     if (!amount) return;
 
     /* the minimum deposit is editable in the admin panel (CONFIG/LIMITS) */
-    const dep = { min: 100, enabled: true, configured: true, window: 300 };
+    const dep = { min: 500, enabled: true, configured: true, window: 300 };
     fetch('/api/config/rewards', { silent: true })
       .then((r) => r.json())
       .then((d) => {
@@ -2567,6 +2625,9 @@
       /* even if the call fails, drop the local session */
     }
     currentUser = null;
+    /* the remembered login must die with the logout, or the next browser
+       restart would silently put the session back */
+    try { localStorage.removeItem(REMEMBER_KEY); } catch (err) {}
     Dialog.closeAll();
     toast('You have been logged out successfully!', 2000);
     setTimeout(() => spaNavigate('/login', true), 400);

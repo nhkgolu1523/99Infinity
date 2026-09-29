@@ -474,7 +474,15 @@ apiApp.post('/auth/register', async (c) => {
 
   const token = await createSessionToken(c.env, uid, sid)
   c.header('Set-Cookie', sessionCookieHeader(token))
-  return c.json({ ok: true, uid, message: 'Account created successfully!', user: safeUser({ ...user, uid }) })
+  /* token also goes in the body — the client keeps it in localStorage so the
+     login can be restored when the phone's browser wipes its cookies */
+  return c.json({
+    ok: true,
+    uid,
+    token,
+    message: 'Account created successfully!',
+    user: safeUser({ ...user, uid }),
+  })
 })
 
 /* ------------------------------------------------------------------ login */
@@ -510,7 +518,41 @@ apiApp.post('/auth/login', async (c) => {
   })
   const token = await createSessionToken(c.env, String(uid), sid)
   c.header('Set-Cookie', sessionCookieHeader(token))
-  return c.json({ ok: true, message: 'Logged in successfully!', user: safeUser({ ...user, uid: String(uid) }) })
+  /* token also goes in the body — the client keeps it in localStorage so the
+     login can be restored when the phone's browser wipes its cookies */
+  return c.json({
+    ok: true,
+    message: 'Logged in successfully!',
+    token,
+    user: safeUser({ ...user, uid: String(uid) }),
+  })
+})
+
+/** Remember-me restore — some phone browsers (and Chrome's own "clear on exit"
+ *  settings) wipe cookies when the browser restarts, which forced a fresh login
+ *  even though the account was still valid. The client keeps a copy of the
+ *  session token in localStorage and trades it here for a real cookie again.
+ *  The token is only honoured while its device record still exists, so
+ *  "log out this device" (and the admin's device logout) kills the remembered
+ *  login as well — the restore is exactly as strong as the cookie was. */
+apiApp.post('/auth/restore', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any))
+  const session = await readSessionToken(c.env, String(body.token || ''))
+  if (!session) return c.json({ ok: false, error: 'Session expired, please log in' }, 401)
+
+  const user = await dbGet<any>(c.env, `USERS/${session.uid}`)
+  const device = user && user.devices ? user.devices[session.sid] : null
+  if (!user || !device)
+    return c.json({ ok: false, error: 'Session expired, please log in' }, 401)
+
+  /* suspended / investigation accounts are stopped here too */
+  const block = statusBlock({ ...user, uid: session.uid })
+  if (block) return c.json({ error: block.message, code: block.code }, 403)
+
+  /* roll the session forward — the fresh token restarts the 30-day window */
+  const token = await createSessionToken(c.env, session.uid, session.sid)
+  c.header('Set-Cookie', sessionCookieHeader(token))
+  return c.json({ ok: true, token, user: safeUser({ ...user, uid: session.uid }) })
 })
 
 /* ------------------------------------------------------------------ logout */

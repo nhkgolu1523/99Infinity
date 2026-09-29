@@ -40,7 +40,7 @@ export function resetLabel(at: number = Date.now()): string {
 export const WITHDRAW_MIN = 1000
 export const WITHDRAW_MAX = 10000
 export const WITHDRAW_QUICK = [1000, 2000, 3000, 5000, 10000]
-export const DEPOSIT_MIN = 100
+export const DEPOSIT_MIN = 500
 
 /** "1K" / "10K" label for the quick-pick chips (₹1,000 → 1K). */
 export function quickLabel(v: number): string {

@@ -2072,7 +2072,18 @@
    Sized in rem like the rest of the app (1rem = 10% of the viewport width), so
    the design keeps its 360px proportions on every phone.
    ========================================================================== */
+/* short screens (landscape / small phones) — the popup scrolls instead of
+   being clipped at the top: auto margins centre it AND allow overflow */
+.dep-popup {
+  overflow-y: auto;
+}
+
+.dep-popup .dialog-host__content {
+  margin: auto 0;
+}
+
 .dep-popup .dialog-host__overlay {
+  position: fixed; /* stays put while the content scrolls */
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -2091,10 +2102,10 @@
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 6.667rem;
-  padding: 0.593rem 0.444rem 0.444rem;
+  max-width: 8.53rem;
+  padding: 0.741rem 0.556rem 0.556rem;
   border: 1px solid rgba(212, 175, 55, 0.25);
-  border-radius: 0.519rem;
+  border-radius: 0.648rem;
   background: linear-gradient(145deg, #141a24 0%, #0d1219 100%);
   box-shadow: 0 0.37rem 1.111rem rgba(0, 0, 0, 0.6), 0 0 1.852rem rgba(212, 175, 55, 0.08);
   text-align: center;
@@ -2119,9 +2130,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.852rem;
-  height: 1.852rem;
-  margin: 0 auto 0.407rem;
+  width: 2.315rem;
+  height: 2.315rem;
+  margin: 0 auto 0.5rem;
 }
 
 /* pulsing green glow behind the coin */
@@ -2147,8 +2158,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.667rem;
-  height: 1.667rem;
+  width: 2.074rem;
+  height: 2.074rem;
   border: 0.056rem solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   background: linear-gradient(135deg, #00c853, #00a844);
@@ -2171,13 +2182,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 0.63rem;
-  height: 0.63rem;
+  width: 0.78rem;
+  height: 0.78rem;
   border: 0.056rem solid #0d1219;
   border-radius: 50%;
   background: linear-gradient(135deg, #f9d976, #d4af37, #b8860b);
   color: #000;
-  font-size: 0.296rem;
+  font-size: 0.37rem;
   font-weight: 900;
   box-shadow: 0 0.074rem 0.222rem rgba(212, 175, 55, 0.5);
 }
@@ -2185,9 +2196,9 @@
 .dep-popup__title {
   position: relative;
   z-index: 1;
-  margin: 0 0 0.185rem;
+  margin: 0 0 0.23rem;
   color: #fff;
-  font-size: 0.407rem;
+  font-size: 0.504rem;
   font-weight: 900;
   line-height: 1.25;
   letter-spacing: 0.01em;
@@ -2204,10 +2215,10 @@
 .dep-popup__msg {
   position: relative;
   z-index: 1;
-  margin: 0 0 0.444rem;
-  padding: 0 0.148rem;
+  margin: 0 0 0.55rem;
+  padding: 0 0.185rem;
   color: #fff;
-  font-size: 0.25rem;
+  font-size: 0.311rem;
   line-height: 1.6;
 }
 
@@ -2216,11 +2227,11 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.222rem;
-  margin-bottom: 0.37rem;
-  padding: 0.222rem 0.259rem;
+  gap: 0.278rem;
+  margin-bottom: 0.463rem;
+  padding: 0.278rem 0.324rem;
   border: 1px solid rgba(0, 200, 83, 0.2);
-  border-radius: 0.259rem;
+  border-radius: 0.324rem;
   background: rgba(0, 200, 83, 0.06);
 }
 
@@ -2229,9 +2240,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 0.667rem;
-  height: 0.667rem;
-  border-radius: 0.185rem;
+  width: 0.83rem;
+  height: 0.83rem;
+  border-radius: 0.23rem;
   background: rgba(0, 200, 83, 0.15);
   color: #00c853;
 }
@@ -2239,7 +2250,7 @@
 .dep-popup__info-text {
   flex: 1;
   color: #c9c9c9;
-  font-size: 0.213rem;
+  font-size: 0.264rem;
   line-height: 1.5;
   text-align: center;
 }
@@ -2259,16 +2270,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.185rem;
+  gap: 0.231rem;
   width: 100%;
-  margin-bottom: 0.222rem;
-  padding: 0.315rem;
+  margin-bottom: 0.278rem;
+  padding: 0.394rem;
   border: none;
-  border-radius: 0.926rem;
+  border-radius: 1.157rem;
   background: linear-gradient(135deg, #00c853, #00a844);
   box-shadow: 0 0.148rem 0.463rem rgba(0, 200, 83, 0.35);
   color: #fff;
-  font-size: 0.278rem;
+  font-size: 0.348rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -2285,12 +2296,12 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 0.222rem;
+  padding: 0.278rem;
   border: none;
   border-radius: 0.926rem;
   background: transparent;
   color: #ff4d4d;
-  font-size: 0.25rem;
+  font-size: 0.311rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease;

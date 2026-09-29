@@ -41,15 +41,15 @@ export function DepositPage() {
                 name="amount"
                 placeholder="Enter amount"
                 inputmode="numeric"
-                min="100"
+                min="500"
                 data-dp-amount
               />
             </div>
 
             <div class="dp-quick">
-              {[100, 500, 1000, 5000].map((v) => (
+              {[500, 1000, 5000, 10000].map((v) => (
                 <button class="dp-quick__btn" type="button" data-dp-quick={v}>
-                  ₹{v}
+                  ₹{v.toLocaleString('en-IN')}
                 </button>
               ))}
             </div>
