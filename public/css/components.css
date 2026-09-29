@@ -2240,9 +2240,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 0.83rem;
-  height: 0.83rem;
-  border-radius: 0.23rem;
+  width: 0.89rem;
+  height: 0.89rem;
+  border-radius: 0.25rem;
   background: rgba(0, 200, 83, 0.15);
   color: #00c853;
 }
@@ -2250,7 +2250,7 @@
 .dep-popup__info-text {
   flex: 1;
   color: #c9c9c9;
-  font-size: 0.264rem;
+  font-size: 0.3rem;
   line-height: 1.5;
   text-align: center;
 }

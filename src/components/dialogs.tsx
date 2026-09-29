@@ -213,7 +213,7 @@ export function DepositAlertDialog() {
 
           <div class="dep-popup__info">
             <div class="dep-popup__info-icon">
-              <Icon name="fa-bolt" size="0.35rem" />
+              <Icon name="fa-bolt" size="0.38rem" />
             </div>
             <div class="dep-popup__info-text">
               <span class="dep-popup__info-line">
