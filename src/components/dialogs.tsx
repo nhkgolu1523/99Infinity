@@ -167,3 +167,76 @@ export const SUPPORT_FAQS = [
     a: 'The minimum deposit is ₹100. There is no maximum limit on most payment methods.',
   },
 ]
+
+/**
+ * "Deposit to Play" popup — the client's design (coin icon + ₹ badge, gold
+ * border, info line, green CTA).
+ *
+ * Opened by /js/app.js when a game tile whose Firebase value is 2 is tapped
+ * (GAMES/<key> = 2, see src/api.ts → gameStateValue): the game itself is fine,
+ * the player just needs a balance first. 0 keeps the plain "Comming Soon!"
+ * toast, 1 opens the game, 2 shows this popup.
+ *
+ * Rendered globally from src/renderer.tsx (outside #app) so every page with
+ * game tiles — home, /games, activity rewards — can show it.
+ */
+export function DepositAlertDialog() {
+  return (
+    <div
+      class="dialog-host dialog-host--center dep-popup"
+      id="depositAlert"
+      data-dialog="deposit-alert"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="depositAlertTitle"
+    >
+      <div class="dialog-host__overlay" data-dialog-close></div>
+
+      <div class="dialog-host__content">
+        <div class="dep-popup__box">
+          {/* coin + rupee badge */}
+          <div class="dep-popup__icon-wrap">
+            <div class="dep-popup__icon">
+              <Icon name="fa-coins" size="0.74rem" />
+            </div>
+            <div class="dep-popup__badge">₹</div>
+          </div>
+
+          <h2 class="dep-popup__title" id="depositAlertTitle">
+            Deposit to <span class="dep-popup__gold">Play</span>
+          </h2>
+
+          <p class="dep-popup__msg">
+            You need some balance to start playing. Add your first deposit now and unlock all games
+            instantly!
+          </p>
+
+          <div class="dep-popup__info">
+            <div class="dep-popup__info-icon">
+              <Icon name="fa-bolt" size="0.28rem" />
+            </div>
+            <div class="dep-popup__info-text">
+              <span class="dep-popup__info-line">
+                <strong>Instant credit</strong> · Minimum deposit{' '}
+                {/* the real number comes from CONFIG/LIMITS via /api/config/rewards */}
+                <strong data-dep-min>₹500</strong>
+              </span>
+              <span class="dep-popup__info-line dep-popup__info-line--sub">
+                {'Safe & secure payments'}
+              </span>
+            </div>
+          </div>
+
+          <button class="dep-popup__cta" type="button" data-deposit-cta>
+            <Icon name="wallet" size="0.32rem" />
+            <span>Deposit Now</span>
+          </button>
+
+          <button class="dep-popup__cancel" type="button" data-dialog-close>
+            Maybe later
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

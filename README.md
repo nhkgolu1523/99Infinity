@@ -151,6 +151,9 @@ lazy images · marquees that pause on hover · `prefers-reduced-motion` respecte
 4. Tap the raised **Get ₹500** tabbar button → quick-actions sheet.
 5. Tap anything account-gated (deposit, claim, centre button) → the login alert.
 6. `/games` has a live search box and category tabs.
+7. Tap a game whose Firebase value is `GAMES/<key> = 2` → the **Deposit to Play**
+   popup (coin icon, green *Deposit Now* → `/account/deposit`, red *Maybe later*).
+   `0` keeps the "Comming Soon!" toast, `1` opens the game as usual.
 
 ## Deployment
 
@@ -186,7 +189,7 @@ another project; both are remembered in `localStorage`).
 | Lucky Wheel | on/off, spins per day, reset hour, segment weights with a live chance column (`CONFIG/SPIN`) |
 | Daily reward | on/off, cycle days, unlock day, free games per day, money per streak day 1–7 (`CONFIG/DAILY`) |
 | Money limits | min/max withdrawal, quick chips, minimum deposit (`CONFIG/LIMITS`, live in ~5 s) |
-| Games | enable/disable any `GAMES/<key>` switch, add or remove keys |
+| Games | enable/disable any `GAMES/<key>` switch, add or remove keys. Values: `0` = "Comming Soon!", `1` = playable, `2` = the "Deposit to Play" popup (the word `POPUP` works too) — for now `2` is typed straight into the Firebase console, the panel gets a third option later |
 | Tools | raw node load/save/delete, seed or repair the config nodes, full JSON backup download |
 
 Everything the panel writes is read back by the app itself: balances, transaction

@@ -722,6 +722,21 @@ function gameKeyFromSrc(src: string): string {
     .replace(/[.$#\[\]/]/g, '_')
 }
 
+/** GAMES/<key> → 0 = "Comming Soon!", 1 = playable, 2 = the "Deposit to Play"
+ *  popup. The three states are what the app understands; the plain word POPUP
+ *  is accepted too, so either style can be typed straight into the Firebase
+ *  console. Missing / '' / false / null all count as 0 (coming soon). */
+export function gameStateValue(v: any): 0 | 1 | 2 {
+  if (typeof v === 'string') {
+    /* the Firebase console often keeps the quotes typed around a string */
+    const word = v.trim().replace(/^["']+|["']+$/g, '').trim()
+    if (/^popup$/i.test(word)) return 2
+  }
+  const n = Number(v)
+  if (!n) return 0
+  return n >= 2 ? 2 : 1
+}
+
 apiApp.get('/games', async (c) => {
   let games = await dbGet<Record<string, any>>(c.env, 'GAMES')
   if (!games || !Object.keys(games).length) {
@@ -742,9 +757,10 @@ apiApp.get('/games', async (c) => {
     games = seed
   }
 
-  /* normalise to strict 0 / 1 so the client only has to check truthiness */
+  /* normalise to the three states the client renders: 0 coming soon,
+     1 playable, 2 deposit popup */
   const normalised: Record<string, number> = {}
-  for (const [k, v] of Object.entries(games)) normalised[k] = Number(v) ? 1 : 0
+  for (const [k, v] of Object.entries(games)) normalised[k] = gameStateValue(v)
 
   return c.json({ ok: true, games: normalised, resetAt: Date.now() })
 })
@@ -752,7 +768,8 @@ apiApp.get('/games', async (c) => {
 /** The three home "Top Games" tiles — their own switch inside GAMES. */
 export const TOP_GAME_KEYS = ['ludo', 'chicken', 'fruit-slasher']
 
-/** Live status of the given game keys (used on every tap, no stale cache). */
+/** Live status of the given game keys (used on every tap, no stale cache).
+ *  Answers with the raw state — 0 coming soon, 1 playable, 2 deposit popup. */
 apiApp.get('/games/status', async (c) => {
   const wanted = String(c.req.query('keys') || '')
     .split(',')
@@ -760,7 +777,7 @@ apiApp.get('/games/status', async (c) => {
     .filter(Boolean)
   const games = (await dbGet<Record<string, any>>(c.env, 'GAMES')) || {}
   const status: Record<string, number> = {}
-  for (const key of wanted) status[key] = Number((games as any)[key]) ? 1 : 0
+  for (const key of wanted) status[key] = gameStateValue((games as any)[key])
   return c.json({ ok: true, status })
 })
 

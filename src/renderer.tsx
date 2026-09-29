@@ -1,7 +1,12 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 import { site } from './data'
 import { IconSprite } from './components/icons'
-import { LoginAlertDialog, NoticeDialog, LogoutDialog } from './components/dialogs'
+import {
+  LoginAlertDialog,
+  NoticeDialog,
+  LogoutDialog,
+  DepositAlertDialog,
+} from './components/dialogs'
 
 /** Runtime viewport → rem scaling. Runs before paint to avoid FOUC. */
 const REM_SCRIPT = `(function(){var d=document.documentElement;
@@ -54,6 +59,8 @@ export const renderer = jsxRenderer(
           {/* global overlays (outside #app so they cover the tabbar too) */}
           <LoginAlertDialog />
           <LogoutDialog />
+          {/* shown when a game carries GAMES/<key> = 2 (Deposit to Play) */}
+          <DepositAlertDialog />
           <NoticeDialog
             id="deposit-confirm"
             title="Deposit"

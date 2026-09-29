@@ -882,8 +882,28 @@
 
   /* ------------------------------------------------------------------ game gating */
   /* Every game tile (and the three home "Top Games") asks Firebase on the tap:
-     GAMES/<key> = 0 → "Comming Soon!", 1 → the game section opens. */
-  let disabledGames = null;
+       GAMES/<key> = 0 → the "Comming Soon!" toast
+       GAMES/<key> = 1 → the game section opens
+       GAMES/<key> = 2 → the "Deposit to Play" popup (the word POPUP works too)
+     The value is read live, so a game can move between the three states any
+     moment without a deploy. */
+  const GAME_OFF = 0;
+  const GAME_ON = 1;
+  const GAME_DEPOSIT = 2;
+
+  /** Raw Firebase value → 0 / 1 / 2 (missing, '', false and null all mean off). */
+  function gameStateValue(v) {
+    if (typeof v === 'string') {
+      /* the Firebase console often keeps the quotes typed around a string */
+      const word = v.trim().replace(/^["']+|["']+$/g, '').trim();
+      if (/^popup$/i.test(word)) return GAME_DEPOSIT;
+    }
+    const n = Number(v);
+    if (!n) return GAME_OFF;
+    return n >= GAME_DEPOSIT ? GAME_DEPOSIT : GAME_ON;
+  }
+
+  let gameStates = null; /* key → 0|1|2, warm cache used while offline */
   let gamesGateBound = false;
 
   function gameKeyFromName(src) {
@@ -898,28 +918,39 @@
     return gameKeyFromName(card.dataset.name);
   }
 
-  /** live check against the DB — an admin can switch a game on any moment */
-  async function isGameEnabled(key) {
-    if (!key) return true;
+  /** live check against the DB — an admin can switch a game on any moment.
+   *  Always answers 0 / 1 / 2 so the caller can tell "coming soon" from
+   *  "needs a deposit". */
+  async function gameStateOf(key) {
+    if (!key) return GAME_ON;
     try {
       const res = await fetch('/api/games/status?keys=' + encodeURIComponent(key), {
         cache: 'no-store',
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.status && key in data.status) return Number(data.status[key]) === 1;
+      if (res.ok && data.status && key in data.status) {
+        return gameStateValue(data.status[key]);
+      }
     } catch (err) {
       /* fall through to the last known map */
     }
-    if (disabledGames) return !disabledGames.has(key);
-    return true;
+    if (gameStates && key in gameStates) return gameStates[key];
+    return GAME_ON;
+  }
+
+  /** "Deposit to Play" — global markup lives in src/components/dialogs.tsx */
+  function openDepositPopup() {
+    Dialog.open('depositAlert');
   }
 
   function initGamesGate() {
-    /* background warm-up of the full map (used as offline fallback) */
+    /* background warm-up of the full map (used while offline) */
     fetch('/api/games', { silent: true })
       .then((r) => r.json())
       .then((d) => {
-        disabledGames = new Set(Object.keys(d.games || {}).filter((k) => !Number(d.games[k])));
+        const map = {};
+        for (const k of Object.keys(d.games || {})) map[k] = gameStateValue(d.games[k]);
+        gameStates = map;
       })
       .catch(() => {});
 
@@ -942,13 +973,52 @@
           toast('Please log in to play', 2000);
           return setTimeout(() => spaNavigate('/login', true), 350);
         }
-        if (!(await isGameEnabled(key))) return toast('Comming Soon!', 2500);
+
+        const state = await gameStateOf(key);
+        if (state === GAME_OFF) return toast('Comming Soon!', 2500);
+        /* the game is live — the player just needs a balance first */
+        if (state === GAME_DEPOSIT) return openDepositPopup();
 
         const href = card.getAttribute('href') || '/games';
         spaNavigate(href, true);
       },
       true
     );
+  }
+
+  /* ------------------------------------------------------------------ deposit popup */
+  /* "Deposit to Play" — the popup shown when a game carries GAMES/<key> = 2.
+     Its markup is global (src/components/dialogs.tsx); this only wires it up. */
+  let depositPopupBound = false;
+
+  function initDepositPopup() {
+    const box = $('#depositAlert');
+    if (!box) return;
+
+    if (!depositPopupBound) {
+      depositPopupBound = true;
+      /* delegated on document — the popup node is re-created on every SPA swap,
+         so a listener bound to the element itself would go stale */
+      on(document, 'click', (e) => {
+        const cta = e.target && e.target.closest ? e.target.closest('[data-deposit-cta]') : null;
+        if (!cta) return;
+        e.preventDefault();
+        Dialog.close($('#depositAlert'));
+        spaNavigate('/account/deposit', true);
+      });
+    }
+
+    /* the info line quotes the SAME minimum the deposit page enforces
+       (CONFIG/LIMITS in Firebase) — ₹500 is just the server-rendered default */
+    fetch('/api/config/rewards', { silent: true })
+      .then((r) => r.json())
+      .then((d) => {
+        const min = Number(d && d.deposit && d.deposit.min);
+        if (!(min > 0)) return;
+        const slot = $('[data-dep-min]', box);
+        if (slot) setText(slot, '₹' + min.toLocaleString('en-IN'));
+      })
+      .catch(() => {});
   }
 
   /* ------------------------------------------------------------------ 12. quick amounts */
@@ -2414,6 +2484,7 @@
     initUserSync();
     initSettingsSync();
     initGamesGate();
+    initDepositPopup();
     initGuestGate();
   }
 
