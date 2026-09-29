@@ -81,13 +81,13 @@ data = {
         {
             'title': 'Your Daily Bonus Awaits',
             'desc': 'Log in today and claim free rewards instantly.',
-            'art': '/assets/img/activity/daily-bonus-thumb.jpg',
+            'art': '/assets/img/activity/bonus.png',
             'href': '/daily-reward',
         },
         {
             'title': 'Spin for Luck',
             'desc': 'One spin could unlock your next big win.',
-            'art': '/assets/img/activity/lucky-wheel-thumb.jpg',
+            'art': '/assets/img/activity/wheel.png',
             'href': '/spin',
         },
     ],

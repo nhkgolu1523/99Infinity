@@ -184,7 +184,7 @@ const PROMOS = [
     title: 'Welcome Bonus',
     desc: 'Double your first deposit up to ₹5,000.',
     percent: '100%',
-    icon: '/assets/img/activity/daily-bonus-thumb.jpg',
+    icon: '/assets/img/activity/bonus.png',
   },
   {
     title: 'Daily Reload',

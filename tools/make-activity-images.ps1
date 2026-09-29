@@ -157,37 +157,9 @@ foreach ($k in $map.Keys) {
 $results | Format-Table -AutoSize
 "total: {0} KB" -f ($results | Measure-Object KB -Sum).Sum
 
-# --- square thumbs for the 2-up home-page tiles --------------------------------
-# those tiles paint the art into a 1.68rem square with object-fit: contain, so a
-# full 1280px banner would be ~280 KB of download for a ~72px thumbnail
-$thumbs = [ordered]@{
-  'daily-bonus.jpg' = 'daily-bonus-thumb.jpg'
-  'lucky-wheel.jpg' = 'lucky-wheel-thumb.jpg'
-}
-$side = 256
-foreach ($k in $thumbs.Keys) {
-  $in = Join-Path $Dest $k
-  if (-not (Test-Path -LiteralPath $in)) { continue }
-  $img  = [System.Drawing.Image]::FromFile($in)
-  $edge = [int][math]::Min($img.Width, $img.Height)
-  $ox   = [int](($img.Width - $edge) / 2)
-  $oy   = [int](($img.Height - $edge) / 2)
-  $bmp = New-Object System.Drawing.Bitmap($side, $side)
-  $g = [System.Drawing.Graphics]::FromImage($bmp); Set-HQ $g
-  $ia = New-Attrs
-  $dstPts = [System.Drawing.PointF[]]@(
-    [System.Drawing.PointF]::new(0, 0),
-    [System.Drawing.PointF]::new($side, 0),
-    [System.Drawing.PointF]::new(0, $side))
-  $g.DrawImage($img, $dstPts,
-    [System.Drawing.RectangleF]::new($ox, $oy, $edge, $edge),
-    [System.Drawing.GraphicsUnit]::Pixel, $ia)
-  $ia.Dispose(); $g.Dispose()
-  $out = Join-Path $Dest $thumbs[$k]
-  $ep = New-Object System.Drawing.Imaging.EncoderParameters(1)
-  $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
-    [System.Drawing.Imaging.Encoder]::Quality, [int]85)
-  $bmp.Save($out, $jpegCodec, $ep)
-  $ep.Dispose(); $bmp.Dispose(); $img.Dispose()
-  "thumb {0} -> {1} KB" -f $thumbs[$k], [math]::Round((Get-Item -LiteralPath $out).Length / 1KB)
-}
+# NOTE — no square thumbs here on purpose.
+# The 2-up home-page tiles and the promotion tiles keep their own small square
+# icons (`activity/bonus.png`, `activity/wheel.png`, 103x82): those slots paint
+# into a ~72px box, and a wide banner cropped to a square looked like a cut-off
+# photo there. The 16:9 art is for the Activity tab cards + detail hero only.
+# Need art for another slot? Crop it by hand rather than reusing the banner.

@@ -76,14 +76,16 @@ file so any single detail can be changed later without touching the rest.
   `.activity-card__media`) paint with `object-fit: cover`, and the letters/logos
   baked into these banners sit hard against the frame edge — so a 1.5:1 or a
   differently-cropped source would clip them. The script also drops the 1280 px
-  2.5 MB PNGs to 1280×720 JPEGs (~250–300 KB) and derives the 256 px square
-  thumbs used by the home + promotion tiles.
+  2.5 MB PNGs to 1280×720 JPEGs (~250–300 KB).
+  The home-page 2-up tiles and the promotion tiles are **not** touched: they keep
+  their own small square icons (`activity/bonus.png`, `activity/wheel.png`) —
+  those slots paint into a ~72px box, where a cropped wide banner looks wrong.
   ```powershell
   powershell -ExecutionPolicy Bypass -File tools\make-activity-images.ps1
   ```
   Source folder defaults to `Desktop\Activity images`; the file names are mapped
   to `daily-bonus.jpg`, `lucky-wheel.jpg`, `super-jackpot.jpg`,
-  `invite-friends.jpg`, `winning-streak.jpg`, `vip-wheel.jpg` (+ `-thumb.jpg`).
+  `invite-friends.jpg`, `winning-streak.jpg`, `vip-wheel.jpg`.
   Anything that is not 16:9 gets defocused edge-extended wings that fade into the
   card background, so nothing is ever cropped.
 - **No database.** The build is a static UI shell; there is no persistence, no
@@ -116,7 +118,7 @@ webapp/
 │       └── game/{jili,jdb,tb_chess,inplay…}  vendor/  fonts/
 └── tools/
     ├── gen-data.py             # asset → data.ts generator
-    └── make-activity-images.ps1 # activity banners → 16:9 web JPEGs + square thumbs
+    └── make-activity-images.ps1 # activity banners → 16:9 web JPEGs
 ```
 
 ## Editing guide (change one small thing, nothing else breaks)
