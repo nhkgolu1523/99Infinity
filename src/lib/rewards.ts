@@ -7,6 +7,8 @@
    nextResetAt → epoch ms of the next 04:00 AM IST
    ========================================================================== */
 
+import { dbGet, dbPut } from './backend'
+
 export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000 /* UTC+5:30 */
 export const RESET_HOUR = 4 /* 04:00 AM IST */
 export const RESET_OFFSET_MS = RESET_HOUR * 60 * 60 * 1000
@@ -87,6 +89,44 @@ export function normaliseLimits(raw: any): LimitsConfig {
     withdrawQuick: quick.length ? Array.from(new Set(quick)).sort((a, b) => a - b) : d.withdrawQuick,
     depositMin: Math.max(1, Math.floor(Number(raw?.depositMin) || d.depositMin)),
   }
+}
+
+/* The deposit presets. The live minimum always takes the first chip and the rungs
+   below it drop away, so a minimum of ₹200 offers ₹200 / ₹1,000 / ₹5,000 / ₹10,000
+   instead of a ₹500 chip the player is not allowed to use. The client applies the
+   very same ladder to the live config (public/js/app.js — quickAmounts). */
+export const DEPOSIT_QUICK_STEPS = [1000, 5000, 10000]
+
+export function depositQuickAmounts(min: number): number[] {
+  const floor = Math.max(1, Math.floor(Number(min) || 0))
+  return [floor, ...DEPOSIT_QUICK_STEPS.filter((v) => v > floor)]
+}
+
+const LIMITS_TTL = 5 * 1000
+let cachedLimits: { at: number; value: LimitsConfig } | null = null
+
+/** CONFIG/LIMITS, seeded with the defaults on the very first read (same pattern as
+ *  CONFIG/LUDO). The deposit page and the API then quote the same minimum, and the
+ *  admin panel can move it without a redeploy. */
+export async function loadLimitsConfig(env: any): Promise<LimitsConfig> {
+  if (cachedLimits && Date.now() - cachedLimits.at < LIMITS_TTL) return cachedLimits.value
+  let stored: any = null
+  try {
+    stored = await dbGet(env, 'CONFIG/LIMITS')
+  } catch {
+    stored = null
+  }
+  const first = !stored || typeof stored !== 'object'
+  if (first) {
+    try {
+      await dbPut(env, 'CONFIG/LIMITS', DEFAULT_LIMITS_CONFIG as any)
+    } catch {
+      /* best effort — the in-memory default is still correct */
+    }
+  }
+  const value = normaliseLimits(first ? {} : stored)
+  cachedLimits = { at: Date.now(), value }
+  return value
 }
 
 

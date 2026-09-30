@@ -47,6 +47,7 @@ file so any single detail can be changed later without touching the rest.
 | Page | Route |
 |---|---|
 | Games catalogue (search + category filter) | `/games` |
+| **Ludo — playable game** | `/games/ludo` (login only) |
 | Activity list | `/activity` |
 | Activity detail | `/activity/:slug` |
 | Promotion | `/promotion` |
@@ -106,18 +107,24 @@ webapp/
 │   │   └── dialogs.tsx        # login alert, notice dialogs, quick-actions sheet
 │   └── pages/
 │       ├── home.tsx  messages.tsx  auth.tsx  activity.tsx  account.tsx  misc.tsx
+│       ├── ludo.tsx           # the playable game page (real wallet in, real UI out)
+│       └── ludo-html.ts       # generated: the game's own markup (from Ludo.html)
+├── Ludo.html                  # the standalone game — the design source
 ├── public/
 │   ├── css/
 │   │   ├── base.css           # tokens, reset, app frame, animations
 │   │   ├── components.css     # navbar, swiper, cards, tabbar, dialogs, forms
-│   │   └── pages.css          # per-page composition
+│   │   ├── pages.css          # per-page composition
+│   │   └── ludo.css           # generated: the game skin, scoped to .ludo-page
 │   ├── js/app.js              # all interactions (14 opt-in modules)
+│   ├── js/ludo.js             # the game itself, wired to the real wallet
 │   └── assets/img/            # 320 separate image files, semantic names
 │       ├── brand/ banner/ tabbar/ title/ category/ activity/
 │       ├── float/ partner/ avatar/ ui/
 │       └── game/{jili,jdb,tb_chess,inplay…}  vendor/  fonts/
 └── tools/
     ├── gen-data.py             # asset → data.ts generator
+    ├── split-ludo.cjs          # Ludo.html → ludo.css + ludo-html.ts
     └── make-activity-images.ps1 # activity banners → 16:9 web JPEGs
 ```
 
@@ -140,8 +147,14 @@ webapp/
 Banner loop + autoplay + dots + touch drag · paged nav swipers with arrow state ·
 tabs (pill + underline) · dialogs & bottom sheets · toast · FAQ accordions ·
 game search + category filter · password show/hide · auth form validation ·
-quick-amount chips · payment-method select · draggable float stack ·
-lazy images · marquees that pause on hover · `prefers-reduced-motion` respected.
+quick-amount chips (**deposit chips follow the live `CONFIG/LIMITS` minimum** —
+`depositQuickAmounts`) · payment-method select · draggable float stack ·
+**the account balance ↻ reads `/api/me` and repaints every wallet on the page**
+(`initBalanceRefresh`) · **transaction status decides how the row looks** in the
+history lists: a finished one (`completed`/`paid`/`won`) goes fully green — chip,
+amount and the word, e.g. **"Withdraw Completed"** — while `pending` stays gold
+(chip + amount keep the debit red) and `rejected` red · lazy images ·
+marquees that pause on hover · `prefers-reduced-motion` respected.
 
 ## User guide
 
@@ -252,6 +265,11 @@ so a key kept there could be lifted by anyone and used to fake orders/webhooks.
    opens the order at the gateway (`POST /api/create-order`), stores
    `PAYMENT_ORDERS/<order_id>` + a pending transaction and returns `orderId`, `qrUrl`,
    `checkoutUrl`, `upiIntent`, `payableAmount` and the 5-minute window.
+   The **preset chips follow that same minimum**: the first chip *is* the minimum and
+   every rung below it drops away, so a minimum of ₹200 offers
+   ₹200 / ₹1,000 / ₹5,000 / ₹10,000 (`depositQuickAmounts`, server-rendered **and**
+   re-applied from the live config by `public/js/app.js`), and the input itself
+   carries `min="<the live minimum>"`.
 2. **Step 2 (payment)** — the page renders the gateway's QR, a **Pay via UPI App**
    button (NPCI deep link) and a hosted-checkout link, then polls
    `GET /api/deposit/status?order_id=…` **every 3 seconds**. The *server* asks the
@@ -309,13 +327,105 @@ above was verified: create order → pay → 8 parallel polls → exactly one cr
 webhook replay rejected).
 
 
+## Ludo — the playable game (`/games/ludo`)
+
+Tapping the **Ludo** tile on the home page opens the real board game (the tile
+carries `data-full-nav`, so it loads as its own document — the game's css/js live
+in that page's `<head>`). It is a full screen of its own (no tabbar), gated on the
+**server** (`app.use('/games/ludo', accountGate)`) and by the client tap gate, and
+every rupee it moves is real.
+
+| Surface | Where |
+|---|---|
+| Page — hands the real data over | `src/pages/ludo.tsx` |
+| The game's markup (verbatim from `Ludo.html`) | `src/pages/ludo-html.ts` *(generated)* |
+| The game skin, scoped under `.ludo-page` | `public/css/ludo.css` *(generated)* |
+| The game itself + the wallet wiring | `public/js/ludo.js` |
+| Pricing rules, defaults, debit split | `src/lib/ludo.ts` |
+| Endpoints | `/api/ludo/state`, `/api/ludo/enter`, `/api/ludo/finish` |
+| Regenerate css + markup after editing `Ludo.html` | `node tools/split-ludo.cjs` |
+
+**Real numbers, not placeholders**
+
+- the balance on the players/colours screens and in the coins pill is the logged-in
+  account's wallet — server-rendered and refreshed by `/api/ludo/state` on load and
+  by every API answer;
+- the entry fee and the prize pools come from `CONFIG/LUDO` (seeded on first read
+  with `{ "entryFee": 100, "prizes": { "2": 200, "4": 400 } }`, admin-editable).
+  The page and the API read the same config, so the price shown is the price charged
+  — the two player cards spell it out (`Entry Fee 100 Get 200` / `Entry Fee 100 Get
+  400`), their prize chips, the `-100` confirm/quit labels and the How-To-Play list
+  all follow that same live number;
+- the players wear **real avatars** from `/assets/img/avatar/` (random per match,
+  and never the avatar of the player themselves); "You" wears the account's own.
+
+**Money rules** (all enforced in `src/api.ts`)
+
+- `POST /api/ludo/enter` debits the entry fee. The browser sends a per-match id,
+  which is the idempotency key: an existing `USERS/<uid>/ludo/matches/<id>` node
+  means that match is already paid for, so a double tap, a retry or a second tab can
+  never charge twice (an ETag-guarded write covers the two-requests-at-once case);
+- `POST /api/ludo/finish` closes the match — `win` credits the prize pool to the
+  **main** wallet (real money, withdrawable); `lose` / `quit` never debit again, they
+  only forfeit the fee that `/enter` already took (one match = one entry fee, never
+  two). The match record keeps its final status, so a repeated call can never pay
+  twice;
+- the fee comes out of the **main** wallet first and only then from the
+  3rd-party/bonus wallet — the same main/promo split the wallet page shows;
+- every money movement is written to `USERS/<uid>/transactions/<txId>` (type `bet`
+  for the stake, `ludo` for a win) plus `stats/totalWager`, `stats/bets`,
+  `stats/totalWon`, `stats/totalLost`, so bet history and the admin panel show the
+  game like any other wager. A finished match **updates its own stake entry** with the
+  outcome (`lost` / `quit` / `won`), so the history never shows the same fee twice;
+- a running match is mirrored into `localStorage` and `GET /api/ludo/state` reports
+  whether the server still has that match open, so a reload (or a phone that reloads
+  itself) **resumes the same board** instead of throwing the fee away — a reload
+  during the players search is picked up too (the fee is already paid, so a fresh
+  board is dealt rather than losing the match). The state read has a 7s deadline and
+  three retries (`syncLudoState`), so a request the phone's network simply drops
+  cannot cost the player a paid match;
+- **back never drops a match.** Three defences, because a browser is free to skip
+  entries a page pushed on its own when the player uses the back *button* or gesture
+  (Chromium's history manipulation intervention — it does not touch
+  `history.back()`):
+  1. the Navigation API cancels the traversal outright, so the history index never
+     moves and the pop-up is raised where the player stands;
+  2. where that is unavailable, sentinel entries are parked on top of the game and
+     re-parked after every traversal, so back can only ever bounce between them;
+  3. an unload neither of those could stop (a traversal that leaves the document
+     cannot be cancelled by any page) is answered by the browser's own leave
+     question while a paid match is running — a reload and a confirmed exit are let
+     through.
+  However often back is pressed, the pop-up stays and asks: it is *"Are You Sure?"* +
+  the entry fee at stake with a paid match running, and a plain *"Leave the Game?"*
+  with nothing at stake. Back never answers it — only **Quit/Exit** does, and that
+  is the single way out of the document. A match that was left without an answer
+  (`vg_ludo_abandoned`) is closed on the next visit instead of being served again,
+  so a fresh tap on Ludo is a **new game** — while a reload resumes the same board;
+- leaving the game drops two `localStorage` markers — `vg_ludo_wallet_at` (when the
+  money moved) and `vg_ludo_wallet_total` (what the balance became). `/js/app.js`
+  paints that settled number the moment a page boots or wakes up (bfcache restores
+  included) and only then confirms it with `/api/me`, which is what clears the
+  marker — so the navbar shows the fee, prize or forfeit **in the first frame**,
+  never the number from before the match and never a second late;
+- the win/lose card spells the money out: **Prize Won +200 / Wallet Balance** on a
+  win, **Entry Fee Lost -100 / Wallet Balance** on a loss. Both numbers are painted
+  from the live config the instant the match ends and are then replaced by the
+  server's own answer to `/api/ludo/finish`, so the pop-up is never blank while the
+  request is in flight;
+- no wallet, no match: `Play` refuses under the entry fee with *"Not enough
+  balance"* and the server refuses again on `/enter` (`code: 'balance'`), whose
+  answer also corrects a client that was showing a stale-high balance.
+
+
 ## Notes / limitations
 
 - **Live money paths:** accounts, sessions, the wallet (main + 3rd-party), the lucky
-  wheel, the daily reward, notifications, deposit limits and **real UPI deposits**
-  (FamGateway, see above) all read and write the live Firebase RTDB and are enforced
-  server-side. Static reference copy for promotions/VIP/games is still presentation
-  only (no wagering or game logic is wired yet).
+  wheel, the daily reward, notifications, deposit limits, **real UPI deposits**
+  (FamGateway, see above) and **Ludo** (entry fee, prize pool) all read
+  and write the live Firebase RTDB and are enforced server-side. Static reference
+  copy for promotions/VIP and the other catalogue games is still presentation only
+  (no wagering or game logic is wired yet).
 - The spin/daily reward guard is a read-then-write (`rewards/spin/dayKey`): a truly
   parallel double tap could still claim twice. Deposits are protected by the keyed
   ledger above; do the same trick (or a Durable Object) before those two ever pay real
@@ -325,4 +435,4 @@ webhook replay rejected).
 - The reference bundle's own JS/CSS was **not** copied — all styling is newly authored
   against the extracted measurements (rem values, gradients, radii, timings).
 
-**Last updated**: 2026-09-28
+**Last updated**: 2026-09-29

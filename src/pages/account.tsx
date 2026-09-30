@@ -173,7 +173,15 @@ export function AccountPage() {
                 </div>
                 <p class="totalSavings__container-header__subtitle">
                   <span data-user-balance>{balance}</span>
-                  <svg class="svg-icon icon-refreshBalance" data-toast="Balance refreshed!">
+                  {/* real refresh: reads the wallet from the server and repaints it
+                      (public/js/app.js — initBalanceRefresh) */}
+                  <svg
+                    class="svg-icon icon-refreshBalance"
+                    data-balance-refresh
+                    role="button"
+                    tabindex="0"
+                    aria-label="Refresh balance"
+                  >
                     <use href="#icon-refreshBalance"></use>
                   </svg>
                 </p>
@@ -589,6 +597,29 @@ export function WithdrawPage() {
 /* ==========================================================================
    HISTORY / TRANSACTIONS  (th-* – gold theme list, header shared with ac-*)
    ========================================================================== */
+
+/** How a status reads in the list: what moved (green), what still waits (gold),
+ *  what was closed without moving money (red). The strings come straight from
+ *  Firebase, so unknown/blank values simply stay uncoloured. */
+function statusState(status: any): 'is-done' | 'is-wait' | 'is-bad' | '' {
+  const s = String(status || '').toLowerCase()
+  if (!s) return ''
+  if (s === 'completed' || s === 'success' || s === 'approved' || s === 'paid' || s === 'won')
+    return 'is-done'
+  if (
+    s === 'rejected' ||
+    s === 'expired' ||
+    s === 'cancelled' ||
+    s === 'canceled' ||
+    s === 'failed' ||
+    s === 'duplicate' ||
+    s === 'lost' ||
+    s === 'quit'
+  )
+    return 'is-bad'
+  return 'is-wait'
+}
+
 export function HistoryPage({
   mode = 'all',
 }: {
@@ -617,6 +648,7 @@ export function HistoryPage({
     bonus: 'Bonus',
     daily: 'Daily Reward',
     bet: 'Bet',
+    ludo: 'Ludo Win',
   }
 
   const txs: any[] = Object.values(user?.transactions || {})
@@ -627,13 +659,25 @@ export function HistoryPage({
       const isDeposit = type === 'deposit'
       const isWithdraw = type === 'withdraw'
       const isReward = type === 'spin' || type === 'bonus' || type === 'daily'
+      /* the sign follows the money, not the type: a stake is stored negative
+         (and a stake that lost shows as the debit it was — never as "+₹100") */
+      const isDebit = isWithdraw || Number(t.amount) < 0
+      const state = statusState(t.status)
+      /* a finished row reads as one sentence — "Withdraw Completed" — and turns
+         fully green: the payout really left, so nothing about it is a warning */
+      const done = state === 'is-done'
+      const rawStatus = t.status ? String(t.status).trim() : ''
+      const statusText = rawStatus ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1) : ''
       return {
         type: TYPE_LABELS[type] || type,
-        method:
-          String(t.label || t.source || t.method || '—') + (t.status ? ' · ' + String(t.status) : ''),
+        method: done ? '' : String(t.label || t.source || t.method || '—'),
+        /* the status is its own piece so it can wear its own colour */
+        status: statusText,
+        statusClass: state,
+        tone: done ? 'done' : isDebit ? 'debit' : 'credit',
         date: fmtTime(t.time),
-        amount: (isWithdraw ? '-' : '+') + '₹' + fmt(t.amount),
-        dir: isWithdraw ? 'debit' : 'credit',
+        amount: (isDebit ? '-' : '+') + '₹' + fmt(Math.abs(Number(t.amount) || 0)),
+        dir: isDebit ? 'debit' : 'credit',
         icon: isDeposit
           ? 'arrow-down'
           : isWithdraw
@@ -669,18 +713,24 @@ export function HistoryPage({
           {rows.map((r) => (
             <div class="th-card" data-tab-item={r.cat}>
               <div class="th-card__left">
-                <span class={`th-card__icon ${r.dir}`}>
+                <span class={`th-card__icon ${r.tone}`}>
                   <Icon name={r.icon} size="0.384rem" />
                 </span>
                 <span class="th-card__info">
                   <span class="th-card__title">
                     <span class="th-card__type">{r.type}</span>
-                    <span class="th-card__method"> · {r.method}</span>
+                    {r.method ? <span class="th-card__method"> · {r.method}</span> : null}
+                    {r.status ? (
+                      <span class={`th-card__status ${r.statusClass}`}>
+                        {r.method ? ' · ' : ' '}
+                        {r.status}
+                      </span>
+                    ) : null}
                   </span>
                   <span class="th-card__date">{r.date}</span>
                 </span>
               </div>
-              <span class={`th-card__amount ${r.dir}`}>{r.amount}</span>
+              <span class={`th-card__amount ${r.tone}`}>{r.amount}</span>
             </div>
           ))}
         </div>

@@ -1881,6 +1881,13 @@
   color: #ff4d4d;
 }
 
+/* a finished transaction (completed / paid / won) is success, not a warning:
+   the chip, the amount and the status word all go green */
+.th-card__icon.done {
+  background: rgba(0, 230, 118, 0.1);
+  color: #00e676;
+}
+
 .th-card__info {
   display: flex;
   flex-direction: column;
@@ -1904,6 +1911,13 @@
   font-weight: 500;
 }
 
+/* what the row means at a glance: money moved (green) / still waiting (gold) /
+   closed without moving (red) — the same colours the amount uses */
+.th-card__status { font-weight: 700; }
+.th-card__status.is-done { color: #00e676; }
+.th-card__status.is-wait { color: #f9d976; }
+.th-card__status.is-bad  { color: #ff4d4d; }
+
 .th-card__date {
   font-size: 0.288rem;
   color: #8b8b8b;
@@ -1919,6 +1933,8 @@
 
 .th-card__amount.credit { color: #00e676; }
 .th-card__amount.debit { color: #ff4d4d; }
+/* …and a finished payout counts as success too (see .th-card__icon.done) */
+.th-card__amount.done { color: #00e676; }
 
 /* Empty state */
 .th-empty {
@@ -5169,6 +5185,17 @@
   vertical-align: -0.15em;
   fill: currentColor;
   overflow: hidden;
+}
+
+/* the ↻ next to "Total balance" really reads the wallet (app.js — initBalanceRefresh):
+   it spins while the answer is in flight and is tappable on a phone */
+.icon-refreshBalance {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-refreshBalance.is-spinning {
+  animation: spin 0.8s linear;
 }
 
 /* vant-style 0.5px bottom hairline */

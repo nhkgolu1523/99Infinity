@@ -744,9 +744,8 @@
      (spin win, daily claim) so the UI never shows a stale number. */
   function applyUserData(me) {
     if (!me) return;
-    const fmtBal = (v) =>
-      Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const bal = '₹' + fmtBal(me.balance?.total || 0);
+    /* one formatter, shared with the wallet hint (see moneyText below) */
+    const bal = moneyText(me.balance?.total || 0);
     $$('[data-nav-balance]').forEach((el) => (el.textContent = bal));
     $$('[data-user-balance]').forEach((el) => (el.textContent = bal));
 
@@ -799,10 +798,123 @@
       if (!me || !me.ok) return null;
       currentUser = me;
       applyUserData(me);
+      /* this answer is newer than anything the Ludo game left behind */
+      clearWalletMarker();
       return me;
     } catch (err) {
       return null;
     }
+  }
+
+  /* ------------------------------------------------------------------ balance refresh
+     The account page's ↻ icon does what it looks like it does: it reads the wallet
+     from the server and paints the answer, so the number on screen is the latest
+     one and not the copy this page was rendered with. Everything that shows money
+     ([data-user-balance] in the card, [data-nav-balance] in the navbar) is repainted
+     by applyUserData, and a toast quotes the new total. */
+  function initBalanceRefresh() {
+    $$('[data-balance-refresh]').forEach((el) => {
+      const run = async () => {
+        if (el.classList.contains('is-spinning')) return;
+        el.classList.add('is-spinning');
+        const me = await refreshUser(true);
+        el.classList.remove('is-spinning');
+        if (!me) {
+          toast('Could not read your balance — please try again', 3000);
+          return;
+        }
+        toast('Balance updated — ' + moneyText(me.balance && me.balance.total));
+      };
+      on(el, 'click', run);
+      on(el, 'keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); }
+      });
+    });
+  }
+
+  /* ── a match played in another document ───────────────────────────────────
+     The Ludo game is a page of its own (see public/js/ludo.js): its entry fee,
+     prize and forfeit all land while THIS document is asleep — so the balance this
+     page is showing is as old as the match. The game leaves two things behind:
+     WHEN the money moved and WHAT the balance became. Both are used here:
+
+       • applyWalletHint() paints that settled number the moment the page is shown,
+         so the navbar is right in the first frame — not one round-trip later.
+         A page restored from the browser's back/forward cache keeps its old DOM,
+         and that is exactly the "balance updates a second later" flash;
+       • walletMarker() then confirms it with the server (one /api/me), which is
+         what keeps the number honest if something else moved money meanwhile.
+
+     The hint only overrides what this document shows when the money really moved
+     AFTER the document was first shown (its own boot stamp in phone time), so a
+     freshly rendered page — whose server-rendered number is already newer — is
+     never pushed back to an older value. */
+  const LUDO_WALLET_KEY = 'vg_ludo_wallet_at';
+  const LUDO_TOTAL_KEY = 'vg_ludo_wallet_total';
+
+  function walletMarker() {
+    try { return Number(localStorage.getItem(LUDO_WALLET_KEY)) || 0; } catch (err) { return 0; }
+  }
+
+  function clearWalletMarker() {
+    try {
+      localStorage.removeItem(LUDO_WALLET_KEY);
+      localStorage.removeItem(LUDO_TOTAL_KEY);
+    } catch (err) {}
+  }
+
+  /** "₹1,234.00" — the one formatting the navbar, the account page and the hint share */
+  function moneyText(v) {
+    return '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /** the settled balance the Ludo game left behind, or null. A marker without a
+   *  total (an older game page that only stamped the time) must never be painted:
+   *  reading it as 0 would put ₹0.00 in the navbar until /api/me answers. */
+  function walletHint() {
+    try {
+      const at = Number(localStorage.getItem(LUDO_WALLET_KEY)) || 0;
+      const raw = localStorage.getItem(LUDO_TOTAL_KEY);
+      const total = Number(raw);
+      if (!at || raw === null || !Number.isFinite(total)) return null;
+      return { at, total };
+    } catch (err) { return null; }
+  }
+
+  /** when THIS document was first shown (phone time — survives a bfcache restore
+   *  in the DOM itself, so two clocks are never compared with each other).
+   *  It is stamped at boot, BEFORE any money can arrive, so a match that settles
+   *  later is always "newer than this page". */
+  function shownAt() {
+    if (!document.body) return 0;
+    if (!document.body.dataset.shownAt) document.body.dataset.shownAt = String(Date.now());
+    return Number(document.body.dataset.shownAt) || 0;
+  }
+
+  /** paint the settled balance now; returns true when the hint was applied */
+  function applyWalletHint() {
+    if (STANDALONE_DOC) return false;
+    const hint = walletHint();
+    if (!hint) return false;
+    /* a page rendered after the match already carries the newer number */
+    if (!(hint.at > shownAt())) return false;
+    const bal = moneyText(hint.total);
+    $$('[data-nav-balance]').forEach((el) => (el.textContent = bal));
+    $$('[data-user-balance]').forEach((el) => (el.textContent = bal));
+    return true;
+  }
+
+  /* A page can also be rendered WHILE the match settles (the request is still in
+     flight when it is served): the hint only appears a moment later. These few
+     bounded re-checks catch exactly that, and stop after a couple of seconds. */
+  function watchWalletHint(round) {
+    const step = Number(round) || 0;
+    if (step > 3) return;
+    setTimeout(() => {
+      if (!applyWalletHint()) { watchWalletHint(step + 1); return; }
+      lastMoneySync = 0;
+      syncWalletOnShow();
+    }, 600);
   }
 
   /** the browser wiped its cookies (restart, privacy cleaner, "clear on exit")
@@ -1076,6 +1188,9 @@
         if (state === GAME_DEPOSIT) return openDepositPopup();
 
         const href = card.getAttribute('href') || '/games';
+        /* a really playable game (Ludo) is a document of its own: its css and js
+           live in that page's <head>, which an SPA swap cannot bring along */
+        if (card.hasAttribute('data-full-nav')) return location.assign(href);
         spaNavigate(href, true);
       },
       true
@@ -1366,6 +1481,9 @@
     /* notifications + deposit pages */
     initNotifications();
     initDeposit();
+
+    /* the account page's balance ↻ reads the wallet from the server */
+    initBalanceRefresh();
 
     /* honour prefers-reduced-motion for the marquees */
     if (prefersReduced) {
@@ -2077,8 +2195,26 @@
     const amount = $('[data-dp-amount]');
     if (!amount) return;
 
-    /* the minimum deposit is editable in the admin panel (CONFIG/LIMITS) */
+    /* the minimum deposit is editable in the admin panel (CONFIG/LIMITS). The page
+       is server-rendered with it, so the very first tap is already judged by the
+       right number — the live read below only refreshes it. */
     const dep = { min: 500, enabled: true, configured: true, window: 300 };
+    const minSlot = $('[data-deposit-min]');
+    if (minSlot && Number(minSlot.dataset.depositMin) > 0) {
+      dep.min = Number(minSlot.dataset.depositMin);
+      amount.min = String(dep.min);
+    }
+    /* re-renders the preset chips from the live minimum (defined below, applied
+       once the config has landed) */
+    let applyQuick = null;
+    /* the presets follow the live minimum: the first chip IS the minimum and the
+       rungs below it drop away (min 200 → 200 / 1,000 / 5,000 / 10,000). The same
+       ladder is server-rendered in src/pages/deposit.tsx. */
+    const QUICK_STEPS = [1000, 5000, 10000];
+    const quickAmounts = (min) => {
+      const floor = Math.max(1, Math.floor(Number(min) || 0));
+      return [floor].concat(QUICK_STEPS.filter((v) => v > floor));
+    };
     fetch('/api/config/rewards', { silent: true })
       .then((r) => r.json())
       .then((d) => {
@@ -2088,6 +2224,9 @@
           dep.configured = d.payments.configured !== false;
           if (Number(d.payments.windowSeconds) > 0) dep.window = Number(d.payments.windowSeconds);
         }
+        /* applyQuick is defined below; a config that lands before it does nothing
+           here — the server-rendered chips are already correct */
+        if (applyQuick) applyQuick(dep.min);
       })
       .catch(() => {});
     const belowMin = (v) => toast('Minimum deposit is ₹' + dep.min);
@@ -2407,15 +2546,32 @@
     if (saved && saved.orderId && Number(saved.expiresAt) > Date.now() + 15000) showOrder(saved);
     else if (saved) store.write(null);
 
-    /* quick amounts — fill + active state */
-    $$('[data-dp-quick]').forEach((btn) =>
-      on(btn, 'click', () => {
-        if (!amount) return;
-        amount.value = btn.dataset.dpQuick;
-        $$('[data-dp-quick]').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-      })
-    );
+    /* quick amounts — a tap fills the input, and the chips are rebuilt from the
+       live minimum (see the config read above) */
+    const fillQuick = (btn) => {
+      if (!amount) return;
+      amount.value = btn.dataset.dpQuick;
+      $$('[data-dp-quick]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    const bindQuick = () => {
+      $$('[data-dp-quick]').forEach((btn) => on(btn, 'click', () => fillQuick(btn)));
+    };
+    bindQuick();
+    applyQuick = (min) => {
+      const box = $('.dp-quick');
+      if (amount) amount.min = String(min);
+      if (!box) return;
+      box.innerHTML = quickAmounts(min)
+        .map(
+          (v) =>
+            `<button class="dp-quick__btn" type="button" data-dp-quick="${v}">₹${v.toLocaleString('en-IN')}</button>`
+        )
+        .join('');
+      bindQuick();
+    };
+    /* deliberately not applied here: the chips the server rendered already follow
+       the same config, and only the live read (above) may move them */
 
     /* header back + cancel link return to step 1 and release the pending order */
     on($('[data-dp-back]'), 'click', (e) => {
@@ -2581,6 +2737,13 @@
 
   /* ------------------------------------------------------------------ boot */
   function initAll() {
+    /* stamp this document's birthday before anything else: the wallet hint is only
+       allowed to overwrite a balance when money moved AFTER this stamp */
+    shownAt();
+    /* the page may have been swapped in from the server while a Ludo match was
+       settling, or restored from the bfcache with an old wallet — paint the
+       number the game left behind before anything else touches the DOM */
+    applyWalletHint();
     /* the page just changed (SPA swap) — translate the fresh DOM first */
     if (window.VGI18N) window.VGI18N.apply(document.body);
     initLazyImages();
@@ -2690,8 +2853,19 @@
     setTimeout(() => spaNavigate('/login', true), 400);
   });
 
+  /* ── the Ludo game is a document of its own ────────────────────────────────
+     It is loaded with a real navigation and carries its own css + script
+     (public/js/ludo.js). The site router must keep its hands off it: a back
+     gesture there means "leave the match" and the game itself answers it (it
+     parks the history entry and opens the quit dialog). A wallet refresh would
+     also fight the game's own coin pill, which is already live. */
+  const STANDALONE_DOC = !!(
+    document.body && document.body.classList.contains('ludo-body')
+  );
+
   /* intercept internal links (tabs, cards, back buttons...) */
   document.addEventListener('click', (e) => {
+    if (STANDALONE_DOC) return;
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const t = e.target;
     if (!t || !t.closest) return;
@@ -2705,18 +2879,71 @@
 
   /* browser back / forward — instant swap, no reload, no bfcache spinner */
   window.addEventListener('popstate', () => {
+    if (STANDALONE_DOC) return;
     spaNavigate(location.pathname + location.search + location.hash, false);
   });
 
-  /* safety net: pages restored from bfcache never keep a stuck spinner */
+  /* A page can come back long after it was rendered: from the browser's
+     back/forward cache (the whole Ludo game is a document of its own — see
+     public/js/ludo.js — so the page behind it simply slept through the match) or
+     just by returning to the app. Its numbers are then as old as that document,
+     and the wallet is the one number that really changes on another screen. So
+     every time a page is shown again the wallet is re-read from the server: the
+     navbar/account never sits on a stale balance until the next reload. */
+  let lastMoneySync = 0;
+
+  function syncWalletOnShow() {
+    /* the Ludo document keeps its own live wallet (see ludo.js) */
+    if (STANDALONE_DOC) return;
+    /* first: the settled number the game left behind, painted without a round-trip */
+    applyWalletHint();
+    const now = Date.now();
+    /* a match settled in the Ludo document while this page slept: that answer is
+       newer than the throttle, so the wallet is re-read right away */
+    const dirty = walletMarker();
+    if (!(dirty > lastMoneySync)) {
+      /* a quick tab flip must not fire a request every time */
+      if (now - lastMoneySync < 3000) return;
+    }
+    lastMoneySync = now;
+    refreshUser();
+  }
+
+  /* a page that was rendered BEFORE the match settled (a fresh load, not a bfcache
+     restore) would show the balance from before the prize/forfeit — the marker the
+     game left behind catches exactly that */
+  function syncWalletIfDirty() {
+    if (STANDALONE_DOC) return;
+    if (walletMarker() <= 0) return;
+    lastMoneySync = 0;
+    syncWalletOnShow();
+  }
+
+  /* safety net: pages restored from bfcache never keep a stuck spinner — and
+     they re-read the wallet they may have slept through a game on */
   window.addEventListener('pageshow', (e) => {
-    if (e.persisted) hideLoader();
+    /* a restored DOM is as old as this document: paint the settled number at once */
+    applyWalletHint();
+    if (!e.persisted) return;
+    hideLoader();
+    syncWalletOnShow();
+  });
+
+  /* brought back from the background (app switcher, another tab) */
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncWalletOnShow();
   });
 
   window.VG_INIT = initAll;
 
   function boot() {
     initAll();
+    /* a document served right after a Ludo match may have been rendered before the
+       prize/forfeit landed — the marker the game left behind triggers one more
+       wallet read, so the navbar never shows the balance from before the match */
+    syncWalletIfDirty();
+    /* ...and if the match settles a moment from now, these few checks catch it */
+    watchWalletHint(0);
   }
 
   if (document.readyState === 'loading') {

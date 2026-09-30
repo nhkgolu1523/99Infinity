@@ -21,7 +21,7 @@ set();window.addEventListener('resize',set);window.addEventListener('orientation
 const ASSET_V = Date.now().toString(36)
 
 export const renderer = jsxRenderer(
-  ({ children, title, showTabbar = true, active = '', bodyClass = '' }) => {
+  ({ children, title, showTabbar = true, active = '', bodyClass = '', ludo = false }) => {
     return (
       <html lang="en">
         <head>
@@ -43,6 +43,8 @@ export const renderer = jsxRenderer(
           <link rel="stylesheet" href={`/css/base.css?v=${ASSET_V}`} />
           <link rel="stylesheet" href={`/css/components.css?v=${ASSET_V}`} />
           <link rel="stylesheet" href={`/css/pages.css?v=${ASSET_V}`} />
+          {/* the board game ships its own skin — only its own route loads it */}
+          {ludo && <link rel="stylesheet" href={`/css/ludo.css?v=${ASSET_V}`} />}
 
           <script dangerouslySetInnerHTML={{ __html: REM_SCRIPT }} />
         </head>
@@ -85,6 +87,8 @@ export const renderer = jsxRenderer(
 
           <script src={`/js/i18n.js?v=${ASSET_V}`} defer></script>
           <script src={`/js/app.js?v=${ASSET_V}`} defer></script>
+          {/* the game itself (Ludo route only) — see public/js/ludo.js */}
+          {ludo && <script src={`/js/ludo.js?v=${ASSET_V}`} defer></script>}
         </body>
       </html>
     )

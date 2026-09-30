@@ -59,6 +59,13 @@ import {
   verifyFamSignature,
   type PaymentOrder,
 } from './lib/payments'
+import {
+  isLudoMode,
+  loadLudoConfig,
+  ludoDebitPlan,
+  ludoPrize,
+  validLudoMatchId,
+} from './lib/ludo'
 
 export type UserNode = {
   uid: string
@@ -821,6 +828,269 @@ apiApp.get('/games/status', async (c) => {
   const status: Record<string, number> = {}
   for (const key of wanted) status[key] = gameStateValue((games as any)[key])
   return c.json({ ok: true, status })
+})
+
+/* ------------------------------------------------------------------ ludo */
+/* The board game is the first really playable game: wallet, entry fee and prize
+   pool are all live. Money only ever moves here — the browser sends a match id,
+   never an amount. */
+
+/** Fresh wallet + live pricing for the Ludo screen.
+ *
+ *  Also hands back the player's still-open match (if any). The board itself lives
+ *  in the browser, so a reload asks this endpoint "is my match still alive?" and
+ *  only resumes when the server says yes — a match that was already closed (or a
+ *  stale browser copy) can never be resurrected. */
+apiApp.get('/ludo/state', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+  const cfg = await loadLudoConfig(c.env)
+  const split = walletSplit(user)
+
+  let match: Record<string, any> | null = null
+  const fresh = await dbGet<UserNode>(c.env, `USERS/${user.uid}`)
+  const lastMatchId = String((fresh as any)?.ludo?.lastMatchId || '')
+  if (validLudoMatchId(lastMatchId)) {
+    const rec = await dbGet<any>(c.env, `USERS/${user.uid}/ludo/matches/${lastMatchId}`)
+    if (rec && rec.status === 'active') {
+      const m = isLudoMode(rec.mode) ? rec.mode : 2
+      match = {
+        matchId: lastMatchId,
+        mode: m,
+        fee: Number(rec.fee) || cfg.entryFee,
+        prize: Number(rec.prize) || ludoPrize(cfg, m),
+        startedAt: Number(rec.startedAt) || 0,
+      }
+    }
+  }
+
+  return c.json({
+    ok: true,
+    balance: split.total,
+    main: split.main,
+    promo: split.promo,
+    entryFee: cfg.entryFee,
+    prizes: cfg.prizes,
+    match,
+  })
+})
+
+/** POST /api/ludo/enter — pay the entry fee for ONE match.
+ *
+ *  The browser generates the match id; that id is the idempotency key. The
+ *  first call claims `USERS/<uid>/ludo/matches/<matchId>` with an ETag-guarded
+ *  write and only the winner of that race charges the fee, so a double tap, a
+ *  retry or a second tab can never pay twice for the same match. */
+apiApp.post('/ludo/enter', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const body = await c.req.json().catch(() => ({}) as any)
+  const matchId = String(body.match_id || '')
+  const mode = Number(body.mode)
+  if (!validLudoMatchId(matchId)) return c.json({ error: 'Invalid match id' }, 400)
+  if (!isLudoMode(mode)) return c.json({ error: 'Invalid match mode' }, 400)
+
+  const cfg = await loadLudoConfig(c.env)
+  const prize = ludoPrize(cfg, mode)
+  const path = `USERS/${user.uid}/ludo/matches/${matchId}`
+
+  /* the session copy can be seconds old — read the wallet before charging */
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${user.uid}`)) || user
+  const split = walletSplit(fresh)
+  if (split.total < cfg.entryFee)
+    return c.json(
+      { error: `You need at least ₹${cfg.entryFee} to enter`, code: 'balance', balance: split.total },
+      400,
+    )
+
+  /* one match id = one entry fee. An existing node means the fee is already
+     paid for that match (a double tap, a retry or a second tab), so the wallet
+     is never touched again — the caller just gets the match it already owns. */
+  const existing = await dbGet<any>(c.env, path)
+  if (existing) {
+    if (existing.status === 'active')
+      return c.json({
+        ok: true,
+        replay: true,
+        matchId,
+        fee: Number(existing.fee) || cfg.entryFee,
+        prize: Number(existing.prize) || prize,
+        balance: split.total,
+      })
+    return c.json({ error: 'That match is already finished', code: 'match-done' }, 409)
+  }
+
+  /* the ETag write is the lock for two requests racing the same id: only the
+     first PUT lands, the other one sees a stale ETag and loses */
+  const claimed = await dbPutConditional(c.env, path, {
+    mode,
+    fee: cfg.entryFee,
+    prize,
+    status: 'active',
+    startedAt: Date.now(),
+  })
+  if (!claimed) {
+    const raced = await dbGet<any>(c.env, path)
+    if (raced && raced.status === 'active')
+      return c.json({
+        ok: true,
+        replay: true,
+        matchId,
+        fee: Number(raced.fee) || cfg.entryFee,
+        prize: Number(raced.prize) || prize,
+        balance: split.total,
+      })
+    return c.json({ error: 'That match is already finished', code: 'match-done' }, 409)
+  }
+
+  const plan = ludoDebitPlan(split, cfg.entryFee)
+  const txId = genTxId()
+  try {
+    const patch: Record<string, any> = {
+      [`USERS/${user.uid}/balance/total`]: increment(-cfg.entryFee),
+      [`USERS/${user.uid}/stats/totalWager`]: increment(cfg.entryFee),
+      [`USERS/${user.uid}/stats/bets`]: increment(1),
+      [`USERS/${user.uid}/ludo/lastMatchId`]: matchId,
+      [`${path}/txId`]: txId,
+      [`USERS/${user.uid}/transactions/${txId}`]: {
+        type: 'bet',
+        source: 'Ludo',
+        label: `${mode}-player match`,
+        amount: -cfg.entryFee,
+        status: 'placed',
+        matchId,
+        mode,
+        time: Date.now(),
+        uid: user.uid,
+        balanceAfter: split.total - cfg.entryFee,
+      },
+    }
+    if (plan.main > 0) patch[`USERS/${user.uid}/balance/main`] = increment(-plan.main)
+    if (plan.promo > 0) patch[`USERS/${user.uid}/balance/promo`] = increment(-plan.promo)
+    await dbPatch(c.env, patch)
+  } catch (err) {
+    /* the fee never moved — release the match so the player can try again */
+    await dbDelete(c.env, path).catch(() => {})
+    return c.json({ error: 'Could not start the match, please try again' }, 500)
+  }
+
+  return c.json({
+    ok: true,
+    matchId,
+    mode,
+    fee: cfg.entryFee,
+    prize,
+    txId,
+    balance: split.total - cfg.entryFee,
+    main: Math.max(0, split.main - plan.main),
+    promo: Math.max(0, split.promo - plan.promo),
+  })
+})
+
+/** POST /api/ludo/finish — close a match: win / lose / quit.
+ *
+ *  One match costs exactly ONE entry fee, and that fee is taken at /enter. This
+ *  endpoint therefore never debits again: a win credits the pool, a loss or a
+ *  quit just forfeits the stake that is already gone (the ledger keeps the single
+ *  -fee entry and records how it ended).
+ *
+ *  The match record keeps its own final status, so a repeated call (a retry, a
+ *  resumed board after a reload, or a racing beacon) is answered straight from
+ *  the record and can never pay a prize twice. */
+apiApp.post('/ludo/finish', async (c) => {
+  const user = c.get('user') as UserNode | null
+  if (!user) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const body = await c.req.json().catch(() => ({}) as any)
+  const matchId = String(body.match_id || '')
+  const result = String(body.result || '')
+  if (!validLudoMatchId(matchId)) return c.json({ error: 'Invalid match id' }, 400)
+  if (result !== 'win' && result !== 'lose' && result !== 'quit')
+    return c.json({ error: 'Invalid result' }, 400)
+
+  const path = `USERS/${user.uid}/ludo/matches/${matchId}`
+  const match = await dbGet<any>(c.env, path)
+  if (!match) return c.json({ error: 'Match not found' }, 404)
+
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${user.uid}`)) || user
+  const split = walletSplit(fresh)
+  if (match.status !== 'active')
+    return c.json({
+      ok: true,
+      replay: true,
+      status: match.status,
+      amount: Number(match.payout || 0),
+      balance: split.total,
+    })
+
+  const cfg = await loadLudoConfig(c.env)
+  const fee = Number(match.fee) || cfg.entryFee
+  const mode = isLudoMode(match.mode) ? match.mode : 2
+  const prize = Number(match.prize) || ludoPrize(cfg, mode)
+  const txId = genTxId()
+  const patch: Record<string, any> = { [`${path}/status`]: result, [`${path}/endedAt`]: Date.now() }
+
+  let amount = 0
+  let balanceAfter = split.total
+  /* the stake that /enter already took — its ledger entry is turned into the
+     match outcome instead of writing a second debit for the same money */
+  const betTxId = String(match.txId || '')
+
+  if (result === 'win') {
+    /* the winner takes the pool — real money, so it can be withdrawn */
+    amount = prize
+    balanceAfter = split.total + prize
+    patch[`USERS/${user.uid}/balance/total`] = increment(prize)
+    patch[`USERS/${user.uid}/balance/main`] = increment(prize)
+    patch[`USERS/${user.uid}/stats/totalWon`] = increment(prize)
+    patch[`${path}/payout`] = prize
+    if (betTxId) {
+      patch[`USERS/${user.uid}/transactions/${betTxId}/status`] = 'won'
+      patch[`USERS/${user.uid}/transactions/${betTxId}/wonAt`] = Date.now()
+    }
+    patch[`USERS/${user.uid}/transactions/${txId}`] = {
+      type: 'ludo',
+      source: 'Ludo',
+      label: `${mode}-player match won`,
+      amount: prize,
+      status: 'won',
+      matchId,
+      time: Date.now(),
+      uid: user.uid,
+      balanceAfter,
+    }
+  } else {
+    /* NO second debit: the entry fee left the wallet at /enter, so losing or
+       quitting only forfeits the stake that is already gone. One match costs
+       exactly one entry fee — the ledger keeps that single -fee entry and just
+       records how it ended. */
+    amount = 0
+    balanceAfter = split.total
+    patch[`USERS/${user.uid}/stats/totalLost`] = increment(fee)
+    if (betTxId) {
+      patch[`USERS/${user.uid}/transactions/${betTxId}/status`] =
+        result === 'quit' ? 'quit' : 'lost'
+      patch[`USERS/${user.uid}/transactions/${betTxId}/endedAt`] = Date.now()
+      patch[`USERS/${user.uid}/transactions/${betTxId}/balanceAfter`] = balanceAfter
+    } else {
+      /* legacy match without a stake entry — record the forfeited fee */
+      patch[`USERS/${user.uid}/transactions/${txId}`] = {
+        type: 'ludo',
+        source: 'Ludo',
+        label: result === 'quit' ? 'Left a running match' : `${mode}-player match lost`,
+        amount: -fee,
+        status: result === 'quit' ? 'quit' : 'lost',
+        matchId,
+        time: Date.now(),
+        uid: user.uid,
+        balanceAfter,
+      }
+    }
+  }
+
+  await dbPatch(c.env, patch)
+  return c.json({ ok: true, matchId, status: result, amount, balance: balanceAfter, txId })
 })
 
 /* ------------------------------------------------------------------ deposit */

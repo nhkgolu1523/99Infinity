@@ -27,10 +27,13 @@ import {
   PrivacyPage,
 } from './pages/account'
 import { GamesPage, SupportPage, NotFoundPage } from './pages/misc'
+import { LudoPage } from './pages/ludo'
 import { WalletOverviewPage } from './pages/wallet'
 import { DepositPage } from './pages/deposit'
 import { apiApp, sessionMiddleware } from './api'
 import { loadMessages, loadNotice } from './lib/site-content'
+import { loadLudoConfig } from './lib/ludo'
+import { loadLimitsConfig } from './lib/rewards'
 
 const app = new Hono()
 
@@ -51,6 +54,10 @@ const accountGate = (c: any, next: () => Promise<void>) => {
 }
 app.use('/account', accountGate)
 app.use('/account/*', accountGate)
+
+/* the playable game is personal too (it shows and spends the player's own
+   wallet), so a guest is sent to the login page before the board ever loads */
+app.use('/games/ludo', accountGate)
 
 /* --------------------------------------------------------------------------
    TABBED PAGES  (show the bottom navigation)
@@ -105,6 +112,18 @@ app.get('/activity/:slug', (c) =>
 )
 
 app.get('/games', (c) => c.render(<GamesPage />, { title: 'Games', showTabbar: false }))
+
+/* Ludo — the one really playable game. Full-screen: the board, its dice and its
+   own loading screen are the whole page (no tabbar, no site chrome). */
+app.get('/games/ludo', async (c) =>
+  c.render(<LudoPage user={c.get('user')} cfg={await loadLudoConfig(c.env)} />, {
+    title: 'Ludo',
+    showTabbar: false,
+    bodyClass: 'ludo-body',
+    ludo: true,
+  })
+)
+
 app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTabbar: false }))
 
 /* wallet sub-pages */
@@ -112,8 +131,11 @@ app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTab
 app.get('/account/wallet', (c) =>
   c.render(<WalletOverviewPage />, { title: 'Wallet', showTabbar: false })
 )
-app.get('/account/deposit', (c) =>
-  c.render(<DepositPage />, { title: 'Deposit', showTabbar: false })
+app.get('/account/deposit', async (c) =>
+  c.render(<DepositPage limits={await loadLimitsConfig(c.env)} />, {
+    title: 'Deposit',
+    showTabbar: false,
+  })
 )
 app.get('/account/withdraw', (c) =>
   c.render(<WithdrawPage />, { title: 'Withdraw', showTabbar: false })

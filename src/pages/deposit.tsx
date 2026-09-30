@@ -1,13 +1,18 @@
 import { useRequestContext } from 'hono/jsx-renderer'
 import { Icon } from '../components/icons'
 import { totalBalance } from '../lib/wallet'
+import { DEFAULT_LIMITS_CONFIG, depositQuickAmounts, type LimitsConfig } from '../lib/rewards'
 
 /* ==========================================================================
    DEPOSIT  (dp-* — step 1 amount → step 2 live UPI QR payment)
    The QR, the UPI intent link and the status come from the real gateway
    (FamGateway) through /api/deposit/*; nothing here is a placeholder.
+
+   The minimum — and therefore the preset chips — come from CONFIG/LIMITS, so the
+   page can never offer an amount the API would refuse (the client re-reads the
+   same config live, see public/js/app.js — initDeposit).
    ========================================================================== */
-export function DepositPage() {
+export function DepositPage({ limits }: { limits?: LimitsConfig }) {
   /* the real balance, server-rendered so the page never flashes ₹0.00 */
   const c = useRequestContext()
   const user = c.get('user') as any
@@ -15,9 +20,11 @@ export function DepositPage() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+  const depositMin = Math.max(1, Math.floor(Number(limits?.depositMin) || DEFAULT_LIMITS_CONFIG.depositMin))
+  const quickAmounts = depositQuickAmounts(depositMin)
 
   return (
-    <div class="dp-page">
+    <div class="dp-page" data-deposit-min={depositMin}>
       <header class="ac-header">
         <a class="ac-header__btn" href="/account" data-back data-dp-back aria-label="Back">
           <Icon name="chevron-left" size="0.33rem" />
@@ -41,13 +48,13 @@ export function DepositPage() {
                 name="amount"
                 placeholder="Enter amount"
                 inputmode="numeric"
-                min="500"
+                min={depositMin}
                 data-dp-amount
               />
             </div>
 
             <div class="dp-quick">
-              {[500, 1000, 5000, 10000].map((v) => (
+              {quickAmounts.map((v) => (
                 <button class="dp-quick__btn" type="button" data-dp-quick={v}>
                   ₹{v.toLocaleString('en-IN')}
                 </button>

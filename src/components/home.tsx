@@ -119,6 +119,14 @@ function SectionHead({
 /* ==========================================================================
    TOP GAMES  (3 per page, 2 pages, paginated)
    ========================================================================== */
+
+/* games that are really playable have a screen of their own — the catalogue
+   entries all lead to the games list, where the tap gate decides between
+   coming-soon, the deposit popup and the game itself */
+const GAME_PAGES: Record<string, string> = {
+  ludo: '/games/ludo',
+}
+
 export function TopGames() {
   const items = site.topGames
   const pages: (typeof items)[] = []
@@ -133,24 +141,31 @@ export function TopGames() {
           {pages.map((page) => (
             <div class="swiper-page">
               <div class="top-games__list">
-                {page.map((g: any) => (
-                  <a
-                    class="top-games__item"
-                    href="/games"
-                    data-game
-                    data-game-key={String(g.cover || '')
-                      .split('/')
-                      .pop()!
-                      .replace(/\.[a-z0-9]+$/i, '')}
-                  >
-                    <div class="cover">
-                      <img src={g.cover} alt="" loading="lazy" />
-                      {g.crown && <img class="crown crown1" src={g.crown} alt="" />}
-                      {g.rank && <span class="rank">{g.rank}</span>}
-                    </div>
-                    <div class="btn">Play Now</div>
-                  </a>
-                ))}
+                {page.map((g: any) => {
+                  const key = String(g.cover || '')
+                    .split('/')
+                    .pop()!
+                    .replace(/\.[a-z0-9]+$/i, '')
+                  const href = GAME_PAGES[key] || '/games'
+                  return (
+                    <a
+                      class="top-games__item"
+                      href={href}
+                      data-game
+                      data-game-key={key}
+                      /* a playable game is loaded as its own page (its css/js
+                         live in that page's head — see public/js/ludo.js) */
+                      data-full-nav={href === '/games' ? undefined : '1'}
+                    >
+                      <div class="cover">
+                        <img src={g.cover} alt="" loading="lazy" />
+                        {g.crown && <img class="crown crown1" src={g.crown} alt="" />}
+                        {g.rank && <span class="rank">{g.rank}</span>}
+                      </div>
+                      <div class="btn">Play Now</div>
+                    </a>
+                  )
+                })}
               </div>
             </div>
           ))}
