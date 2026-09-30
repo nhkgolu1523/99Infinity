@@ -745,9 +745,7 @@
   function applyUserData(me) {
     if (!me) return;
     /* one formatter, shared with the wallet hint (see moneyText below) */
-    const bal = moneyText(me.balance?.total || 0);
-    $$('[data-nav-balance]').forEach((el) => (el.textContent = bal));
-    $$('[data-user-balance]').forEach((el) => (el.textContent = bal));
+    paintBalance(me.balance?.total || 0);
 
     /* wallet page — two buckets (main / 3rd-party) + lifetime deposit and
        withdrawal totals. Values come from the server so they can never drift
@@ -868,6 +866,16 @@
     return '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /** Paint a balance we already know the truth about — the navbar chip, the
+   *  account/deposit/withdraw balance lines. No round-trip, no guessing: callers
+   *  either pass the server's own /api/me total or the number an API answer (a
+   *  withdrawal hold, a settled match) returned. */
+  function paintBalance(total) {
+    const bal = moneyText(total);
+    $$('[data-nav-balance]').forEach((el) => (el.textContent = bal));
+    $$('[data-user-balance]').forEach((el) => (el.textContent = bal));
+  }
+
   /** the settled balance the Ludo game left behind, or null. A marker without a
    *  total (an older game page that only stamped the time) must never be painted:
    *  reading it as 0 would put ₹0.00 in the navbar until /api/me answers. */
@@ -898,9 +906,7 @@
     if (!hint) return false;
     /* a page rendered after the match already carries the newer number */
     if (!(hint.at > shownAt())) return false;
-    const bal = moneyText(hint.total);
-    $$('[data-nav-balance]').forEach((el) => (el.textContent = bal));
-    $$('[data-user-balance]').forEach((el) => (el.textContent = bal));
+    paintBalance(hint.total);
     return true;
   }
 
@@ -1395,9 +1401,18 @@
           }
           if (data.code === 'insufficient')
             return toast('Insufficient balance — deposit first', 3000);
+          if (data.code === 'duplicate')
+            return toast('That withdrawal is already pending', 3000);
           return toast(data.error || 'Withdrawal failed', 3000);
         }
         toast(data.message || 'Withdrawal requested!', 3000);
+        /* the money is held the instant the request lands — paint the balance the
+           API answered with (no round-trip), then let /api/me confirm it and
+           clear any marker a match left behind */
+        const held = data.balance && typeof data.balance.total === 'number' ? data.balance.total : null;
+        if (held !== null) paintBalance(held);
+        lastMoneySync = 0;
+        refreshUser();
         amountInput.value = '';
         quickBtns.forEach((b) => b.classList.remove('active'));
       } catch (err) {

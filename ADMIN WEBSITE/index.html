@@ -1130,40 +1130,76 @@ async function rejectDeposit(uid, txId) {
   toast('Deposit rejected');
 }
 
-/** approve a withdrawal: take the money out of the wallets, mark it paid */
+/** Where a withdrawal's money already sits.
+ *
+ *  A request made by the current app HOLDS the amount in `tx.held` (the wallet
+ *  was debited the moment the request was created, see src/api.ts). A request
+ *  that predates this carries no `held`, and its money is still in the wallet —
+ *  that one has to be taken out at approval time. */
+function heldOf(tx) {
+  const h = tx && tx.held;
+  if (h && typeof h === 'object') {
+    const main = Math.max(0, Number(h.main || 0));
+    const promo = Math.max(0, Number(h.promo || 0));
+    return { main, promo, total: main + promo };
+  }
+  return { main: 0, promo: 0, total: 0 };
+}
+
+/** approve a withdrawal: the money is already out of the wallet, so this only
+ *  confirms the payout (an older request is debited here, once) */
 async function approveWithdraw(uid, txId, amount) {
   const u = (await dbGet('USERS/' + uid)) || {};
   const s = split(u);
   const amt = Number(amount || 0);
-  /* bonus money leaves first, the rest comes out of the main wallet */
-  const fromPromo = Math.min(amt, s.promo);
-  const promo = s.promo - fromPromo;
-  const main = Math.max(0, s.main - (amt - fromPromo));
-  const pending = Math.max(0, Number(u.pending?.withdrawTotal || 0) - amt);
-  await dbPatch({
-    ['USERS/' + uid + '/balance/main']: main,
-    ['USERS/' + uid + '/balance/promo']: promo,
-    ['USERS/' + uid + '/balance/total']: main + promo,
-    ['USERS/' + uid + '/pending/withdrawTotal']: pending,
+  const held = heldOf((u.transactions || {})[txId]);
+  const patch = {
+    ['USERS/' + uid + '/pending/withdrawTotal']: Math.max(0, Number(u.pending?.withdrawTotal || 0) - amt),
     ['USERS/' + uid + '/transactions/' + txId + '/status']: 'paid',
     ['USERS/' + uid + '/transactions/' + txId + '/paidAt']: Date.now(),
     ['USERS/' + uid + '/stats/totalWithdraw']: inc(amt),
     ['withdrawRequests/' + uid + '/' + txId + '/status']: 'paid',
     ['withdrawRequests/' + uid + '/' + txId + '/approvedAt']: Date.now(),
-  });
+  };
+  if (!held.total) {
+    /* a request made before the money was held up front: take it out now */
+    const fromPromo = Math.min(amt, s.promo);
+    const promo = s.promo - fromPromo;
+    const main = Math.max(0, s.main - (amt - fromPromo));
+    patch['USERS/' + uid + '/balance/main'] = main;
+    patch['USERS/' + uid + '/balance/promo'] = promo;
+    patch['USERS/' + uid + '/balance/total'] = main + promo;
+    patch['USERS/' + uid + '/transactions/' + txId + '/held'] = { main: amt - fromPromo, promo: fromPromo };
+  }
+  await dbPatch(patch);
   cache.usersAt = 0;
-  toast('Withdrawal paid · ' + inr(amt) + ' removed from the balance');
+  toast(held.total
+    ? 'Withdrawal paid · ' + inr(amt) + ' was already held from the balance'
+    : 'Withdrawal paid · ' + inr(amt) + ' removed from the balance');
 }
 
 async function rejectWithdraw(uid, txId, amount) {
   const u = (await dbGet('USERS/' + uid)) || {};
-  const pending = Math.max(0, Number(u.pending?.withdrawTotal || 0) - Number(amount || 0));
-  await dbPatch({
-    ['USERS/' + uid + '/pending/withdrawTotal']: pending,
+  const amt = Number(amount || 0);
+  const held = heldOf((u.transactions || {})[txId]);
+  const patch = {
+    ['USERS/' + uid + '/pending/withdrawTotal']: Math.max(0, Number(u.pending?.withdrawTotal || 0) - amt),
     ['withdrawRequests/' + uid + '/' + txId + '/status']: 'rejected',
     ['USERS/' + uid + '/transactions/' + txId + '/status']: 'rejected',
-  });
-  toast('Withdrawal rejected — the amount is free again');
+  };
+  if (held.total) {
+    /* the money was taken out when the request was made — give it back to the
+       very buckets it came from, with one atomic increment per bucket */
+    patch['USERS/' + uid + '/balance/main'] = inc(held.main);
+    patch['USERS/' + uid + '/balance/promo'] = inc(held.promo);
+    patch['USERS/' + uid + '/balance/total'] = inc(held.total);
+    patch['USERS/' + uid + '/transactions/' + txId + '/refundedAt'] = Date.now();
+  }
+  await dbPatch(patch);
+  cache.usersAt = 0;
+  toast(held.total
+    ? 'Withdrawal rejected · ' + inr(held.total) + ' returned to the wallet'
+    : 'Withdrawal rejected — the amount is free again');
 }
 
 async function viewRequests(view, kind) {
@@ -1184,7 +1220,7 @@ async function viewRequests(view, kind) {
     '<div class="card"><h2>' + (isDep ? 'Deposit requests' : 'Withdrawal requests') + '</h2>' +
       '<div class="sub">' + (isDep
         ? 'Approving credits the main wallet and marks the transaction completed.'
-        : 'Approving pays it out: bonus money leaves the 3rd-party wallet first, the rest comes from main.') +
+        : 'The amount is held out of the wallet the moment the request is made — approving pays it out, rejecting returns it.') +
       '</div>' +
       '<div class="table-wrap"><table><thead><tr>' +
         '<th>Requested</th><th>UID</th><th>Method / details</th><th class="num">Amount</th>' +

@@ -196,7 +196,7 @@ another project; both are remembered in `localStorage`).
 | Users | search by UID / phone / username / email, filters, pagination → per-user sheet: balance (credit/debit/set, logged as a transaction), profile (name, email, phone, VIP, language, invite), status (active / suspended / investigation + message), devices (per-device and “log out everywhere”), transactions (status + delete), rewards (streak, free games, spin total), danger zone (reset password — real PBKDF2 hash, clear log, delete account incl. the UID/phone indexes) |
 | Deposits | approve (credits the **main** wallet, completes the transaction, clears the pending counter) or reject |
 | UPI payments | the live gateway feed (`PAYMENT_ORDERS`): collected total, waiting/expired/replayed counters, one row per order (user, amount, state, bank UTR, age), a 1-click *Close* for a stuck order, per-order field dump for debugging, and the gateway switches — deposits on/off + auto-credit vs manual approval (`CONFIG/PAYMENTS`) |
-| Withdrawals | mark paid (bonus money leaves the 3rd-party wallet first, the rest from main; pending cleared) or reject |
+| Withdrawals | the amount is **held out of the player's wallet the moment the request is made** (see *Money* below) — *mark paid* only confirms it, *reject* returns it to the exact buckets it came from. A request that predates the hold is debited once, at approval |
 | Transactions | global log with type/status/text filters, delete rows |
 | Notifications | write the home notice bar (`CONFIG/NOTICE`) and broadcast app notifications (`MESSAGES`) |
 | Lucky Wheel | on/off, spins per day, reset hour, segment weights with a live chance column (`CONFIG/SPIN`) |
@@ -299,6 +299,17 @@ so a key kept there could be lifted by anyone and used to fake orders/webhooks.
 - The spendable total is therefore `balance.total + sum(balance.deposits)` —
   `totalBalance()` / `walletSplit()` in `src/lib/wallet.ts` are the only places that
   compute money, and the withdraw/spin/daily/navbar/account paths all use them.
+- **A withdrawal is held, not promised.** `POST /api/withdraw` takes the amount out of
+  the wallet in the same write that creates the request (`balance.total -= amount`, the
+  bonus bucket first and then `balance.main`). Two consequences, both on purpose:
+  the balance the player sees is already net of the request, so there is no "reserved
+  but still visible" number to get stale, and **no game can spend it** — the Ludo entry
+  fee and every other check read the same `walletSplit().total`. The request stores
+  `held: { main, promo }` so the panel can put the money back exactly where it came from
+  (`rejectWithdraw`) and *not* debit a second time on `approveWithdraw`. A same-amount
+  request that is still pending is refused as `409 duplicate`, so a double tap can never
+  hold twice. Requests created before a `held` was recorded are still debited once, at
+  approval.
 - **UTR idempotency.** A bank reference can only ever pay one order: `UTR_INDEX/<utr>`
   is checked first, a replay is marked `duplicate` and the caller gets
   `409 duplicate-utr`.

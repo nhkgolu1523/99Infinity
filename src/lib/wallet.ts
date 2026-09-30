@@ -76,7 +76,17 @@ export type WalletTotals = {
   withdrawPending: number
 }
 
-/** Lifetime deposit / withdrawal totals, read straight from the transactions. */
+/* Lifetime deposit / withdrawal totals, read straight from the transactions.
+ *
+ *  The rule is "money that really moved":
+ *    • a deposit counts once it is approved (a pending one has not arrived yet);
+ *    • a withdrawal counts as soon as it is held — the wallet was debited the
+ *      moment the request was made (see src/api.ts) — and also when it is paid;
+ *    • a request that was closed without money (rejected, expired, a blocked
+ *      duplicate) never counts on either side.
+ *
+ *  So a request that is still waiting for approval is already part of the
+ *  lifetime withdrawal total, exactly as it is already missing from the balance. */
 export function walletTotals(user: any): WalletTotals {
   /* done   → the money moved (or will move, for an approved request)
      pending→ still waiting for the bank or for an approval
@@ -112,7 +122,11 @@ export function walletTotals(user: any): WalletTotals {
       if (paid) out.depositTotal += amount
       else out.depositPending += amount
     } else if (tx?.type === 'withdraw') {
-      if (paid) out.withdrawTotal += amount
+      /* a held request already took the money out of the wallet, so it belongs to
+         the lifetime total even while it waits; an older pending one (no `held`)
+         has not been debited yet and only counts once the admin pays it */
+      const gone = paid || Number(tx?.held?.main || 0) + Number(tx?.held?.promo || 0) > 0
+      if (gone) out.withdrawTotal += amount
       else out.withdrawPending += amount
     }
   }

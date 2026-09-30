@@ -1430,11 +1430,36 @@ apiApp.post('/withdraw', async (c) => {
       400,
     )
 
-  /* server-side balance check — pending requests already count against it */
-  const total = totalBalance(user)
-  const reserved = Number(user.pending?.withdrawTotal || 0)
-  if (amount > total - reserved)
+  /* ── the hold ────────────────────────────────────────────────────────────
+     The money leaves the wallet the moment the request is created. A pending
+     payout is not spendable, so the balance the player sees — and every game
+     check (Ludo entry fee, bet, another withdrawal) — is already net of it.
+     There is no "reserved but still visible" number to get stale.
+
+     The payout empties the bonus wallet first, then main (the order the admin
+     panel used before), and BOTH buckets are recorded on the request as `held`,
+     so a rejection puts the money back exactly where it came from — see
+     approveWithdraw / rejectWithdraw in the admin panel. */
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${user.uid}`)) || user
+  const split = walletSplit(fresh)
+  if (amount > split.total)
     return c.json({ error: 'Insufficient balance', code: 'insufficient' }, 400)
+
+  /* a double tap (or a retried request) must never hold the same money twice */
+  const alreadyPending = Object.values<any>(fresh.transactions || {}).some(
+    (t) =>
+      t?.type === 'withdraw' &&
+      String(t?.status || 'pending') === 'pending' &&
+      Number(t?.amount) === amount &&
+      Date.now() - Number(t?.time || 0) < 10000,
+  )
+  if (alreadyPending)
+    return c.json({ error: 'That withdrawal is already pending', code: 'duplicate' }, 409)
+
+  const fromPromo = Math.min(amount, split.promo)
+  const fromMain = amount - fromPromo
+  const held = { main: fromMain, promo: fromPromo }
+  const balanceAfter = Math.max(0, split.total - amount)
 
   const details = body.details && typeof body.details === 'object' ? body.details : {}
   const txId = genTxId()
@@ -1446,18 +1471,35 @@ apiApp.post('/withdraw', async (c) => {
     status: 'pending',
     time: Date.now(),
     uid: user.uid,
+    /* where the money has to go back to if this request is rejected */
+    held,
+    balanceAfter,
   }
 
-  await dbPatch(c.env, {
+  const patch: Record<string, any> = {
     [`USERS/${user.uid}/transactions/${txId}`]: tx,
     [`withdrawRequests/${user.uid}/${txId}`]: tx,
+    /* how much is still in flight (admin dashboard) — the money itself is
+       already gone from the balance, so this is a status counter, not a hold */
     [`USERS/${user.uid}/pending/withdrawTotal`]: increment(amount),
-  })
+    [`USERS/${user.uid}/balance/total`]: increment(-amount),
+  }
+  if (fromMain > 0) patch[`USERS/${user.uid}/balance/main`] = increment(-fromMain)
+  if (fromPromo > 0) patch[`USERS/${user.uid}/balance/promo`] = increment(-fromPromo)
+  await dbPatch(c.env, patch)
 
   return c.json({
     ok: true,
     txId,
-    message: 'Withdrawal of ' + money(amount) + ' requested! Wait for approval.',
+    /* the new balance travels back with the answer, so the page can paint it
+       without a second round-trip */
+    balance: { total: balanceAfter, main: Math.max(0, split.main - fromMain) },
+    message:
+      'Withdrawal of ' +
+      money(amount) +
+      ' requested! ' +
+      money(amount) +
+      ' is on hold until it is paid.',
   })
 })
 

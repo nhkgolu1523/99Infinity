@@ -364,6 +364,19 @@ export function WalletPage({ mode }: { mode: 'deposit' | 'withdraw' }) {
    WITHDRAW (dark-green redesign)
    ========================================================================== */
 export function WithdrawPage() {
+  /* the spendable balance — server-rendered, so the page never flashes ₹0.00.
+     A pending withdrawal is already out of it (the amount is held the moment the
+     request is made, see src/api.ts), which is why this is exactly what the
+     player may ask for right now. */
+  const c = useRequestContext()
+  const user = c.get('user') as any
+  const balance =
+    '₹' +
+    totalBalance(user).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+
   return (
     <div class="ac-page" id="wdPage">
       <header class="ac-header">
@@ -378,9 +391,7 @@ export function WithdrawPage() {
         <div class="wd-card">
           <div class="wd-balance">
             <span>Available balance</span>
-            <div class="wd-balance__amount">
-              <Icon name="fa-rupee" size="0.31rem" /> 0.00
-            </div>
+            <div class="wd-balance__amount" data-user-balance>{balance}</div>
           </div>
 
           <div class="wd-input">
