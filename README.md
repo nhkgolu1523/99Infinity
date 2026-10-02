@@ -59,6 +59,7 @@ file so any single detail can be changed later without touching the rest.
 | Profile | `/account/profile` |
 | Settings | `/account/settings` |
 | Customer service / FAQ | `/support` |
+| **Support chat** | `/support/live-chat` |
 | Log in | `/login` |
 | Register | `/register` |
 | Reset password | `/forgot-password` |
@@ -115,9 +116,11 @@ webapp/
 │   │   ├── base.css           # tokens, reset, app frame, animations
 │   │   ├── components.css     # navbar, swiper, cards, tabbar, dialogs, forms
 │   │   ├── pages.css          # per-page composition
-│   │   └── ludo.css           # generated: the game skin, scoped to .ludo-page
+│   │   ├── ludo.css           # generated: the game skin, scoped to .ludo-page
+│   │   └── live-chat.css      # the support chat skin, scoped to .lc-page
 │   ├── js/app.js              # all interactions (14 opt-in modules)
 │   ├── js/ludo.js             # the game itself, wired to the real wallet
+│   ├── js/live-chat.js        # the support bot (knowledge base + typing + chips)
 │   └── assets/img/            # 320 separate image files, semantic names
 │       ├── brand/ banner/ tabbar/ title/ category/ activity/
 │       ├── float/ partner/ avatar/ ui/
@@ -427,6 +430,49 @@ every rupee it moves is real.
 - no wallet, no match: `Play` refuses under the entry fee with *"Not enough
   balance"* and the server refuses again on `/enter` (`code: 'balance'`), whose
   answer also corrects a client that was showing a stale-high balance.
+
+
+## Support chat — the Live chat screen (`/support/live-chat`)
+
+Tapping **Live chat** on the Customer service page (`/support`) opens the support
+chat: a full screen of its own (no tabbar) whose markup is the standalone chat
+page verbatim — same header, quick topics, composer and bot knowledge base. It is
+a **document of its own**, like the Ludo board: the route ships its own css + js
+and puts `live-chat-body` on `<body>`, so `/js/app.js` hands it to the browser
+instead of running its SPA swap.
+
+| Surface | Where |
+|---|---|
+| Page — the chat markup | `src/pages/misc.tsx` → `LiveChatPage` |
+| The chat skin, scoped under `.lc-page` | `public/css/live-chat.css` |
+| The bot itself (knowledge base, typing, topics) | `public/js/live-chat.js` |
+| Loaded only on this route | `src/renderer.tsx` → `liveChat` (css + script + body class) |
+| Route list the SPA router must not touch | `public/js/app.js` → `STANDALONE_ROUTES` |
+
+**What the bot answers with**
+
+- the knowledge base is the client's own list (~48 topics: deposits, withdrawals,
+  games, OTP, KYC, bonuses, VIP, cashback, Hindi/Hinglish greetings…) matched by
+  the **longest keyword** that appears in the message, with five rotating
+  fallbacks for anything it does not know;
+- deposits, withdrawals and games reply with the real platform rules (min ₹500 in,
+  ₹100 out, withdrawals 1–30 minutes);
+- the icons are the site's inline SVG sprite — **no Font Awesome, no CDN** — and
+  the whole screen carries `data-i18n-skip`, so the site translator never rewrites
+  the chat (bot replies, the header, the chips and the placeholder all stay put in
+  every language).
+
+**The Customer service page (`/support`)**
+
+| Row | Goes to |
+|---|---|
+| Live chat | `/support/live-chat` |
+| Email support | `mailto:99Infinity@gmail.com` (opens in a new tab) |
+| Telegram channel | `https://t.me/trinomal` (opens in a new tab) |
+
+The WhatsApp row was dropped. Both destinations live in
+`src/components/dialogs.tsx` (`SUPPORT_EMAIL`, `SUPPORT_TELEGRAM`) so the copy and
+the links can never drift apart.
 
 
 ## Notes / limitations

@@ -1,0 +1,437 @@
+/* ==========================================================================
+   LIVE CHAT — the Support team chat screen, scoped under .lc-page.
+
+   The screen came in as a standalone page (its own <html>/<body>/fonts and its
+   own reset). On the site it is a <div> inside #app, exactly like the Ludo
+   board, so every rule carries a .lc-page prefix and the three document-level
+   rules (full height, no page scroll) hang off body.live-chat-body — the class
+   src/renderer.tsx puts on <body> for the /support/live-chat route only.
+
+   Font Awesome is NOT loaded: the chat's icons are the site's own inline SVG
+   sprite (see src/components/icons.tsx / src/pages/misc.tsx), so nothing here
+   depends on a CDN.
+   ========================================================================== */
+
+/* The document frame the chat expects — see src/renderer.tsx (bodyClass). The
+   chat root WAS <body> in the standalone file ("html, body { height: 100% }"),
+   so the column always filled the phone. On the site #app is only as tall as
+   its own content, so the frame is stretched here. */
+body.live-chat-body,
+body.live-chat-body #app,
+body.live-chat-body .lc-page {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body.live-chat-body {
+  overflow: hidden;
+  background: #080b12;
+}
+
+body.live-chat-body #app {
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+  background: #080b12;
+}
+
+/* icons in this screen are the site sprite, always sized in the JSX */
+.lc-page .icon { flex: none; }
+
+.lc-page {
+  --lc-bg: #080b12;
+  --lc-input-bg: #1a222c;
+  --lc-text: #ffffff;
+  --lc-text-2: #8b949e;
+  --lc-green: #00c853;
+  --lc-green-glow: rgba(0, 200, 83, 0.15);
+  --lc-bot-bubble: #1a222c;
+  --lc-user-bubble: linear-gradient(135deg, #00c853, #00a844);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: var(--font-base);
+  background: var(--lc-bg);
+  color: var(--lc-text);
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* ================= HEADER ================= */
+.lc-page .lc-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0.26rem 0.3rem;
+  padding-top: calc(0.26rem + env(safe-area-inset-top));
+  background: rgba(8, 11, 18, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 100;
+}
+
+.lc-page .lc-back {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--lc-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.22rem;
+  flex: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.lc-page .lc-back:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.94);
+}
+
+.lc-page .lc-bot-avatar {
+  position: relative;
+  width: 0.78rem;
+  height: 0.78rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00c853, #00a844);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-right: 0.22rem;
+  flex: none;
+  box-shadow: 0 0 15px var(--lc-green-glow);
+}
+
+.lc-page .lc-bot-avatar::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 50%;
+  background: #00c853;
+  border: 2px solid var(--lc-bg);
+  box-shadow: 0 0 6px #00c853;
+}
+
+.lc-page .lc-head-info { flex: 1; min-width: 0; }
+
+.lc-page .lc-head-info h1 {
+  font-size: 0.28rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+}
+
+.lc-page .lc-status {
+  font-size: 0.21rem;
+  color: var(--lc-green);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lc-page .lc-status .icon {
+  font-size: 0.12rem;
+  animation: lc-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes lc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ================= CHAT AREA ================= */
+.lc-page .lc-chat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  padding: 0.34rem 0.3rem 0.22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.lc-page .lc-chat::-webkit-scrollbar { width: 3px; }
+.lc-page .lc-chat::-webkit-scrollbar-track { background: transparent; }
+.lc-page .lc-chat::-webkit-scrollbar-thumb {
+  background: rgba(0, 200, 83, 0.25);
+  border-radius: 4px;
+}
+
+.lc-page .lc-date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.07rem 0 0.15rem;
+  font-size: 0.19rem;
+  color: var(--lc-text-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* ================= MESSAGE BUBBLE ================= */
+.lc-page .lc-msg {
+  display: flex;
+  gap: 0.15rem;
+  align-items: flex-end;
+  max-width: 100%;
+  animation: lc-msg-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lc-msg-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lc-page .lc-msg--bot { justify-content: flex-start; }
+.lc-page .lc-msg--user { justify-content: flex-end; }
+
+.lc-page .lc-msg__avatar {
+  width: 0.56rem;
+  height: 0.56rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00c853, #00a844);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-bottom: 2px;
+}
+
+.lc-page .lc-bubble {
+  max-width: 76%;
+  padding: 0.2rem 0.26rem;
+  border-radius: 0.3rem;
+  font-size: 0.25rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  position: relative;
+}
+
+.lc-page .lc-msg--bot .lc-bubble {
+  background: var(--lc-bot-bubble);
+  color: #fff;
+  border-bottom-left-radius: 0.07rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.lc-page .lc-msg--user .lc-bubble {
+  background: var(--lc-user-bubble);
+  color: #fff;
+  border-bottom-right-radius: 0.07rem;
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.2);
+}
+
+.lc-page .lc-bubble strong { color: #fff; font-weight: 700; }
+
+.lc-page .lc-time {
+  font-size: 0.175rem;
+  opacity: 0.6;
+  margin-top: 0.07rem;
+  display: block;
+  text-align: right;
+}
+
+/* ================= TYPING ================= */
+.lc-page .lc-typing-row {
+  display: flex;
+  gap: 0.15rem;
+  align-items: flex-end;
+  animation: lc-msg-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lc-page .lc-typing {
+  display: flex;
+  gap: 0.07rem;
+  padding: 0.24rem 0.3rem;
+  background: var(--lc-bot-bubble);
+  border-radius: 0.3rem;
+  border-bottom-left-radius: 0.07rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.lc-page .lc-typing span {
+  width: 0.11rem;
+  height: 0.11rem;
+  border-radius: 50%;
+  background: #666;
+  animation: lc-bounce 1.3s infinite ease-in-out;
+}
+
+.lc-page .lc-typing span:nth-child(2) { animation-delay: 0.18s; }
+.lc-page .lc-typing span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes lc-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; background: var(--lc-green); }
+}
+
+/* ================= QUICK TOPICS PANEL ================= */
+.lc-page .lc-chips-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  background: var(--lc-bg);
+  flex: none;
+}
+
+.lc-page .lc-chips-panel.is-open { grid-template-rows: 1fr; }
+
+.lc-page .lc-chips-inner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 0.22rem;
+  transition: padding 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.lc-page .lc-chips-panel.is-open .lc-chips-inner { padding: 0.07rem 0.22rem 0.22rem; }
+
+.lc-page .lc-chips-title {
+  font-size: 0.2rem;
+  font-weight: 700;
+  color: var(--lc-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.15rem;
+  padding-left: 0.07rem;
+}
+
+.lc-page .lc-chips-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.15rem;
+}
+
+.lc-page .lc-chip {
+  background: rgba(0, 200, 83, 0.08);
+  border: 1px solid rgba(0, 200, 83, 0.3);
+  color: #fff;
+  padding: 0.2rem 0.22rem;
+  border-radius: 0.22rem;
+  font-size: 0.22rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.11rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+.lc-page .lc-chip:active {
+  background: rgba(0, 200, 83, 0.22);
+  border-color: rgba(0, 200, 83, 0.6);
+  transform: scale(0.96);
+}
+
+.lc-page .lc-chip .icon { color: var(--lc-green); }
+
+/* ================= INPUT BAR ================= */
+.lc-page .lc-input-area {
+  flex: none;
+  padding: 0.18rem 0.22rem;
+  padding-bottom: calc(0.22rem + env(safe-area-inset-bottom));
+  background: rgba(8, 11, 18, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  gap: 0.18rem;
+  align-items: center;
+}
+
+.lc-page .lc-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.07rem;
+  background: var(--lc-input-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.44rem;
+  padding: 0.05rem 0.09rem 0.05rem 0.05rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.lc-page .lc-input-wrap:focus-within {
+  border-color: var(--lc-green);
+  box-shadow: 0 0 0 2px var(--lc-green-glow);
+}
+
+.lc-page .lc-plus {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--lc-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 0.15s ease;
+}
+
+.lc-page .lc-plus:active { background: rgba(0, 200, 83, 0.15); }
+
+.lc-page .lc-plus .icon {
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.lc-page .lc-plus.is-open .icon { transform: rotate(135deg); }
+
+.lc-page .lc-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.27rem;
+  font-weight: 500;
+  min-width: 0;
+  padding: 0.18rem 0;
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+}
+
+.lc-page .lc-input-wrap input::placeholder { color: #555; font-weight: 400; }
+
+.lc-page .lc-send {
+  width: 0.81rem;
+  height: 0.81rem;
+  border-radius: 50%;
+  background: var(--lc-user-bubble);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.lc-page .lc-send:active { transform: scale(0.9); opacity: 0.85; }
+
+/* ================= NARROW PHONES ================= */
+@media (max-width: 360px) {
+  .lc-page .lc-chip { font-size: 0.2rem; padding: 0.18rem 0.15rem; }
+  .lc-page .lc-bubble { font-size: 0.24rem; }
+}

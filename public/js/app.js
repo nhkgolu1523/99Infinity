@@ -2874,9 +2874,29 @@
      gesture there means "leave the match" and the game itself answers it (it
      parks the history entry and opens the quit dialog). A wallet refresh would
      also fight the game's own coin pill, which is already live. */
+  /* ── the support chat is a document of its own ─────────────────────────────
+     Like the Ludo board, /support/live-chat ships its own css + script
+     (public/css/live-chat.css, public/js/live-chat.js) and is opened with a
+     real navigation, so the site router must keep its hands off it: an SPA body
+     swap cannot bring the chat's stylesheet along, and a scripted repaint would
+     rebuild the DOM under the chat's own listeners. Its back arrow is a real
+     /support link, so it walks back with a normal browser traversal. */
   const STANDALONE_DOC = !!(
-    document.body && document.body.classList.contains('ludo-body')
+    document.body &&
+    (document.body.classList.contains('ludo-body') ||
+      document.body.classList.contains('live-chat-body'))
   );
+
+  /* routes that are documents of their own — each one ships its own css + js and
+     puts its own class on <body> (see src/renderer.tsx → bodyClass / ludo /
+     liveChat). An SPA swap only replaces body.innerHTML, so it can neither bring
+     the stylesheet along nor set that class: these must be loaded for real. */
+  const STANDALONE_ROUTES = ['/games/ludo', '/support/live-chat'];
+
+  function isStandaloneRoute(href) {
+    const path = String(href || '').split('#')[0].split('?')[0];
+    return STANDALONE_ROUTES.indexOf(path) !== -1;
+  }
 
   /* intercept internal links (tabs, cards, back buttons...) */
   document.addEventListener('click', (e) => {
@@ -2888,6 +2908,8 @@
     if (!a || a.hasAttribute('data-dialog-open') || a.hasAttribute('data-open-dialog')) return;
     const href = a.getAttribute('href') || '';
     if (!href || href.charAt(0) !== '/' || a.target === '_blank') return;
+    /* the board game and the support chat: hand them to the browser */
+    if (isStandaloneRoute(href)) return;
     e.preventDefault();
     spaNavigate(href, true);
   });

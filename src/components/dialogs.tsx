@@ -139,14 +139,33 @@ export function NoticeDialog({
 }
 
 /**
+ * The two ways out of the app: the support Telegram channel and the support
+ * mailbox. They live here (not inline in the list below) so the row copy and
+ * the link can never drift apart.
+ */
+export const SUPPORT_TELEGRAM = 'https://t.me/trinomal'
+export const SUPPORT_EMAIL = '99Infinity@gmail.com'
+
+/**
  * Shared support content — shown on the /support page (opened from the
  * customer-service bubble and the Settings / Account "Customer service" rows).
  */
 export const SUPPORT_CHANNELS = [
-  { icon: 'fa-headset', title: 'Live chat', desc: 'Average reply under 2 minutes', href: '/support' },
-  { icon: 'fa-envelope', title: 'Email support', desc: 'support@99infinity.example', href: '/support' },
-  { icon: 'fa-telegram', title: 'Telegram channel', desc: 'Announcements and bonus codes', href: '/promotion' },
-  { icon: 'fa-whatsapp', title: 'WhatsApp', desc: 'Chat with us directly', href: '/support' },
+  { icon: 'fa-headset', title: 'Live chat', desc: 'Average reply under 2 minutes', href: '/support/live-chat' },
+  {
+    icon: 'fa-envelope',
+    title: 'Email support',
+    desc: SUPPORT_EMAIL,
+    href: `mailto:${SUPPORT_EMAIL}`,
+    external: true,
+  },
+  {
+    icon: 'fa-telegram',
+    title: 'Telegram channel',
+    desc: 'Announcements and bonus codes',
+    href: SUPPORT_TELEGRAM,
+    external: true,
+  },
 ]
 
 export const SUPPORT_FAQS = [

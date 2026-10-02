@@ -21,7 +21,15 @@ set();window.addEventListener('resize',set);window.addEventListener('orientation
 const ASSET_V = Date.now().toString(36)
 
 export const renderer = jsxRenderer(
-  ({ children, title, showTabbar = true, active = '', bodyClass = '', ludo = false }) => {
+  ({
+    children,
+    title,
+    showTabbar = true,
+    active = '',
+    bodyClass = '',
+    ludo = false,
+    liveChat = false,
+  }) => {
     return (
       <html lang="en">
         <head>
@@ -45,6 +53,8 @@ export const renderer = jsxRenderer(
           <link rel="stylesheet" href={`/css/pages.css?v=${ASSET_V}`} />
           {/* the board game ships its own skin — only its own route loads it */}
           {ludo && <link rel="stylesheet" href={`/css/ludo.css?v=${ASSET_V}`} />}
+          {/* the support chat is its own screen too (see src/pages/misc.tsx) */}
+          {liveChat && <link rel="stylesheet" href={`/css/live-chat.css?v=${ASSET_V}`} />}
 
           <script dangerouslySetInnerHTML={{ __html: REM_SCRIPT }} />
         </head>
@@ -89,6 +99,8 @@ export const renderer = jsxRenderer(
           <script src={`/js/app.js?v=${ASSET_V}`} defer></script>
           {/* the game itself (Ludo route only) — see public/js/ludo.js */}
           {ludo && <script src={`/js/ludo.js?v=${ASSET_V}`} defer></script>}
+          {/* the chat itself (Live chat route only) — see public/js/live-chat.js */}
+          {liveChat && <script src={`/js/live-chat.js?v=${ASSET_V}`} defer></script>}
         </body>
       </html>
     )

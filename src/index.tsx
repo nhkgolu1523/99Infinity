@@ -26,7 +26,7 @@ import {
   TermsPage,
   PrivacyPage,
 } from './pages/account'
-import { GamesPage, SupportPage, NotFoundPage } from './pages/misc'
+import { GamesPage, SupportPage, LiveChatPage, NotFoundPage } from './pages/misc'
 import { LudoPage } from './pages/ludo'
 import { WalletOverviewPage } from './pages/wallet'
 import { DepositPage } from './pages/deposit'
@@ -125,6 +125,18 @@ app.get('/games/ludo', async (c) =>
 )
 
 app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTabbar: false }))
+
+/* the support chat is a screen of its own: a closed, self-contained screen
+   (like the Ludo board) that ships its own css + script and keeps the site
+   chrome off — so it is a full-screen route of its own, not a tab. */
+app.get('/support/live-chat', (c) =>
+  c.render(<LiveChatPage />, {
+    title: 'Live Chat',
+    showTabbar: false,
+    bodyClass: 'live-chat-body',
+    liveChat: true,
+  })
+)
 
 /* wallet sub-pages */
 /* wallet overview — the two wallets (main / 3rd party) + quick actions */
