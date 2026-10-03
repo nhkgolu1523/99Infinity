@@ -54,12 +54,16 @@
   function nowStr() { return fmtTime(Date.now()) }
   function inr(v) { return '\u20b9' + (Math.round(Number(v || 0) * 100) / 100) }
 
-  /* the screen's vocabulary — identical to your engine's table */
+  /* the screen's vocabulary — identical to the engine's table, with the one rule
+     we changed on purpose: betting closes 5 SECONDS before a period ends (the
+     original shipped 15), so 55 of every 60 seconds stay open. The server holds
+     the same number (src/lib/wingo.ts → WINGO_TYPES / CONFIG/WINGO), so the
+     countdown, the bet lock and the accepted/refused bet can never disagree. */
   var TYPES = {
-    4: { iv: 600, seq: '10004', len: 4, draw: 15, sort: 4, name: 'Win Go 10Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-    1: { iv: 60, seq: '10001', len: 4, draw: 15, sort: 3, name: 'Win Go 1Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-    2: { iv: 180, seq: '100020', len: 3, draw: 15, sort: 2, name: 'Win Go 3Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-    3: { iv: 300, seq: '10101', len: 4, draw: 15, sort: 1, name: 'Win Go 5Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' }
+    4: { iv: 600, seq: '10004', len: 4, draw: 5, sort: 4, name: 'Win Go 10Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+    1: { iv: 60, seq: '10001', len: 4, draw: 5, sort: 3, name: 'Win Go 1Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+    2: { iv: 180, seq: '100020', len: 3, draw: 5, sort: 2, name: 'Win Go 3Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+    3: { iv: 300, seq: '10101', len: 4, draw: 5, sort: 1, name: 'Win Go 5Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' }
   }
   var TYPE_ORDER = [4, 1, 2, 3]
   function cfgOf(t) { return TYPES[t] || TYPES[1] }
@@ -71,11 +75,17 @@
     if (p5 === '10001') return 1
     return 1
   }
+  /* Every issue id is built in IST (UTC+5:30), never in the device's own
+     timezone: the server that decides a round (the Cloudflare cron Worker runs
+     in UTC) and the screen that displays it (a phone in India) must produce the
+     SAME id for the same minute, or the results, the history and the bets stop
+     lining up the moment the game is played from a different timezone. */
+  var IST_MS = 5.5 * 60 * 60 * 1000
   function issueFor(t, startMs) {
-    var c = cfgOf(t), d = new Date(startMs)
-    var dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    var c = cfgOf(t), d = new Date(startMs + IST_MS)
+    var dayStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - IST_MS
     var idx = Math.floor((startMs - dayStart) / (c.iv * 1000)) + 1
-    return '' + d.getFullYear() + pad(d.getMonth() + 1, 2) + pad(d.getDate(), 2) + c.seq + pad(idx, c.len)
+    return '' + d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) + c.seq + pad(idx, c.len)
   }
   function periodAt(t, ms) {
     var iv = cfgOf(t).iv * 1000, start = Math.floor(ms / iv) * iv
@@ -114,7 +124,9 @@
     var y = Number(s.substr(0, 4)), mo = Number(s.substr(4, 2)) - 1, da = Number(s.substr(6, 2))
     var idx = parseInt(s.substr(8 + c.seq.length), 10)
     if (!y || !isFinite(idx) || idx < 1) return null
-    var start = new Date(y, mo, da).getTime() + (idx - 1) * c.iv * 1000
+    /* IST midnight of the id's own date — the mirror of issueFor above, which
+       builds ids in IST no matter what timezone the device runs in */
+    var start = Date.UTC(y, mo, da) - IST_MS + (idx - 1) * c.iv * 1000
     return { start: start, end: start + c.iv * 1000, issue: s, type: t }
   }
 
@@ -496,24 +508,45 @@
     })
   }
 
-  /* ---- the round-over pop-up: the SERVER decides the money, we only report */
+  /* ---- the round-over pop-up: the SERVER decides the money, we only report.
+     The screen schedules this ask for the exact millisecond the period ends,
+     computed from the countdown digits — which can land a beat BEFORE the
+     period's last second is over. The server refuses to reveal a round that has
+     not ended (`number: null`), and answering that as a settled bet would paint
+     a "loss · ₹0" pop-up on a bet that may still win. So while the round is not
+     published yet we retry for a couple of seconds; only when it stays
+     unpublished do we answer nothing (no pop-up at all — never a wrong one). */
   function hWinResult(issue) {
     var t = typeOfIssue(issue)
-    return apiCall('POST', API + '/result', { typeId: t, issue: String(issue) }).then(function (d) {
-      if (d && typeof d.balance === 'number') markWalletChanged(d.balance)
-      if (!d || !d.mine) return ok([])
-      return ok([{
-        issueNumber: String(issue),
-        number: d.number,
-        colour: d.colour,
-        winAmount: Number(d.winAmount) || 0,
-        typeName: t,
-        state: Number(d.state) || 0
-      }])
-    }).catch(function (e) {
-      /* nothing of mine on that round, or the round is not drawn yet */
-      return ok([])
-    })
+    var tries = 0
+    function once() {
+      return apiCall('POST', API + '/result', { typeId: t, issue: String(issue) }).then(function (d) {
+        if (d && typeof d.balance === 'number') markWalletChanged(d.balance)
+        if (!d || !d.mine) return ok([])
+        /* The screen's countdown drifts a couple of seconds ahead of the server
+           (its ticker is a plain setInterval), so this ask can land 2–4s before
+           the period has really ended. Poll until the round is published — the
+           result appears the instant it is — and only give up (answering nothing,
+           never a wrong "loss") after ~9 seconds. */
+        if (d.number === null && tries < 36) {
+          tries++
+          return new Promise(function (res) { setTimeout(res, 250) }).then(once)
+        }
+        if (d.number === null) return ok([])
+        return ok([{
+          issueNumber: String(issue),
+          number: d.number,
+          colour: d.colour,
+          winAmount: Number(d.winAmount) || 0,
+          typeName: t,
+          state: Number(d.state) || 0
+        }])
+      }).catch(function (e) {
+        /* nothing of mine on that round, or the round is not drawn yet */
+        return ok([])
+      })
+    }
+    return once()
   }
 
 
@@ -1002,6 +1035,96 @@
     if (h.indexOf('#/home/AllLotteryGames/WinGo') !== 0) location.replace(routeFor(BOOT_TYPE))
     else if (h.indexOf('gameCode=') === -1) location.replace(routeFor(typeInHash(h) || BOOT_TYPE))
   }, 400)
+
+  /* ============ the site's own pages, wired into the game shell ============
+     Three buttons of the shell belong to the ORIGINAL app, whose own wallet and
+     notice screens are not part of this site:
+
+       wallet bar  Withdraw → /account/withdraw
+       wallet bar  Deposit  → /account/deposit
+       notice bar  Detail   → /messages   (the Notifications screen)
+
+     Each of those pages honours a `back` query, so its back button returns the
+     player to the exact round they left (`/wingo.html?type=<mode>`).
+
+     The click is caught in the CAPTURE phase on `document`, i.e. BEFORE the
+     shell's own Vue listener on the button: stopPropagation() keeps the original
+     handler from running, and the site page opens instead. The two route watches
+     (hash + pushState) cover the other possibility — a button that navigates
+     instead of reacting — so both shapes of the shell end up on our page. */
+  function sitePageFor(word) {
+    if (/withdraw/i.test(word)) return '/account/withdraw'
+    if (/recharge|deposit/i.test(word)) return '/account/deposit'
+    return '/messages'
+  }
+
+  /* where the back button of the site page must land: this very round. The mode
+     rides in the HASH (`#/home/AllLotteryGames/WinGo?typeId=…&gameCode=…`),
+     which the screen's own boot code reads and pins — a `?type=` query on the
+     .html itself is not used here, because a query on a static file keeps some
+     dev servers from serving the file at all. */
+  function backHere() {
+    var t = 0
+    try { t = typeInHash(W.location.hash) } catch (e) { }
+    return '/wingo.html' + routeFor(t || BOOT_TYPE)
+  }
+
+  function openSitePage(path) {
+    try {
+      W.location.href = path + '?back=' + encodeURIComponent(backHere())
+    } catch (e) {
+      W.location.href = path
+    }
+  }
+
+  /* the label of the wallet-bar chip the click landed on ('' when it is not one
+     of the two chips — the bet grid never says exactly "Deposit"/"Withdraw") */
+  function chipWord(node) {
+    var n = node
+    for (var i = 0; i < 3 && n; i++) {
+      if (n.classList && n.classList.contains('Wallet__C-balance-l3')) break
+      var t = String(n.textContent || '').replace(/\s+/g, ' ').trim()
+      if (t === 'Withdraw' || t === 'Deposit') return t
+      n = n.parentElement
+    }
+    return ''
+  }
+
+  function onShellClick(ev) {
+    var t = ev.target
+    if (!t || !t.closest) return
+    var word = chipWord(t)
+    if (!word && t.closest('.Wallet__C')) word = chipWord(t.closest('.Wallet__C'))
+    if (!word) {
+      var hot = t.closest('button.hotIcon, .noticeBar__container')
+      if (hot && /^Detail$/i.test(String(hot.textContent || '').replace(/\s+/g, ' ').trim())) word = 'Detail'
+    }
+    if (!word) return
+    ev.preventDefault()
+    ev.stopPropagation()
+    if (ev.stopImmediatePropagation) ev.stopImmediatePropagation()
+    openSitePage(sitePageFor(word))
+  }
+  document.addEventListener('click', onShellClick, true)
+
+  /* a route change instead of a click (the shell's own wallet/notice routes) */
+  W.addEventListener('hashchange', function () {
+    var h = String(W.location.hash || '')
+    if (/withdraw|recharge|deposit|notification|notice/i.test(h)) {
+      var m = /withdraw|recharge|deposit|notification|notice/i.exec(h)
+      openSitePage(sitePageFor(m[0]))
+    }
+  })
+  ;['pushState', 'replaceState'].forEach(function (name) {
+    var orig = history[name]
+    if (typeof orig !== 'function') return
+    history[name] = function (state, title, url) {
+      var u = String(url == null ? '' : url)
+      var m = /withdraw|recharge|deposit|notification|notice/i.exec(u)
+      if (m) { openSitePage(sitePageFor(m[0])); return }
+      return orig.apply(history, arguments)
+    }
+  })
 
   /* ====================== prime the first paint ====================== */
   snapshot(BOOT_TYPE, false).catch(function () { })

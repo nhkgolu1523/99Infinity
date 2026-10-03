@@ -4,6 +4,7 @@ import { site } from './data'
 
 import { HomePage } from './pages/home'
 import { MessagesPage } from './pages/messages'
+import { safeBack } from './components/layout'
 import { LoginPage, RegisterPage, ForgotPasswordPage } from './pages/auth'
 import { ActivityPage, ActivityDetailPage, PromotionPage } from './pages/activity'
 import { LuckyWheelPage } from './pages/spin'
@@ -93,10 +94,13 @@ app.get('/account', (c) =>
    FULL-SCREEN PAGES  (no bottom navigation)
    -------------------------------------------------------------------------- */
 app.get('/messages', async (c) =>
-  c.render(<MessagesPage items={await loadMessages(c.env)} />, {
-    title: 'Notifications',
-    showTabbar: false,
-  })
+  c.render(
+    <MessagesPage items={await loadMessages(c.env)} back={safeBack(c.req.query('back'), '/')} />,
+    {
+      title: 'Notifications',
+      showTabbar: false,
+    },
+  ),
 )
 
 app.get('/login', (c) => c.render(<LoginPage />, { title: 'Log in', showTabbar: false }))

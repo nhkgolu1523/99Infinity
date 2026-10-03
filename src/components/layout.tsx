@@ -135,6 +135,20 @@ export function SiteFooter() {
 /* ==========================================================================
    PAGE SHELL
    ========================================================================== */
+
+/** A back target that came in on the query string (`?back=…`), made safe.
+ *
+ *  The game screen (public/wingo-engine.js) sends a player to one of the site's
+ *  own pages together with the round they were watching, so that page's back
+ *  button can return them there instead of dropping them on some unrelated tab.
+ *  Only a same-site path is ever accepted (a single "/" lead, no "//", no "\"),
+ *  so a crafted link can never turn that button into an off-site redirect. */
+export function safeBack(value: unknown, fallback: string): string {
+  const v = String(value == null ? '' : value).trim()
+  if (!v || v.charAt(0) !== '/' || v.charAt(1) === '/' || v.indexOf('\\') !== -1) return fallback
+  return v
+}
+
 export function Page({
   children,
   pad = true,

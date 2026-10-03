@@ -1,5 +1,6 @@
 import { site } from '../data'
 import { NavbarInner, SiteFooter } from '../components/layout'
+import { safeBack } from '../components/layout'
 import { Icon } from '../components/icons'
 import { SPRITE_SYMBOLS } from '../components/account-sprite'
 import { useRequestContext } from 'hono/jsx-renderer'
@@ -376,11 +377,14 @@ export function WithdrawPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
+  /* the wallet tab normally — the game screen's Withdraw chip sends ?back=… so
+     the button lands on the round the player left */
+  const back = safeBack(c.req.query('back'), '/account')
 
   return (
     <div class="ac-page" id="wdPage">
       <header class="ac-header">
-        <a class="ac-header__btn" href="/account" aria-label="Back">
+        <a class="ac-header__btn" href={back} aria-label="Back">
           <Icon name="chevron-left" size="0.37rem" />
         </a>
         <span class="ac-header__title">Withdraw</span>

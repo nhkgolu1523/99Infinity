@@ -1,5 +1,6 @@
 import { useRequestContext } from 'hono/jsx-renderer'
 import { Icon } from '../components/icons'
+import { safeBack } from '../components/layout'
 import { totalBalance } from '../lib/wallet'
 import { DEFAULT_LIMITS_CONFIG, depositQuickAmounts, type LimitsConfig } from '../lib/rewards'
 
@@ -22,11 +23,14 @@ export function DepositPage({ limits }: { limits?: LimitsConfig }) {
   })
   const depositMin = Math.max(1, Math.floor(Number(limits?.depositMin) || DEFAULT_LIMITS_CONFIG.depositMin))
   const quickAmounts = depositQuickAmounts(depositMin)
+  /* back to wherever the player came from (the game screen sends ?back=…), the
+     wallet tab otherwise */
+  const back = safeBack(c.req.query('back'), '/account')
 
   return (
     <div class="dp-page" data-deposit-min={depositMin}>
       <header class="ac-header">
-        <a class="ac-header__btn" href="/account" data-back data-dp-back aria-label="Back">
+        <a class="ac-header__btn" href={back} data-back data-dp-back aria-label="Back">
           <Icon name="chevron-left" size="0.33rem" />
         </a>
         <span class="ac-header__title" data-dp-title>Deposit</span>

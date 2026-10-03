@@ -46,14 +46,16 @@ export type WingoType = {
   betMultiple: string
 }
 
-/* Verbatim from the original engine (wingo-engine.js → TYPES). The durations
-   MUST stay in step with the labels: 1 → Win Go 1Min, 2 → 3Min, 3 → 5Min,
-   4 → 10Min. */
+/* Verbatim from the original engine (wingo-engine.js → TYPES) except for `draw`,
+   which is the only rule we changed on purpose: betting closes 5 SECONDS before a
+   period ends (the original shipped 15), so a player can keep betting 55 of every
+   60 seconds. The durations MUST stay in step with the labels:
+   1 → Win Go 1Min, 2 → 3Min, 3 → 5Min, 4 → 10Min. */
 export const WINGO_TYPES: Record<WingoMode, WingoType> = {
-  4: { typeID: 4, iv: 600, seq: '10004', len: 4, draw: 15, sort: 4, typeName: 'Win Go 10Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-  1: { typeID: 1, iv: 60, seq: '10001', len: 4, draw: 15, sort: 3, typeName: 'Win Go 1Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-  2: { typeID: 2, iv: 180, seq: '100020', len: 3, draw: 15, sort: 2, typeName: 'Win Go 3Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
-  3: { typeID: 3, iv: 300, seq: '10101', len: 4, draw: 15, sort: 1, typeName: 'Win Go 5Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+  4: { typeID: 4, iv: 600, seq: '10004', len: 4, draw: 5, sort: 4, typeName: 'Win Go 10Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+  1: { typeID: 1, iv: 60, seq: '10001', len: 4, draw: 5, sort: 3, typeName: 'Win Go 1Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+  2: { typeID: 2, iv: 180, seq: '100020', len: 3, draw: 5, sort: 2, typeName: 'Win Go 3Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
+  3: { typeID: 3, iv: 300, seq: '10101', len: 4, draw: 5, sort: 1, typeName: 'Win Go 5Min', scope: '1|10|100|1000', betMultiple: '1|5|10|20|50|100' },
 }
 
 /** The tab order the original app shows (10Min first, then 1 / 3 / 5). */
@@ -72,6 +74,11 @@ export const WINGO_MODE_KEY: Record<WingoMode, string> = {
 
 /** How many finished results are kept per mode (the original's window). */
 export const WINGO_KEEP = 50
+
+/** How many result keys go into one Firebase write. Small multi-path writes are
+ *  the reliable shape: a single 270-key PATCH can come back 200 and still drop
+ *  the tail of the map, which is how a gap survives a "successful" backfill. */
+const WINGO_WRITE_CHUNK = 50
 
 /** How many results a first-ever run seeds, so history/trend are not empty. */
 const WINGO_SEED = 50
@@ -111,7 +118,9 @@ export const DEFAULT_WINGO_CONFIG: WingoConfig = {
   minBet: 1,
   maxBet: 1000,
   feePercent: 2,
-  drawSeconds: 15,
+  /* betting closes 5 seconds before the draw (the original shipped 15 — the
+     admin can still re-price this in CONFIG/WINGO, see LEGACY_DRAW_SECONDS) */
+  drawSeconds: 5,
   quantityMax: 100,
   maxStake: 100000,
   multiplierMultiplies: false,
@@ -158,6 +167,11 @@ export function normaliseWingoConfig(raw: any): WingoConfig {
 const CACHE_TTL = 60 * 1000
 let cached: { at: number; value: WingoConfig } | null = null
 
+/** The draw window this game shipped with before the 5-second rule. A stored
+ *  CONFIG/WINGO still holding it is treated as "never configured" and moved to
+ *  the current default — the old value was never a decision, just the default. */
+export const LEGACY_DRAW_SECONDS = 15
+
 /** CONFIG/WINGO, seeded with the defaults on the very first read (same pattern
  *  as the wheel, the daily reward and Ludo). */
 export async function loadWingoConfig(env: any): Promise<WingoConfig> {
@@ -178,6 +192,22 @@ export async function loadWingoConfig(env: any): Promise<WingoConfig> {
     return DEFAULT_WINGO_CONFIG
   }
   const value = normaliseWingoConfig(stored)
+  /* ONE-TIME MIGRATION: the 15-second window the game used to ship with is
+     replaced by the 5-second rule (betting open until 55s of every minute).
+     The old value was the default, never a decision, so it is corrected here —
+     and written back once — so the countdown the player sees and the
+     server-side bet check can never disagree. A value an admin typed on
+     purpose (say 10) is left exactly as it is. */
+  if (value.drawSeconds === LEGACY_DRAW_SECONDS) {
+    const migrated = normaliseWingoConfig({ ...stored, drawSeconds: DEFAULT_WINGO_CONFIG.drawSeconds })
+    try {
+      await dbPatch(env, { 'CONFIG/WINGO/drawSeconds': DEFAULT_WINGO_CONFIG.drawSeconds })
+    } catch {
+      /* best effort — the value returned below is 5 either way */
+    }
+    cached = { at: Date.now(), value: migrated }
+    return migrated
+  }
   cached = { at: Date.now(), value }
   return value
 }
@@ -218,16 +248,28 @@ function pad(n: number | string, len: number): string {
 
 /** The issue id of the period starting at `startMs` — `YYYYMMDD` + sequence +
  *  the in-day period index, exactly as the original app builds it (e.g.
- *  20261003 + 10001 + 0042 for the 42nd minute of the day). */
+ *  20261003 + 10001 + 0042 for the 42nd minute of the day).
+ *
+ *  The date parts are always computed in IST (UTC+5:30), never in the runtime's
+ *  own timezone: the cron trigger that decides a round runs inside a Cloudflare
+ *  Worker (UTC) while the screen and the dev server run in IST, and one period
+ *  must have ONE id everywhere — otherwise the history, the bets and the
+ *  results stop lining up the moment the writer's timezone differs. */
+export const WINGO_TZ_OFFSET_MS = 5.5 * 60 * 60 * 1000
+
 export function wingoIssue(mode: WingoMode, startMs: number): string {
   const c = wingoType(mode)
-  const d = new Date(startMs)
-  const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const d = new Date(startMs + WINGO_TZ_OFFSET_MS)
+  const y = d.getUTCFullYear()
+  const mo = d.getUTCMonth()
+  const da = d.getUTCDate()
+  /* IST midnight of the id's own date, in epoch milliseconds */
+  const dayStart = Date.UTC(y, mo, da) - WINGO_TZ_OFFSET_MS
   const idx = Math.floor((startMs - dayStart) / (c.iv * 1000)) + 1
   return (
-    String(d.getFullYear()) +
-    pad(d.getMonth() + 1, 2) +
-    pad(d.getDate(), 2) +
+    String(y) +
+    pad(mo + 1, 2) +
+    pad(da, 2) +
     c.seq +
     pad(idx, c.len)
   )
@@ -254,7 +296,8 @@ export function wingoPeriodFromIssue(mode: WingoMode, issue: any): WingoPeriod |
   const da = Number(s.substr(6, 2))
   const idx = parseInt(s.substr(8 + c.seq.length), 10)
   if (!y || !Number.isFinite(idx) || idx < 1) return null
-  const start = new Date(y, mo, da).getTime() + (idx - 1) * c.iv * 1000
+  /* IST midnight of the id's own date — the mirror of wingoIssue above */
+  const start = Date.UTC(y, mo, da) - WINGO_TZ_OFFSET_MS + (idx - 1) * c.iv * 1000
   return { start, end: start + c.iv * 1000, issue: s }
 }
 
@@ -551,21 +594,39 @@ export async function generateWingoResults(
 
   const issues = Object.keys(patch)
   if (issues.length) {
-    const body: Record<string, any> = {}
-    for (const issue of issues) body[`${WINGO_RESULT_BRANCH}/${key}/${issue}`] = patch[issue]
-    try {
-      await dbPatch(env, body)
-    } catch {
-      return report
+    /* One PATCH per small batch. A 270-key catch-up in a single multi-path write
+       is the one shape Firebase's REST API quietly mishandles (the request comes
+       back fine and the tail of the map never lands), which is exactly how a gap
+       in the history can survive a "successful" backfill. Batches of 50 stay
+       small enough to be reliable, and `wrote` reports only what really landed —
+       so a gap that is still there after a tick is visible in the report instead
+       of hiding behind a 0/None. A failed batch is simply retried by the next
+       tick's backfill. */
+    for (let i = 0; i < issues.length; i += WINGO_WRITE_CHUNK) {
+      const slice = issues.slice(i, i + WINGO_WRITE_CHUNK)
+      const body: Record<string, any> = {}
+      for (const issue of slice) body[`${WINGO_RESULT_BRANCH}/${key}/${issue}`] = patch[issue]
+      try {
+        await dbPatch(env, body)
+      } catch {
+        continue
+      }
+      report.wrote += slice.length
+      for (const issue of slice) map[issue] = patch[issue]
     }
-    report.wrote = issues.length
-    for (const issue of issues) map[issue] = patch[issue]
+    if (!report.wrote) return report
     resultCache[key] = { at: Date.now(), map }
   }
 
   /* keep the window bounded (the original keeps 50 per mode). Only ever drops
      the OLDEST keys, only once there is a comfortable margin above the window,
-     and never a key it cannot parse — so a hand-written result is safe. */
+     and never a key it cannot parse — so a hand-written result is safe.
+
+     The dropped keys are removed one by one, as `path: null` in a PATCH. A
+     full-node PUT of the trimmed map would replace the whole branch, so a key
+     added by a hand-edit (or by another isolate a moment ago) between our read
+     and this write would be destroyed — and the promise the game rests on is
+     that nothing here ever deletes a period it did not itself outdate. */
   if (full && Object.keys(map).length > WINGO_KEEP + 30) {
     const known: string[] = []
     const foreign: string[] = []
@@ -576,15 +637,23 @@ export async function generateWingoResults(
       return (pb ? pb.start : 0) - (pa ? pa.start : 0)
     })
     const keep = known.slice(0, WINGO_KEEP).concat(foreign)
-    const trimmedMap: Record<string, number> = {}
-    for (const k of keep) trimmedMap[k] = map[k]
+    const keepSet: Record<string, true> = {}
+    for (const k of keep) keepSet[k] = true
+    const drop = Object.keys(map).filter((k) => !keepSet[k])
     try {
-      await dbPut(env, `${WINGO_RESULT_BRANCH}/${key}`, trimmedMap)
-      report.trimmed = Object.keys(map).length - keep.length
-      report.kept = keep.length
-      resultCache[key] = { at: Date.now(), map: trimmedMap }
+      for (let i = 0; i < drop.length; i += WINGO_WRITE_CHUNK) {
+        const slice = drop.slice(i, i + WINGO_WRITE_CHUNK)
+        const body: Record<string, any> = {}
+        for (const k of slice) body[`${WINGO_RESULT_BRANCH}/${key}/${k}`] = null
+        await dbPatch(env, body)
+        report.trimmed += slice.length
+        for (const k of slice) delete map[k]
+      }
+      report.kept = Object.keys(map).length
+      resultCache[key] = { at: Date.now(), map }
     } catch {
-      /* the trim is housekeeping — a failure must never fail the round */
+      /* the trim is housekeeping — a failure must never fail the round, and the
+         keys that were already deleted stay deleted (they are the oldest ones) */
     }
   }
 

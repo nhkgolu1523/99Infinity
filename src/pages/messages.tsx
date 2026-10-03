@@ -11,13 +11,13 @@ const ICONS = [
   { icon: 'trophy', tone: 'red' },
 ]
 
-export function MessagesPage({ items }: { items?: NoticeItem[] } = {}) {
+export function MessagesPage({ items, back = '/' }: { items?: NoticeItem[]; back?: string } = {}) {
   /* DB notifications (written by the admin panel) with the static seed appended */
   const list = items && items.length ? items : (site.messages as any[])
   return (
     <div class="nt-page">
       <header class="ac-header">
-        <a class="ac-header__btn" href="/" data-back aria-label="Back">
+        <a class="ac-header__btn" href={back} data-back aria-label="Back">
           <Icon name="chevron-left" size="0.33rem" />
         </a>
         <span class="ac-header__title">Notifications</span>
