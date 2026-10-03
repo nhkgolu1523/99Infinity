@@ -80,6 +80,7 @@ import {
   validWingoSelect,
   wingoBetsPath,
   wingoBettingOpen,
+  wingoColourOf,
   wingoFeeOf,
   wingoMultiples,
   wingoMultiplier,
@@ -90,6 +91,7 @@ import {
   wingoRuleText,
   wingoScope,
   wingoSelectLabel,
+  wingoSizeOf,
   wingoType,
   type WingoConfig,
   type WingoMode,
@@ -1273,6 +1275,42 @@ function wingoBetRow(orderId: string, b: any, cfg: WingoConfig) {
   }
 }
 
+/** The site's announcements the game's notice bar shows — the SAME list the
+ *  Notifications screen carries (`MESSAGES` + `CONFIG/NOTICE`), so the message a
+ *  player reads in the game is the one the admin sent from the panel.
+ *  The screen polls /state every few seconds and these two nodes barely ever
+ *  change, so a short cache keeps Firebase from being asked for them again
+ *  (still short enough that a fresh announcement lands within ten seconds). */
+const ANNOUNCE_TTL = 10 * 1000
+type AnnounceItem = { id: string; title: string; siteMessage: string; addtime: string; isRead: number }
+let announceCache: { at: number; items: AnnounceItem[]; notice: string } | null = null
+
+async function loadAnnouncements(env: any) {
+  if (announceCache && Date.now() - announceCache.at < ANNOUNCE_TTL) return announceCache
+  try {
+    const [messages, notice] = await Promise.all([
+      loadMessages(env),
+      loadNotice(env),
+    ])
+    const items: AnnounceItem[] = (Array.isArray(messages) ? messages : [])
+      .slice(0, 10)
+      .map((m: any) => ({
+        id: String(m?.id || ''),
+        title: String(m?.title || ''),
+        siteMessage: String(m?.desc || m?.title || ''),
+        addtime: String(m?.time || ''),
+        isRead: 0,
+      }))
+    announceCache = { at: Date.now(), items, notice: String(notice || '') }
+  } catch (e: any) {
+    /* never let a broken announcement read fail the whole game state —
+       it degrades to an empty notice bar until the next cache refresh */
+    void e
+    announceCache = { at: Date.now(), items: [], notice: '' }
+  }
+  return announceCache
+}
+
 /** GET /api/wingo/state?typeId=1 — everything the screen shows, in one answer.
  *
  *  It is also what keeps the game alive: it makes sure the running period has a
@@ -1296,23 +1334,19 @@ apiApp.get('/wingo/state', async (c) => {
   const due = beat - lastWingoTick > WINGO_TICK_GAP
   if (due) lastWingoTick = beat
 
-  const [freshRaw, history] = await Promise.all([
+  const [freshRaw, history, generated, announce] = await Promise.all([
     dbGet<UserNode>(c.env, `USERS/${session.uid}`).catch(() => null),
     /* the drawn-result window the screen paints (cached inside) */
     wingoHistory(c.env, mode, 50).catch(() => []),
     /* the running round must carry its value — and any period the cron missed
        is filled in here, but at most once every WINGO_TICK_GAP milliseconds */
     generateWingoResults(c.env, mode, due).catch(() => null),
+    /* the site's announcements, so the game's notice bar shows what the admin
+       sent — read together with the rest, no second round-trip (cached below) */
+    loadAnnouncements(c.env).catch(() => ({ items: [], notice: '' })),
   ])
-
-  /* the site's announcements — the same list the Notifications screen shows */
-  const [messages, notice] = await Promise.all([
-    loadMessages(c.env).catch(() => []),
-    loadNotice(c.env).catch(() => ''),
-  ])
-  const noticeItems = messages
-    .slice(0, 10)
-    .map((m) => ({ id: m.id, title: m.title, siteMessage: m.desc || m.title, addtime: m.time, isRead: 0 }))
+  const messages = announce.items
+  const notice = announce.notice
 
   const fresh = freshRaw || session
 
@@ -1371,7 +1405,7 @@ apiApp.get('/wingo/state', async (c) => {
     /* the site's own announcements — the game's notice bar and its
        Notifications screen read these, so the message a player sees in the
        game is the same message the admin sent from the panel */
-    messages: noticeItems,
+    messages,
     notice,
     myBets,
     /* bets that were settled by THIS request — the client pops these up */
@@ -1578,21 +1612,37 @@ apiApp.post('/wingo/result', async (c) => {
     const stake = r2(Number(b.stake) || r2(Number(b.amount) * Number(b.betCount)))
     stakeTotal = r2(stakeTotal + stake)
     const k = row ? wingoMultiplier(Number(b.selectType), Number(b.gameType), row.number) : 0
-    const profit = k > 0 ? wingoPayout(stake, k, cfg.feePercent) : 0
+    /* a bet older than the cached result window is already settled in its own
+       node — trust the stored outcome there, never a phantom "not won" */
+    const state = row ? (k > 0 ? 1 : 0) : Number(b?.state) || 0
+    const profit = row
+      ? (k > 0 ? wingoPayout(stake, k, cfg.feePercent) : 0)
+      : r2(Number(b?.profitAmount) || 0)
     if (profit > winAmount) winAmount = profit
     return wingoBetRow(
       orderId,
       {
         ...b,
-        settled: !!row,
-        state: k > 0 ? 1 : 0,
-        number: row ? row.number : undefined,
+        settled: !!row || !!b?.settled,
+        state,
+        number: row ? row.number : (b?.number !== undefined ? Number(b.number) : undefined),
         profitAmount: profit,
-        premium: row ? row.premium : '',
+        premium: row ? row.premium : (b?.premium || ''),
       },
       cfg,
     )
   })
+
+  /* when the round itself has scrolled out of the cached window, the drawn
+     number is still on the settled bets — recover it so the pop-up can name it */
+  const drawn = row
+    ? row
+    : (Number(mine[0]?.[1]?.number) >= 0 && mine[0]?.[1]?.settled
+      ? (() => {
+        const n = Number(mine[0][1].number)
+        return { number: n, colour: wingoColourOf(n), size: wingoSizeOf(n), premium: String(mine[0][1].premium || '') }
+      })()
+      : null)
 
   return c.json({
     ok: true,
@@ -1601,10 +1651,10 @@ apiApp.post('/wingo/result', async (c) => {
     typeId: mode,
     typeName: wingoType(mode).typeName,
     /* null until the round has actually ended — a running round is never drawn */
-    number: row ? row.number : null,
-    colour: row ? row.colour : null,
-    size: row ? row.size : null,
-    premium: row ? row.premium : '',
+    number: drawn ? drawn.number : null,
+    colour: drawn ? drawn.colour : null,
+    size: drawn ? drawn.size : null,
+    premium: drawn ? drawn.premium : '',
     stakeTotal,
     winAmount: r2(winAmount),
     state: winAmount > 0 ? 1 : 0,
