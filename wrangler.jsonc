@@ -7,8 +7,19 @@
     "nodejs_compat"
   ],
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    // the Worker's safety net for its own static tree: the WinGo build lives at
+    // /wingo/ and is normally served by the asset layer directly, but if a
+    // request ever reaches the Worker it delegates to this binding instead of
+    // falling through to the site's 404 page.
+    "binding": "ASSETS"
+  },
+  // WinGo's results are written by this cron trigger — see src/lib/wingo.ts
+  // (generateWingoResults) and the scheduled handler the build adds in
+  // vite.config.ts. A missed tick is harmless: the next one backfills the gap.
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },

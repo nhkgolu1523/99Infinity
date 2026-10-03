@@ -1,4 +1,5 @@
 import { site } from '../data'
+import { playableGameOf } from '../lib/game-pages'
 import { Icon } from './icons'
 
 /* ==========================================================================
@@ -122,10 +123,7 @@ function SectionHead({
 
 /* games that are really playable have a screen of their own — the catalogue
    entries all lead to the games list, where the tap gate decides between
-   coming-soon, the deposit popup and the game itself */
-const GAME_PAGES: Record<string, string> = {
-  ludo: '/games/ludo',
-}
+   coming-soon, the deposit popup and the game itself (see lib/game-pages.ts) */
 
 export function TopGames() {
   const items = site.topGames
@@ -146,15 +144,18 @@ export function TopGames() {
                     .split('/')
                     .pop()!
                     .replace(/\.[a-z0-9]+$/i, '')
-                  const href = GAME_PAGES[key] || '/games'
+                  const game = playableGameOf(key)
+                  const href = game ? game.href : '/games'
                   return (
                     <a
                       class="top-games__item"
                       href={href}
                       data-game
-                      data-game-key={key}
-                      /* a playable game is loaded as its own page (its css/js
-                         live in that page's head — see public/js/ludo.js) */
+                      /* the gate reads the GAMES switch of the game, not of the
+                         artwork — a playable entry owns its own key */
+                      data-game-key={game ? game.key : key}
+                      /* a playable game is loaded as its own page (WinGo is the
+                         original build at /wingo.html; Ludo ships its own css/js) */
                       data-full-nav={href === '/games' ? undefined : '1'}
                     >
                       <div class="cover">

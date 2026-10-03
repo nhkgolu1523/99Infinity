@@ -1,4 +1,5 @@
 import { site } from '../data'
+import { playableGameOf } from '../lib/game-pages'
 import { NavbarInner } from '../components/layout'
 import { SUPPORT_CHANNELS, SUPPORT_FAQS } from '../components/dialogs'
 import { Icon } from '../components/icons'
@@ -49,12 +50,26 @@ export function GamesPage() {
         </div>
 
         <div class="gm-grid" data-games-grid>
-          {all.map((g) => (
-            <a class="gm-card" href="/games" data-game data-cat={g.cat} data-name={g.src} data-requires-auth>
-              <img src={g.src} alt={g.label} loading="lazy" />
-              <span class="gm-card__title">{g.label}</span>
-            </a>
-          ))}
+          {all.map((g) => {
+            /* a really playable game owns its own key and its own screen; the
+               artwork-only entries fall through to the catalogue gate */
+            const game = playableGameOf(g.src)
+            return (
+              <a
+                class="gm-card"
+                href={game ? game.href : '/games'}
+                data-game
+                data-cat={g.cat}
+                data-name={g.src}
+                data-game-key={game ? game.key : undefined}
+                data-full-nav={game ? '1' : undefined}
+                data-requires-auth
+              >
+                <img src={g.src} alt={game ? game.label : g.label} loading="lazy" />
+                <span class="gm-card__title">{game ? game.label : g.label}</span>
+              </a>
+            )
+          })}
         </div>
 
         <div class="gm-empty hidden" data-games-empty>

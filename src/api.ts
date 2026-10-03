@@ -46,6 +46,7 @@ import {
   isPlaceholderName,
 } from './lib/backend'
 import { walletSplit, walletTotals, totalBalance } from './lib/wallet'
+import { PLAYABLE_GAMES, playableGameOf } from './lib/game-pages'
 import {
   PAYMENT_WINDOW_SECONDS,
   createFamOrder,
@@ -66,6 +67,33 @@ import {
   ludoPrize,
   validLudoMatchId,
 } from './lib/ludo'
+import {
+  WINGO_ORDER,
+  generateWingoResults,
+  isWingoMode,
+  loadWingoConfig,
+  r2,
+  readWingoResults,
+  settleWingoBets,
+  tickWingo,
+  validWingoOrderId,
+  validWingoSelect,
+  wingoBetsPath,
+  wingoBettingOpen,
+  wingoFeeOf,
+  wingoMultiples,
+  wingoMultiplier,
+  wingoPayout,
+  wingoPeriod,
+  wingoPeriodFromIssue,
+  wingoResultAt,
+  wingoRuleText,
+  wingoScope,
+  wingoSelectLabel,
+  wingoType,
+  type WingoConfig,
+  type WingoMode,
+} from './lib/wingo'
 
 export type UserNode = {
   uid: string
@@ -654,7 +682,22 @@ apiApp.get('/me', async (c) => {
   /* live status from the DB — admin changes apply instantly */
   const fresh = await dbGet<UserNode>(c.env, `USERS/${session.uid}`)
   if (!fresh) return c.json({ error: 'Account data not found' }, 401)
-  const u: UserNode = { ...fresh, uid: session.uid }
+  let u: UserNode = { ...fresh, uid: session.uid }
+
+  /* WinGo settles on every page load as well: a round that ended while the app
+     was closed is credited here, so the first balance the navbar paints on this
+     page is already the settled one (the same reason Ludo's /state settles).
+     `won` is only above zero when something really landed, so the extra read is
+     rare — it costs nothing on the ordinary request where no bet was waiting. */
+  try {
+    const settled = await settleWingoBets(c.env, session.uid, u, await loadWingoConfig(c.env))
+    if (settled.won > 0) {
+      const after = await dbGet<UserNode>(c.env, `USERS/${session.uid}`)
+      if (after) u = { ...after, uid: session.uid }
+    }
+  } catch {
+    /* the balance stays pre-settlement — the game's own poll settles it */
+  }
 
   const transactions = Object.entries((u as any).transactions || {})
     .map(([, v]) => v as any)
@@ -664,6 +707,8 @@ apiApp.get('/me', async (c) => {
   return c.json({
     ok: true,
     uid: u.uid,
+    /* the account's own phone — the WinGo screen shows it as the user name */
+    phone: String((u as any).auth?.phone || ''),
     profile: u.profile || {},
     status: u.status || { code: 'active', message: '' },
     /* the spendable total = plain counter + every credited gateway deposit */
@@ -796,6 +841,9 @@ apiApp.get('/games', async (c) => {
       for (const src of paths) seed[gameKeyFromSrc(src)] = 0
     }
     for (const key of TOP_GAME_KEYS) seed[key] = 0
+    /* a really playable title ships ENABLED — the admin can still switch it off
+       from the console (GAMES/wingo = 0) at any time */
+    for (const g of PLAYABLE_GAMES) seed[g.key] = 1
     if (Object.keys(seed).length) {
       try {
         await dbPut(c.env, 'GAMES', seed)
@@ -804,6 +852,23 @@ apiApp.get('/games', async (c) => {
       }
     }
     games = seed
+  } else {
+    /* The map already exists, so the seed above will never run again — but a
+       playable game added since then still has to be listed, otherwise the admin
+       Games screen cannot show or switch it. Only MISSING keys are added, so a
+       game the admin switched off stays off. */
+    const missing: Record<string, any> = {}
+    for (const g of PLAYABLE_GAMES) {
+      if (!Object.prototype.hasOwnProperty.call(games, g.key)) missing[`GAMES/${g.key}`] = 1
+    }
+    if (Object.keys(missing).length) {
+      try {
+        await dbPatch(c.env, missing)
+        for (const g of PLAYABLE_GAMES) if (missing[`GAMES/${g.key}`]) games[g.key] = 1
+      } catch {
+        /* best effort — the gate answers from the game itself either way */
+      }
+    }
   }
 
   /* normalise to the three states the client renders: 0 coming soon,
@@ -817,6 +882,36 @@ apiApp.get('/games', async (c) => {
 /** The three home "Top Games" tiles — their own switch inside GAMES. */
 export const TOP_GAME_KEYS = ['ludo', 'chicken', 'fruit-slasher']
 
+/** Every catalogue image key that resolves to a playable game. A tile can carry
+ *  either name — the game's own key ("wingo") or the artwork key the catalogue
+ *  derives from the image ("arlottery_wingo_30s_…") — so BOTH are honoured: an
+ *  admin who switches either one off hides the game. */
+function gameAliasKeys(gameKey: string): string[] {
+  const out: string[] = []
+  for (const paths of Object.values(site.games as Record<string, string[]>)) {
+    for (const src of paths) {
+      const k = gameKeyFromSrc(src)
+      if (k !== gameKey && playableGameOf(k)?.key === gameKey) out.push(k)
+    }
+  }
+  return out
+}
+
+/** The GAMES/<key> state of one key: what Firebase says when the key is listed,
+ *  otherwise the state of the GAME ITSELF (a really playable title is live,
+ *  everything else is coming soon). */
+function gameStatusOf(games: Record<string, any>, key: string): 0 | 1 | 2 {
+  const listed = (k: string) => Object.prototype.hasOwnProperty.call(games, k)
+  if (listed(key)) return gameStateValue(games[key])
+  const game = playableGameOf(key)
+  if (!game) return 0
+  /* the alias the catalogue actually uses may carry the admin's decision */
+  for (const alias of gameAliasKeys(game.key)) {
+    if (listed(alias)) return gameStateValue(games[alias])
+  }
+  return 1
+}
+
 /** Live status of the given game keys (used on every tap, no stale cache).
  *  Answers with the raw state — 0 coming soon, 1 playable, 2 deposit popup. */
 apiApp.get('/games/status', async (c) => {
@@ -826,7 +921,7 @@ apiApp.get('/games/status', async (c) => {
     .filter(Boolean)
   const games = (await dbGet<Record<string, any>>(c.env, 'GAMES')) || {}
   const status: Record<string, number> = {}
-  for (const key of wanted) status[key] = gameStateValue((games as any)[key])
+  for (const key of wanted) status[key] = gameStatusOf(games, key)
   return c.json({ ok: true, status })
 })
 
@@ -1092,6 +1187,481 @@ apiApp.post('/ludo/finish', async (c) => {
   await dbPatch(c.env, patch)
   return c.json({ ok: true, matchId, status: result, amount, balance: balanceAfter, txId })
 })
+
+/* ------------------------------------------------------------------- wingo */
+/* The colour-prediction lottery. The drawn number is decided in ONE place — the
+   Cloudflare cron trigger that writes it into GAME_RESULTS/WINGO/<MODE> the
+   moment a period starts (src/lib/wingo.ts → generateWingoResults) — and it is
+   read from there too. This module settles bets against the real wallet and hands
+   the screen its state; it never rolls a number itself.
+
+   /state doubles as the game's heartbeat: it tops up the running period's value
+   (and backfills anything the cron missed), so results keep flowing as long as
+   anybody is playing — while the cron keeps them flowing when nobody is. */
+
+/* the state poll may run the generator at most this often, so a busy room cannot
+   turn every player's poll into a Firebase write */
+const WINGO_TICK_GAP = 15000
+let lastWingoTick = 0
+
+/** The mode a request is about: the one asked for when it is a real, ENABLED
+ *  mode, otherwise the first enabled one — never an id the game cannot run. */
+function normaliseWingoMode(raw: any, cfg: WingoConfig): WingoMode {
+  const n = Number(raw)
+  if (isWingoMode(n) && cfg.modes[String(n)] !== false) return n
+  const first = WINGO_ORDER.find((m) => cfg.modes[String(m)] !== false)
+  return first || (isWingoMode(n) ? n : 1)
+}
+
+/** The rounds the screen may show: every stored result whose period has ENDED,
+ *  newest first. A running round is never revealed even though its value is
+ *  already sitting in Firebase — that is the original's own rule, and it is what
+ *  makes reading the node in advance useless. */
+async function wingoHistory(env: any, mode: WingoMode, limit = 50) {
+  const read = await readWingoResults(env, mode)
+  if (!read.ok) return []
+  const now = Date.now()
+  const keys = Object.keys(read.map)
+  keys.sort((a, b) => {
+    const pa = wingoPeriodFromIssue(mode, a)
+    const pb = wingoPeriodFromIssue(mode, b)
+    return (pb ? pb.start : 0) - (pa ? pa.start : 0)
+  })
+  const out: any[] = []
+  for (const k of keys) {
+    const row = wingoResultAt(mode, read.map, k, now)
+    if (!row) continue
+    out.push({
+      issueNumber: row.issueNumber,
+      number: row.number,
+      colour: row.colour,
+      size: row.size,
+      premium: row.premium,
+      endTime: row.end,
+    })
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+/** One bet, shaped exactly the way the screen renders it. */
+function wingoBetRow(orderId: string, b: any, cfg: WingoConfig) {
+  const mode = Number(b?.mode)
+  const amount = Number(b?.amount) || 0
+  const betCount = Number(b?.betCount) || 1
+  const stake = r2(Number(b?.stake) || r2(amount * betCount))
+  const gameType = Number(b?.gameType)
+  const selectType = Number(b?.selectType)
+  return {
+    orderId,
+    typeId: mode,
+    typeName: isWingoMode(mode) ? wingoType(mode).typeName : '',
+    issue: String(b?.issue || ''),
+    selectType,
+    selectName: wingoSelectLabel(selectType, gameType),
+    gameType,
+    amount,
+    betCount,
+    stake,
+    /* 2 = waiting for the draw, 1 = won, 0 = lost — the original's own states */
+    state: b?.settled ? Number(b?.state) || 0 : 2,
+    number: b?.settled ? Number(b?.number) : undefined,
+    profitAmount: b?.settled ? r2(b?.profitAmount) : undefined,
+    fee: r2(Number(b?.fee) || wingoFeeOf(stake, cfg.feePercent)),
+    premium: b?.settled ? String(b?.premium || '') : undefined,
+    time: Number(b?.at) || 0,
+  }
+}
+
+/** GET /api/wingo/state?typeId=1 — everything the screen shows, in one answer.
+ *
+ *  It is also what keeps the game alive: it makes sure the running period has a
+ *  value (backfilling anything the cron missed) and it settles the caller's
+ *  finished bets, so a win is already in the wallet by the time this answer is
+ *  rendered — which is why the balance visibly jumps within one poll. */
+apiApp.get('/wingo/state', async (c) => {
+  const session = c.get('user') as UserNode | null
+  if (!session) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const cfg = await loadWingoConfig(c.env)
+  const mode = normaliseWingoMode(c.req.query('typeId'), cfg)
+  const type = wingoType(mode)
+
+  /* 1) THREE things the answer needs, none of which depends on the others:
+        the generator, the caller's wallet and the drawn-result window. They are
+        started TOGETHER — run in sequence they cost a Firebase round-trip each,
+        and the screen polls every few seconds, so the wallet on screen would
+        lag behind the player's own taps. */
+  const beat = Date.now()
+  const due = beat - lastWingoTick > WINGO_TICK_GAP
+  if (due) lastWingoTick = beat
+
+  const [freshRaw, history] = await Promise.all([
+    dbGet<UserNode>(c.env, `USERS/${session.uid}`).catch(() => null),
+    /* the drawn-result window the screen paints (cached inside) */
+    wingoHistory(c.env, mode, 50).catch(() => []),
+    /* the running round must carry its value — and any period the cron missed
+       is filled in here, but at most once every WINGO_TICK_GAP milliseconds */
+    generateWingoResults(c.env, mode, due).catch(() => null),
+  ])
+
+  /* the site's announcements — the same list the Notifications screen shows */
+  const [messages, notice] = await Promise.all([
+    loadMessages(c.env).catch(() => []),
+    loadNotice(c.env).catch(() => ''),
+  ])
+  const noticeItems = messages
+    .slice(0, 10)
+    .map((m) => ({ id: m.id, title: m.title, siteMessage: m.desc || m.title, addtime: m.time, isRead: 0 }))
+
+  const fresh = freshRaw || session
+
+  /* 2) settle against that copy, using the SERVER's clock — a win is already in
+        the wallet by the time the answer is rendered */
+  const settled = await settleWingoBets(c.env, session.uid, fresh, cfg)
+  const split = walletSplit(fresh)
+  const balance = r2(split.total + settled.won)
+
+  /* 3) the running period, timed by the server so no device can drift from it */
+  const now = Date.now()
+  const period = wingoPeriod(mode, now)
+  const drawAt = period.end - cfg.drawSeconds * 1000
+
+  /* the caller's own bets, newest first — enough for the slip and the tab */
+  const betNode = (fresh as any)?.wingo?.bets || {}
+  const myBets = Object.entries<any>(betNode)
+    .map(([orderId, b]) => wingoBetRow(orderId, b, cfg))
+    .sort((a, b) => b.time - a.time)
+    .slice(0, 30)
+
+  return c.json({
+    ok: true,
+    serverTime: now,
+    typeId: mode,
+    typeName: type.typeName,
+    intervalM: type.iv / 60,
+    rule: wingoRuleText(mode, cfg),
+    issue: period.issue,
+    startTime: period.start,
+    endTime: period.end,
+    /* when the countdown switches from "bet" to "draw" */
+    drawAt,
+    bettingOpen: now < drawAt,
+    closedFor: Math.max(0, Math.round((drawAt - now) / 1000)),
+    balance,
+    main: split.main,
+    promo: split.promo,
+    /* which durations are switched on — the screen hides the others */
+    modes: cfg.modes,
+    config: {
+      minBet: cfg.minBet,
+      maxBet: cfg.maxBet,
+      maxStake: cfg.maxStake,
+      feePercent: cfg.feePercent,
+      drawSeconds: cfg.drawSeconds,
+      quantityMax: cfg.quantityMax,
+      pollMs: cfg.pollMs,
+      multiplierMultiplies: cfg.multiplierMultiplies,
+      scope: wingoScope(mode),
+      multiples: wingoMultiples(mode),
+    },
+    history,
+    /* the newest five, the row the header paints */
+    lastFive: history.slice(0, 5).map((r) => r.number),
+    /* the site's own announcements — the game's notice bar and its
+       Notifications screen read these, so the message a player sees in the
+       game is the same message the admin sent from the panel */
+    messages: noticeItems,
+    notice,
+    myBets,
+    /* bets that were settled by THIS request — the client pops these up */
+    wins: settled.wins,
+    won: settled.won,
+  })
+})
+
+/** POST /api/wingo/bet — place ONE bet on the running round.
+ *
+ *  The browser sends an order id and a selection; the SERVER decides which round
+ *  the money rides on (the running period, never a period the client names), what
+ *  the stake is (amount × quantity, both validated against the mode's own option
+ *  lists) and whether betting is still open. The wallet is debited here and only
+ *  here — the ledger keeps that single debit and the settlement then records how
+ *  it ended (see src/lib/wingo.ts → settleWingoBets).
+ *
+ *  One order id = one bet: the node is claimed with an ETag-guarded write, so
+ *  exactly one caller wins that race and a double tap, a retry or a second tab
+ *  can never pay twice. */
+apiApp.post('/wingo/bet', async (c) => {
+  const session = c.get('user') as UserNode | null
+  if (!session) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const body = await c.req.json().catch(() => ({}) as any)
+  const orderId = String(body.order_id || '')
+  if (!validWingoOrderId(orderId)) return c.json({ error: 'Invalid order id' }, 400)
+
+  const cfg = await loadWingoConfig(c.env)
+  const mode = normaliseWingoMode(body.typeId ?? c.req.query('typeId'), cfg)
+  if (cfg.modes[String(mode)] === false)
+    return c.json({ error: `${wingoType(mode).typeName} is closed right now`, code: 'mode' }, 403)
+
+  const gameType = Number(body.gameType)
+  const selectType = Number(body.selectType)
+  if (!validWingoSelect(gameType, selectType))
+    return c.json({ error: 'That is not a bet on this game', code: 'select' }, 400)
+
+  /* the per-unit stake must be one of the mode's own chips */
+  const amount = Math.round(Number(body.amount) || 0)
+  const scope = wingoScope(mode)
+  if (scope.indexOf(amount) === -1)
+    return c.json({ error: `Choose an amount of ${scope.join(' / ')}`, code: 'amount', scope }, 400)
+
+  /* the quantity is what the +/- stepper and the X-chips produce */
+  const betCount = Math.round(Number(body.betCount) || 0)
+  if (!(betCount >= 1) || betCount > cfg.quantityMax)
+    return c.json({ error: `Quantity must be between 1 and ${cfg.quantityMax}`, code: 'quantity' }, 400)
+
+  const stake = r2(amount * betCount)
+  if (stake < cfg.minBet)
+    return c.json({ error: `Minimum bet is ₹${cfg.minBet}`, code: 'min-bet' }, 400)
+  if (stake > cfg.maxStake)
+    return c.json({ error: `A single bet can be at most ₹${cfg.maxStake}`, code: 'max-bet' }, 400)
+
+  const path = `${wingoBetsPath(session.uid)}/${orderId}`
+
+  /* Already paid for? A retry, a double tap or a second tab lands here and gets
+     the same answer without touching the wallet again — and it is checked BEFORE
+     the closing time, so re-sending an ACCEPTED bet is always a replay rather
+     than an error just because the round has since moved to its draw phase. */
+  const existing = await dbGet<any>(c.env, path)
+  if (existing) {
+    const again = (await dbGet<UserNode>(c.env, `USERS/${session.uid}`)) || session
+    return c.json({
+      ok: true,
+      replay: true,
+      orderId,
+      issue: String(existing.issue || ''),
+      typeId: Number(existing.mode) || mode,
+      stake: r2(Number(existing.stake) || 0),
+      balance: walletSplit(again).total,
+    })
+  }
+
+  /* a NEW bet only: the round is the running one and it must still be open */
+  const now = Date.now()
+  const period = wingoPeriod(mode, now)
+  if (!wingoBettingOpen(mode, cfg, now))
+    return c.json(
+      { error: 'Betting is closed for this round — wait for the next one', code: 'closed' },
+      400,
+    )
+
+  /* the session copy can be seconds old — read the wallet before charging */
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${session.uid}`)) || session
+  const split = walletSplit(fresh)
+  if (split.total < stake)
+    return c.json(
+      { error: `You need at least ₹${stake} for this bet`, code: 'balance', balance: split.total },
+      400,
+    )
+
+  /* the ETag write is the lock for two requests racing the same order id */
+  const claimed = await dbPutConditional(c.env, path, {
+    orderId,
+    mode,
+    issue: period.issue,
+    selectType,
+    gameType,
+    amount,
+    betCount,
+    stake,
+    state: 2,
+    settled: false,
+    at: now,
+  })
+  if (!claimed) {
+    const raced = await dbGet<any>(c.env, path)
+    if (raced)
+      return c.json({
+        ok: true,
+        replay: true,
+        orderId,
+        issue: String(raced.issue || ''),
+        typeId: Number(raced.mode) || mode,
+        stake: r2(Number(raced.stake) || 0),
+        balance: split.total,
+      })
+    return c.json({ error: 'Could not place the bet, please try again' }, 500)
+  }
+
+  /* real money first, then the bonus bucket — the same split the wallet shows */
+  const plan = ludoDebitPlan(split, stake)
+  const txId = genTxId()
+  try {
+    const patch: Record<string, any> = {
+      [`USERS/${session.uid}/balance/total`]: increment(-stake),
+      [`USERS/${session.uid}/stats/totalWager`]: increment(stake),
+      [`USERS/${session.uid}/stats/bets`]: increment(1),
+      [`USERS/${session.uid}/wingo/lastOrderId`]: orderId,
+      [`${path}/txId`]: txId,
+      [`USERS/${session.uid}/transactions/${txId}`]: {
+        type: 'bet',
+        source: 'WinGo',
+        label: `${wingoSelectLabel(selectType, gameType)} · ${wingoType(mode).typeName}`,
+        amount: -stake,
+        status: 'placed',
+        orderId,
+        mode,
+        issue: period.issue,
+        time: now,
+        uid: session.uid,
+        balanceAfter: r2(split.total - stake),
+      },
+    }
+    if (plan.main > 0) patch[`USERS/${session.uid}/balance/main`] = increment(-plan.main)
+    if (plan.promo > 0) patch[`USERS/${session.uid}/balance/promo`] = increment(-plan.promo)
+    await dbPatch(c.env, patch)
+  } catch {
+    /* the money never moved — release the order so the player can try again */
+    await dbDelete(c.env, path).catch(() => {})
+    return c.json({ error: 'Could not place the bet, please try again' }, 500)
+  }
+
+  return c.json({
+    ok: true,
+    orderId,
+    txId,
+    typeId: mode,
+    issue: period.issue,
+    selectType,
+    gameType,
+    amount,
+    betCount,
+    stake,
+    balance: r2(split.total - stake),
+    main: Math.max(0, split.main - plan.main),
+    promo: Math.max(0, split.promo - plan.promo),
+  })
+})
+
+/** POST /api/wingo/result — "what did MY bets on that round do?".
+ *
+ *  The screen asks this the instant a round it bet on ends, so the pop-up can
+ *  name the number, the colour and the win. `mine: 0` means the caller had
+ *  nothing on that round, in which case the client shows no pop-up at all —
+ *  exactly like the real API. */
+apiApp.post('/wingo/result', async (c) => {
+  const session = c.get('user') as UserNode | null
+  if (!session) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const body = await c.req.json().catch(() => ({}) as any)
+  const cfg = await loadWingoConfig(c.env)
+  const mode = normaliseWingoMode(body.typeId, cfg)
+  const issue = String(body.issue || '')
+
+  /* settle first: the answer must already reflect the money */
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${session.uid}`)) || session
+  const settled = await settleWingoBets(c.env, session.uid, fresh, cfg)
+  const balance = r2(walletSplit(fresh).total + settled.won)
+
+  const mine = Object.entries<any>((fresh as any)?.wingo?.bets || {}).filter(
+    ([, b]) => b && String(b?.issue) === issue,
+  )
+  if (!mine.length) return c.json({ ok: true, mine: 0, balance })
+
+  const read = await readWingoResults(c.env, mode)
+  const row = wingoResultAt(mode, read.map, issue)
+
+  let winAmount = 0
+  let stakeTotal = 0
+  const bets = mine.map(([orderId, b]) => {
+    const stake = r2(Number(b.stake) || r2(Number(b.amount) * Number(b.betCount)))
+    stakeTotal = r2(stakeTotal + stake)
+    const k = row ? wingoMultiplier(Number(b.selectType), Number(b.gameType), row.number) : 0
+    const profit = k > 0 ? wingoPayout(stake, k, cfg.feePercent) : 0
+    if (profit > winAmount) winAmount = profit
+    return wingoBetRow(
+      orderId,
+      {
+        ...b,
+        settled: !!row,
+        state: k > 0 ? 1 : 0,
+        number: row ? row.number : undefined,
+        profitAmount: profit,
+        premium: row ? row.premium : '',
+      },
+      cfg,
+    )
+  })
+
+  return c.json({
+    ok: true,
+    mine: bets.length,
+    issue,
+    typeId: mode,
+    typeName: wingoType(mode).typeName,
+    /* null until the round has actually ended — a running round is never drawn */
+    number: row ? row.number : null,
+    colour: row ? row.colour : null,
+    size: row ? row.size : null,
+    premium: row ? row.premium : '',
+    stakeTotal,
+    winAmount: r2(winAmount),
+    state: winAmount > 0 ? 1 : 0,
+    balance,
+    bets,
+  })
+})
+
+/** GET /api/wingo/my-bets?typeId=1&pageNo=1 — the paged "My Bets" tab. */
+apiApp.get('/wingo/my-bets', async (c) => {
+  const session = c.get('user') as UserNode | null
+  if (!session) return c.json({ error: 'Please log in first', code: 'login' }, 401)
+
+  const cfg = await loadWingoConfig(c.env)
+  const mode = normaliseWingoMode(c.req.query('typeId'), cfg)
+  const fresh = (await dbGet<UserNode>(c.env, `USERS/${session.uid}`)) || session
+  const settled = await settleWingoBets(c.env, session.uid, fresh, cfg)
+
+  const all = Object.entries<any>((fresh as any)?.wingo?.bets || {})
+    .filter(([, b]) => b && (!Number(b.mode) || Number(b.mode) === mode))
+    .map(([orderId, b]) => wingoBetRow(orderId, b, cfg))
+    .sort((a, b) => b.time - a.time)
+
+  const pageNo = Math.max(1, parseInt(String(c.req.query('pageNo') || '1'), 10) || 1)
+  const pageSize = Math.min(
+    50,
+    Math.max(5, parseInt(String(c.req.query('pageSize') || '10'), 10) || 10),
+  )
+  const start = (pageNo - 1) * pageSize
+
+  return c.json({
+    ok: true,
+    typeId: mode,
+    pageNo,
+    pageSize,
+    total: all.length,
+    balance: r2(walletSplit(fresh).total + settled.won),
+    list: all.slice(start, start + pageSize),
+  })
+})
+
+/** The cron trigger's own entry point — also open to a manual ping.
+ *
+ *  It can only ever ADD a result for a period that has none, so calling it is
+ *  harmless; it is throttled, so it cannot be used to hammer Firebase. See
+ *  vite.config.ts (the scheduled handler) and wrangler.jsonc (triggers.crons). */
+const wingoTickHandler = async (c: any) => {
+  const now = Date.now()
+  if (now - lastWingoTick < 5000 && c.req.header('x-wingo-force') !== '1')
+    return c.json({ ok: true, throttled: true, since: now - lastWingoTick })
+  lastWingoTick = now
+  const reports = await tickWingo(c.env, true)
+  return c.json({ ok: true, at: now, reports })
+}
+
+apiApp.get('/wingo/tick', wingoTickHandler)
+apiApp.post('/wingo/tick', wingoTickHandler)
 
 /* ------------------------------------------------------------------ deposit */
 

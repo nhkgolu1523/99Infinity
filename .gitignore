@@ -17,4 +17,6 @@ pids/
 /bottom-nav.html
 /IMAGES/
 /src/pages/99Infinity Text.png
-/_tmp_*
+/_tmp*
+# the original WinGo build, kept only as a reference (never shipped)
+/_wingo_src

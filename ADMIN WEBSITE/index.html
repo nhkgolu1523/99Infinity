@@ -387,6 +387,7 @@ const VIEWS = [
   { group: 'navPlatform', key: 'daily', label: 'Daily Reward', icon: '📅' },
   { group: 'navPlatform', key: 'limits', label: 'Money limits', icon: '⚖️' },
   { group: 'navPlatform', key: 'games', label: 'Games', icon: '🎮' },
+  { group: 'navPlatform', key: 'wingo', label: 'WinGo lottery', icon: '🎰' },
   { group: 'navPlatform', key: 'tools', label: 'Tools & backup', icon: '🛠️' },
 ];
 const TITLES = Object.fromEntries(VIEWS.map((v) => [v.key, v.label]));
@@ -443,6 +444,7 @@ async function go(key, opts = {}) {
     else if (key === 'daily') await viewDaily(view);
     else if (key === 'limits') await viewLimits(view);
     else if (key === 'games') await viewGames(view);
+    else if (key === 'wingo') await viewWingo(view);
     else if (key === 'tools') await viewTools(view);
   } catch (err) {
     view.innerHTML = '<div class="card"><div class="empty">⚠️ ' + esc(err.message) + '</div></div>';
@@ -1450,6 +1452,24 @@ const DEFAULT_LIMITS = {
   withdrawMin: 1000, withdrawMax: 10000, withdrawQuick: [1000, 2000, 3000, 5000, 10000], depositMin: 100,
 };
 
+/* -------- the WinGo lottery (src/lib/wingo.ts → DEFAULT_WINGO_CONFIG) -------
+   These are the app's own defaults, so "Reset to defaults" here lands on exactly
+   the values the API would seed on its own — otherwise the two would disagree
+   after a reset. The bet options themselves (1|10|100|1000 and X1…X100) live in
+   the game's own type table, not here. */
+const DEFAULT_WINGO = {
+  minBet: 1, maxBet: 1000, feePercent: 2, drawSeconds: 15, quantityMax: 100,
+  maxStake: 100000, multiplierMultiplies: false, pollMs: 4000,
+  modes: { '1': true, '2': true, '3': true, '4': true },
+};
+/* [Firebase node, mode id, label] — 10Min first, the order the game's tabs use */
+const WINGO_MODES = [
+  ['10MIN', '4', 'Win Go 10Min'],
+  ['1MIN', '1', 'Win Go 1Min'],
+  ['3MIN', '2', 'Win Go 3Min'],
+  ['5MIN', '3', 'Win Go 5Min'],
+];
+
 async function viewWheel(view) {
   const stored = (await dbGet('CONFIG/SPIN')) || {};
   const cfg = { ...DEFAULT_SPIN, ...stored };
@@ -1632,6 +1652,198 @@ async function viewLimits(view) {
       .split(',').map((v) => Math.floor(Number(v.trim()) || 0)).filter((v) => v > 0),
   });
   $('#lmReset').onclick = () => write(DEFAULT_LIMITS);
+}
+
+/* --------------------------------- 9a. the WinGo lottery (GAME_RESULTS/WINGO) --- */
+/* The game's numbers are decided by the Worker (src/lib/wingo.ts →
+   generateWingoResults) and written into GAME_RESULTS/WINGO/<MODE>/<issue>.
+   The write is a PATCH merge, so that node is the single source of truth: a value
+   typed here by hand is final — the generator only ever ADDS a period that has no
+   value, it never overwrites one. Everything below is therefore safe to edit. */
+async function viewWingo(view) {
+  const cfg = { ...DEFAULT_WINGO, ...((await dbGet('CONFIG/WINGO')) || {}) };
+  const modes = { ...DEFAULT_WINGO.modes, ...(cfg.modes || {}) };
+
+  /* one read for all four modes; a mode nobody has played yet answers null */
+  const all = (await dbGet('GAME_RESULTS/WINGO')) || {};
+  const keysOf = (node) => Object.keys(node || {}).sort();
+  const newest = (node) => {
+    const ks = keysOf(node);
+    return ks.length ? ks[ks.length - 1] : '—';
+  };
+  const counts = WINGO_MODES.map(([node]) => keysOf(all[node]).length);
+  const total = counts.reduce((a, b) => a + b, 0);
+
+  const modeRow = ([node, id, label]) => {
+    const k = keysOf(all[node]);
+    const last = k.length ? all[node][k[k.length - 1]] : null;
+    return (
+      '<tr>' +
+      '<td>' + esc(label) + '</td>' +
+      '<td class="mono">' + esc(node) + '</td>' +
+      '<td class="mono">' + esc(newest(all[node])) + '</td>' +
+      '<td>' + (last === null ? '—' : '<b class="mono">' + esc(last) + '</b>') + '</td>' +
+      '<td>' + k.length + '</td>' +
+      '<td><button class="btn" data-wg-view="' + esc(node) + '">Results</button></td>' +
+      '</tr>'
+    );
+  };
+
+  /* the four duration switches, in the same 1/0 style the payments screen uses */
+  const onOff = (id, label, on) => field(label + ' (1 = on, 0 = off)', id, on ? 1 : 0, 'number');
+
+  view.innerHTML =
+    '<div class="kpis">' +
+      kpi('Results stored', num(total), 'across ' + WINGO_MODES.length + ' modes', 'green') +
+      kpi('House fee', Number(cfg.feePercent) + '%', 'stake × (1 − fee) is the real stake') +
+      kpi('Bet size', inr(cfg.minBet) + ' – ' + inr(cfg.maxBet), 'chips 1 / 10 / 100 / 1000') +
+      kpi('Draw window', Number(cfg.drawSeconds) + 's', 'betting closes this early',
+        'gold') +
+      kpi('Cron', '* * * * *', 'writes each period the moment it starts') +
+    '</div>' +
+
+    '<div class="card"><h2>Live results</h2>' +
+      '<div class="sub">GAME_RESULTS/WINGO/&lt;MODE&gt;/&lt;issue&gt; = the drawn number (0-9). ' +
+      'A PATCH only ever merges, so a value you change here is the value the game pays out — ' +
+      'the generator never overwrites a result that already exists.</div>' +
+      '<div class="table-wrap"><table><thead><tr>' +
+        '<th>Game</th><th>Node</th><th>Newest issue</th><th>Drawn</th><th>Stored</th><th></th>' +
+      '</tr></thead><tbody>' +
+        WINGO_MODES.map(modeRow).join('') +
+      '</tbody></table></div>' +
+      '<div class="row" style="margin-top:14px">' +
+        '<button class="btn primary" id="wgTick">Force a tick now</button>' +
+        '<button class="btn" id="wgReload">Refresh</button>' +
+      '</div>' +
+      '<div class="sub" style="margin-top:10px">A tick fills in the running period (and any ' +
+      'period the cron missed). It never changes a value that is already stored. Results older ' +
+      'than the newest 50 per mode are trimmed away automatically.</div>' +
+    '</div>' +
+
+    '<div class="card"><h2>Game settings</h2>' +
+      '<div class="sub">CONFIG/WINGO — the app reads these live, so a change bites on the very ' +
+      'next bet. The page, the bet slip and the API validation all come from this one node.</div>' +
+      '<div class="grid2">' +
+        field('Minimum bet (₹)', 'wgMinBet', Number(cfg.minBet) || 1, 'number') +
+        field('Maximum bet option (₹)', 'wgMaxBet', Number(cfg.maxBet) || 1000, 'number') +
+        field('House fee (%)', 'wgFee', Number(cfg.feePercent) || 2, 'number') +
+        field('Draw window (seconds before the end)', 'wgDraw', Number(cfg.drawSeconds) || 15, 'number') +
+        field('Max quantity per bet', 'wgQty', Number(cfg.quantityMax) || 100, 'number') +
+        field('Max stake of ONE bet (₹)', 'wgMaxStake', Number(cfg.maxStake) || 100000, 'number') +
+        field('X-chips multiply the quantity (1) or set it (0)', 'wgMult',
+          cfg.multiplierMultiplies ? 1 : 0, 'number') +
+        field('State refresh (ms)', 'wgPoll', Number(cfg.pollMs) || 4000, 'number') +
+      '</div>' +
+      '<div class="grid2" style="margin-top:6px">' +
+        onOff('wgMode4', 'Win Go 10Min', modes['4'] !== false) +
+        onOff('wgMode1', 'Win Go 1Min', modes['1'] !== false) +
+        onOff('wgMode2', 'Win Go 3Min', modes['2'] !== false) +
+        onOff('wgMode3', 'Win Go 5Min', modes['3'] !== false) +
+      '</div>' +
+      '<div class="row" style="margin-top:14px">' +
+        '<button class="btn primary" id="wgSave">Save settings</button>' +
+        '<button class="btn" id="wgReset">Reset to defaults</button>' +
+      '</div></div>';
+
+  /* ── wiring ──────────────────────────────────────────────────────────────
+     "Force a tick" goes through the APP, not Firebase: the tick endpoint calls
+     the very same generateWingoResults the cron uses, so it generates and trims
+     exactly like a scheduled run. It only ever ADDS a period that has no value,
+     so pressing it can never rewrite a result. */
+  $('#wgTick').onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const before = btn.textContent;
+    btn.textContent = 'Ticking…';
+    try {
+      const res = await fetch(APP_URL + '/api/wingo/tick', { cache: 'no-store' });
+      const d = await res.json().catch(() => ({}));
+      if (d.throttled) toast('A tick ran a moment ago — try again in a few seconds');
+      else if (Array.isArray(d.reports)) {
+        toast('Tick: ' + d.reports.map((r) => r.key + ' +' + r.wrote).join(', '));
+      } else toast('Tick finished');
+    } catch (err) {
+      /* the Worker may not be reachable from this browser — say exactly that
+         instead of pretending the cron failed */
+      toast('App not reachable from this browser — ' + esc(APP_URL) + '/api/wingo/tick');
+    }
+    btn.disabled = false;
+    btn.textContent = before;
+    go('wingo');
+  };
+
+  $('#wgReload').onclick = () => go('wingo');
+
+  $('#wgSave').onclick = async () => {
+    const minBet = Math.max(1, Math.floor(Number($('#wgMinBet').value || 1)));
+    const maxBet = Math.max(minBet, Math.floor(Number($('#wgMaxBet').value || 1000)));
+    const quantityMax = Math.max(1, Math.floor(Number($('#wgQty').value || 100)));
+    await dbPatch({
+      'CONFIG/WINGO': {
+        minBet,
+        maxBet,
+        feePercent: Math.min(50, Math.max(0, Number($('#wgFee').value || 2))),
+        drawSeconds: Math.min(300, Math.max(1, Math.floor(Number($('#wgDraw').value || 15)))),
+        quantityMax,
+        maxStake: Math.max(maxBet, Math.floor(Number($('#wgMaxStake').value || maxBet * quantityMax))),
+        multiplierMultiplies: Number($('#wgMult').value) === 1,
+        pollMs: Math.min(60000, Math.max(1500, Math.floor(Number($('#wgPoll').value || 4000)))),
+        modes: {
+          '1': Number($('#wgMode1').value) === 1,
+          '2': Number($('#wgMode2').value) === 1,
+          '3': Number($('#wgMode3').value) === 1,
+          '4': Number($('#wgMode4').value) === 1,
+        },
+      },
+      'CONFIG/updatedAt': Date.now(),
+    });
+    toast('WinGo settings saved — live within a minute');
+    go('wingo');
+  };
+  $('#wgReset').onclick = async () => {
+    await dbPut('CONFIG/WINGO', DEFAULT_WINGO);
+    toast('WinGo reset to the app defaults');
+    go('wingo');
+  };
+
+  $$('[data-wg-view]').forEach((b) => (b.onclick = () => openWingoResults(b.dataset.wgView)));
+}
+
+/** Browse one mode's stored results — 50 rows, newest first, each editable. */
+function openWingoResults(node) {
+  (async () => {
+    const rows = (await dbGet('GAME_RESULTS/WINGO/' + node)) || {};
+    const keys = Object.keys(rows).sort().reverse();
+    const body = keys.map((issue) => (
+      '<tr>' +
+      '<td class="mono">' + esc(issue) + '</td>' +
+      '<td><input class="mono" style="width:70px" value="' + esc(rows[issue]) +
+        '" data-wg-set="' + esc(issue) + '" /></td>' +
+      '<td><button class="btn" data-wg-save="' + esc(issue) + '">Save</button></td>' +
+      '</tr>'
+    )).join('');
+
+    openSheet(
+      'WinGo results · ' + node,
+      '<div class="sub">' + keys.length + ' stored result' + (keys.length === 1 ? '' : 's') +
+        '. A value must be a single digit 0-9 — the game reads exactly this node, and the ' +
+        'generator will never overwrite what you type here.</div>' +
+      '<div class="table-wrap" style="max-height:60vh"><table><thead><tr>' +
+        '<th>Issue</th><th>Drawn</th><th></th>' +
+      '</tr></thead><tbody>' +
+        (body || '<tr><td colspan="3" class="empty">No results stored for this mode yet.</td></tr>') +
+      '</tbody></table></div>'
+    );
+
+    $$('[data-wg-save]').forEach((b) => (b.onclick = async () => {
+      const issue = b.dataset.wgSave;
+      const input = $('[data-wg-set="' + issue + '"]');
+      const v = Math.floor(Number(input.value));
+      if (!(v >= 0 && v <= 9)) return toast('A result must be 0-9');
+      await dbPut('GAME_RESULTS/WINGO/' + node + '/' + issue, v);
+      toast('Issue ' + issue + ' set to ' + v);
+    }));
+  })();
 }
 
 /* ------------------------------------------- 9b. live UPI payments (gateway) --- */

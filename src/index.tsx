@@ -59,6 +59,9 @@ app.use('/account/*', accountGate)
    wallet), so a guest is sent to the login page before the board ever loads */
 app.use('/games/ludo', accountGate)
 
+/* the lottery is personal too — it shows and spends the player's own wallet */
+app.use('/games/wingo', accountGate)
+
 /* --------------------------------------------------------------------------
    TABBED PAGES  (show the bottom navigation)
    -------------------------------------------------------------------------- */
@@ -123,6 +126,42 @@ app.get('/games/ludo', async (c) =>
     ludo: true,
   })
 )
+
+/* WinGo — the colour-prediction lottery. The screen is the ORIGINAL game build,
+   served untouched: `public/wingo.html` plus its files in `public/assets/`, and
+   `public/wingo-engine.js` — the same hook index.html already loaded, now talking
+   to this Worker instead of its own local engine (see public/wingo-engine.js).
+
+   The build asks for its own files from the SITE ROOT (`/assets/js/...`, its own
+   guard says so), which is why the page and the engine sit at the root and the
+   assets are merged into the site's `/assets/` — the names do not collide (the
+   build only adds css/ js/ gif/ json/ mp3/ png/ svg/ webp/ woff2/ and img/wepay/).
+
+   The files are served by the asset layer (see dist/_routes.json, which excludes
+   them), so nothing here runs for a real page view. This route only gates it and
+   hands over: ?type=1|2|3|4 opens that duration. */
+const WINGO_PAGE = '/wingo.html'
+
+app.get('/games/wingo', async (c) => {
+  const type = String(c.req.query('type') || '').trim()
+  const mode = /^[1-4]$/.test(type) ? `?type=${type}` : ''
+  return c.redirect(`${WINGO_PAGE}${mode}`, 302)
+})
+
+/** the folder form of the same URL → the page (so an old link never 404s) */
+app.get('/wingo', (c) => c.redirect(WINGO_PAGE + new URL(c.req.url).search, 302))
+app.get('/wingo/', (c) => c.redirect(WINGO_PAGE + new URL(c.req.url).search, 302))
+
+/* Safety net: the static tree is normally served by the asset layer, which
+   dist/_routes.json excludes from the Worker. If a request ever does reach the
+   Worker — a different deploy shape, a stale route manifest — the files are
+   delegated to the ASSETS binding instead of falling into the site's 404 page. */
+const serveAsset = async (c: any) => {
+  const assets = (c.env as any)?.ASSETS
+  if (assets && typeof assets.fetch === 'function') return assets.fetch(c.req.raw)
+  return c.notFound()
+}
+app.get('/assets/*', serveAsset)
 
 app.get('/support', (c) => c.render(<SupportPage />, { title: 'Support', showTabbar: false }))
 

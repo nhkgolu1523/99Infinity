@@ -1,0 +1,18 @@
+import { _ as i } from "./page-login-index.vue_vue_type_script_setup_true_lang.ts-26a67568.js";
+/* empty css                                                                              */ import { _ as o } from "./page-activity-ActivityDetail-6713f46c.js";
+import "./common.modules-cecf9b0d.js";
+import "./page-activity-Championship-c5772910.js";
+import "./page-activity-Bonus-c94a181e.js";
+import "./page-activity-PointMall-19e2176f.js";
+import "./page-activity-DailySignIn-7bda4bcc.js";
+import "./page-turntable-assets-d6267459.js";
+import "./native/index-9bac92b2.js";
+import "./en-5d34117c.js";
+const f = o(i, [
+  ["__scopeId", "data-v-47f4cc84"],
+  [
+    "__file",
+    "/usr/local/jenkins-prod/workspace/ar051-india-tiranga/src/views/login/index.vue",
+  ],
+]);
+export { f as default };

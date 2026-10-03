@@ -15,6 +15,7 @@ file so any single detail can be changed later without touching the rest.
 
 - **Local dev**: `http://localhost:3000`
 - **API**: `/api/health`, `/api/config`
+- **Playable games**: `/games/ludo` (board game), `/games/wingo` (the colour-prediction lottery)
 
 ## Pages built
 
@@ -106,10 +107,16 @@ webapp/
 │   │   ├── layout.tsx         # navbar, footer, float buttons, page shell
 │   │   ├── home.tsx           # every home-page section
 │   │   └── dialogs.tsx        # login alert, notice dialogs, quick-actions sheet
-│   └── pages/
+│   ├── pages/
 │       ├── home.tsx  messages.tsx  auth.tsx  activity.tsx  account.tsx  misc.tsx
 │       ├── ludo.tsx           # the playable game page (real wallet in, real UI out)
 │       └── ludo-html.ts       # generated: the game's own markup (from Ludo.html)
+│   └── lib/
+│       ├── backend.ts         # Firebase REST, sessions, UIDs
+│       ├── wallet.ts          # main / promo buckets, totals
+│       ├── ludo.ts            # Ludo's money rules (CONFIG/LUDO)
+│       ├── wingo.ts           # WinGo's rules, period math, result generator, settlement
+│       └── game-pages.ts      # which catalogue tiles are really playable + their GAMES key
 ├── Ludo.html                  # the standalone game — the design source
 ├── public/
 │   ├── css/
@@ -121,14 +128,19 @@ webapp/
 │   ├── js/app.js              # all interactions (14 opt-in modules)
 │   ├── js/ludo.js             # the game itself, wired to the real wallet
 │   ├── js/live-chat.js        # the support bot (knowledge base + typing + chips)
-│   └── assets/img/            # 320 separate image files, semantic names
-│       ├── brand/ banner/ tabbar/ title/ category/ activity/
-│       ├── float/ partner/ avatar/ ui/
-│       └── game/{jili,jdb,tb_chess,inplay…}  vendor/  fonts/
+│   ├── wingo.html             # the ORIGINAL WinGo page, moved in byte-identical
+│   ├── wingo-engine.js        # its API hook — now a bridge to this Worker
+│   ├── favico.ico  favicon.ico  icon-192x192.png
+│   └── assets/                # the site's images + the WinGo build's own files
+│       ├── img/{brand,banner,tabbar,title,category,activity,float,partner,
+│       │         avatar,ui,game,top,vendor,flags,wepay}/   fonts/
+│       └── css/ js/ gif/ json/ mp3/ png/ svg/ webp/ woff2/  ← the WinGo build
 └── tools/
     ├── gen-data.py             # asset → data.ts generator
     ├── split-ludo.cjs          # Ludo.html → ludo.css + ludo-html.ts
     └── make-activity-images.ps1 # activity banners → 16:9 web JPEGs
+
+/_wingo_src                    # a pristine copy of the original WinGo folder (gitignored)
 ```
 
 ## Editing guide (change one small thing, nothing else breaks)
@@ -173,10 +185,26 @@ marquees that pause on hover · `prefers-reduced-motion` respected.
 
 ## Deployment
 
-- **Platform**: Cloudflare Pages (Hono worker + static assets)
+- **Platform**: Cloudflare **Worker** (Hono) + static assets, configured by
+  `wrangler.jsonc` (`main: dist/_worker.js`, `assets.directory: ./dist`)
 - **Status**: runs locally and builds clean; not yet deployed
 - **Build**: `npm run build` → `dist/` (`_worker.js` + `_routes.json` + assets)
+- **Deploy**: `npm run deploy` (= `npm run build && wrangler deploy`)
 - **Dev server**: `pm2 start ecosystem.config.cjs`
+
+### The WinGo cron trigger
+
+`wrangler.jsonc` declares `triggers.crons: ["* * * * *"]`, and the build adds a
+`scheduled` handler to `dist/_worker.js` (see `vite.config.ts`). Two things to
+know:
+
+- a **cron trigger only exists on a deployed Worker** — it is not part of the
+  static-asset upload, so `wrangler deploy` is what arms it (check it under
+  *Workers → Triggers* in the dashboard). Until then, results are still written:
+  `GET /api/wingo/state` runs the same generator whenever somebody has the game
+  open;
+- a missed tick is harmless — the next run backfills every period since the last
+  stored result, so history stays continuous.
 
 ### Adding D1 later
 
@@ -431,7 +459,180 @@ every rupee it moves is real.
   balance"* and the server refuses again on `/enter` (`code: 'balance'`), whose
   answer also corrects a client that was showing a stale-high balance.
 
+## WinGo — the colour-prediction lottery (`/games/wingo`)
 
+The screen is **the original WinGo build, moved in as-is** — not re-authored. One
+file was changed: `wingo-engine.js`, which the page already loaded before its own
+bundle. That single hook now talks to this Worker instead of its own local engine,
+so the UI is untouched and the money is real.
+
+### Where everything lives
+
+| Path | What it is |
+|---|---|
+| `public/wingo.html` | the game page — a **byte-identical** copy of the original `index.html` (SHA256 verified) |
+| `public/wingo-engine.js` | the bridge: same seam, same envelopes, real backend |
+| `public/assets/{css,js,gif,json,mp3,png,svg,webp,woff2}/` | the build's own files, merged into the site's `/assets/` |
+| `public/assets/img/wepay/` | the build's images (the only `img/` subfolder it had) |
+| `public/favico.ico`, `public/favicon.ico`, `public/icon-192x192.png` | its icons |
+| `src/lib/wingo.ts` | the backend: period math, payout table, the result generator, settlement |
+| `src/lib/game-pages.ts` | which catalogue tiles are playable + their `GAMES/<key>` switch |
+| `src/api.ts` | `/api/wingo/state · bet · result · my-bets · tick` |
+
+The build asks for its own files from the **site root** (`/assets/js/…`) — its own
+guard refuses to start otherwise — so the page, the engine and the assets sit at the
+root rather than under a subfolder. Nothing collides: the build only adds
+`css/ js/ gif/ json/ mp3/ png/ svg/ webp/ woff2/` and `img/wepay/`, while the site's
+own files are `img/{brand,banner,game,…}` and `fonts/`. Checked file-by-file —
+**0 collisions**, and the site's images are untouched.
+
+`dist/_routes.json` excludes all of it from the Worker, so the asset layer serves the
+game directly; `app.get('/assets/*')` is only a safety net. `vite.config.ts` deletes
+that manifest on every build, because `dist/` is never emptied and a stale manifest
+would route the game's files to the Worker (the bug that would have 404'd the whole
+game on deploy).
+
+`/_wingo_src` is a pristine copy of the original folder, kept for diffing
+(gitignored). It can be deleted once you no longer need it.
+
+### How a round works
+
+| | |
+|---|---|
+| **Period** | fixed **wall-clock** time (1 / 3 / 5 / 10 min), aligned to the clock |
+| **Issue id** | `YYYYMMDD` + sequence + in-day index, e.g. `20261003` + `10001` + `0867` |
+| **Order window** | the first 45 s of a 1-minute round (period − `drawSeconds`) |
+| **Draw window** | the last 15 s — betting closes, the countdown turns red |
+| **Result** | one digit 0-9, written to Firebase the instant the round **starts** |
+
+The countdown is counted against **server timestamps** (`serverTime` / `drawAt` /
+`endTime` in `/api/wingo/state`), never the device clock.
+
+### Where the result comes from
+
+```
+Cloudflare cron (* * * * *)  ─┐
+                             ├─► generateWingoResults() ─► PATCH ─► Firebase
+GET /api/wingo/state (poll)  ─┘                          GAME_RESULTS/WINGO/<MODE>/<issue> = 0-9
+                                                                     │
+GET /api/wingo/state  ◄─────────── server-side read ────────────────┘
+       │
+       └─► the browser never talks to Firebase and never rolls a number
+```
+
+- `generateWingoResults()` is the **only** randomness source:
+  `crypto.getRandomValues` with rejection sampling (a fair 0-9).
+- It writes with **PATCH** (a merge), so a value can only ever be *added* — a result
+  already in Firebase (one written a moment ago, or **one typed into the console by
+  hand**) is never overwritten. A manual edit is the source of truth.
+- The value is created in the round's **first second** and only *revealed* after the
+  round has ended, so reading the node in advance is useless.
+- A missed cron tick is harmless: the next one **backfills** every gap since the last
+  stored period, and so does the state poll (throttled to once per 15 s).
+- The window is trimmed to the newest **50** results per mode.
+
+### The payout table (verbatim from the original engine)
+
+| Bet | Wins when | Pays |
+|---|---|---|
+| Number **n** | drawn = n | **9×** |
+| **Red** | 0 or even | 2× (1.5× on a **0**) |
+| **Green** | 5 or odd | 2× (1.5× on a **5**) |
+| **Violet** | 0 or 5 | **4.5×** |
+| **Big** | 5-9 | 2× |
+| **Small** | 0-4 | 2× |
+
+0 is `red,violet` and 5 is `green,violet` — that is why those two pay 1.5× on
+red/green *and* 4.5× on violet.
+
+**House fee 2%**: `realAmount = stake × 0.98`, and a win pays
+`stake × 0.98 × multiplier`. A ₹1 winning number pays **₹8.82**; a ₹1 winning Red
+pays **₹1.96**.
+### The bet slip (CONFIG/WINGO)
+
+| Field | Default | Meaning |
+|---|---|---|
+| `minBet` | `1` | smallest accepted stake |
+| `maxBet` | `1000` | the largest `scope` chip |
+| `feePercent` | `2` | house fee |
+| `drawSeconds` | `15` | how long the draw window lasts |
+| `quantityMax` | `100` | ceiling for the +/- stepper |
+| `maxStake` | `100000` | ceiling for ONE bet (maxBet × quantityMax) |
+| `multiplierMultiplies` | `false` | `false` → an X-chip **sets** the quantity; `true` → multiplies it |
+| `pollMs` | `4000` | how often the screen re-reads state |
+| `modes` | all on | per-duration switch — Firebase stores numeric keys as an **array**, so `modes[1]` and the `m1`…`m4` aliases are read too |
+
+Amount chips are `1 | 10 | 100 | 1000` and quantity chips are
+`X1 | X5 | X10 | X20 | X50 | X100`, from the mode's own definition — the same list
+the API validates against, so what the slip offers is what the server accepts.
+
+### Money safety
+
+- `/api/wingo/bet` is the **only** place a stake leaves the wallet, and it never
+  trusts an amount: the unit must be one of the mode's chips, the quantity within
+  `quantityMax`, the selection a real bet, the round the **running** one and still
+  open.
+- **One order id = one bet** (ETag-guarded claim), so a double tap, a retry or a
+  second tab cannot pay twice — a re-sent order id answers `replay: true` with the
+  same numbers, even after the round has closed.
+- Settlement credits **real money** (`balance/total` *and* `balance/main`) and marks
+  the bet settled in the **same** patch, so nothing can be paid twice. A loss credits
+  nothing — the stake is already gone.
+- A win is credited by whichever comes first: the game's own state poll, or
+  `/api/me` on any other page.
+- The ledger keeps the single `-stake` entry from the bet and records how it ended
+  (`won` / `lost`).
+
+### What the bridge maps
+
+The page keeps calling its own endpoints; the bridge translates them:
+
+| The page asks | The bridge calls |
+|---|---|
+| `GetGameIssue`, `GetNoaverageEmerdList`, `GetLastFiveIssueNumberResult`, `GetMyEmerdList`, `GetBalance`, `GetUserInfo` | `GET /api/wingo/state` (one cached snapshot, shared) |
+| `GameBetting` | `POST /api/wingo/bet` |
+| `GetWinTheLotteryResult` | `POST /api/wingo/result` |
+| `GetRuleByTypeId`, `GetHomeSettings`, `GetLoadedSetting`, `GetLongDragon`, `GetTypeList`, token/register/logout | answered in the bridge (no money involved) |
+| anything else | passed straight through to the real network |
+
+It hooks `XMLHttpRequest` (axios) and `fetch` exactly where the original engine did,
+and answers with the same envelope (`{code, msg, msgCode, serviceNowTime, data}`) and
+the same `page()` / `statRow()` / `ruleText()` shapes. A 401 sends the player to
+`/login`, since every money endpoint is server-protected.
+
+### Verified in a real headless browser
+
+`_tmp-wingo-browser.cjs` (gitignored) drives **real headless Chrome** over the
+DevTools Protocol with a real session cookie, opens `/wingo.html`, waits for the SPA
+to boot, then reads the rendered DOM and exercises the money path through the page's
+own route table. The last run:
+
+```
+balance rendered : ₹500.00
+history          : 20261003100010866 = 8 Big · …865 = 1 Small · …864 = 7 Big   (live from GAME_RESULTS)
+files            : /wingo-engine.js, /assets/js/*, /assets/css/*  → all 200
+bet (via bridge) : code 0, "Succeed", amount 1
+then in Firebase : balance 500.96 · totalWon 1.96 · totalWager 1 · bets 1
+                   bet node settled=true, sel=10 (Red) · tx amount=-1 status=won
+```
+
+₹500 − ₹1 stake + (₹1 × 0.98 × 2, Red won on an even number) = **₹500.96** — the
+arithmetic reconciles exactly.
+
+### Testing without losing money
+
+- `_tmp-wingo-browser.cjs` — the browser run above (`node _tmp-wingo-browser.cjs`,
+  after `_tmp-wingo-cookie.txt` holds a session for a funded throwaway account).
+- `_tmp-wingo-e2e.ps1` — API level: registers, funds, bets ₹1 on every number 0-9,
+  proves the replay, exercises the guard rails, then waits for the draw and prints the
+  settled wallet (expects `998.82 / totalWon 8.82 / totalLost 9`).
+
+### Known, pre-existing gaps (from the original folder)
+
+- `/ar-sw.js` is referenced but **not present** in the source folder → a harmless
+  service-worker 404 in the console.
+- `cdn-cgi/rum` 404s in local dev (a Cloudflare-injected beacon).
+- A couple of Vue warnings come from the build itself.
 ## Support chat — the Live chat screen (`/support/live-chat`)
 
 Tapping **Live chat** on the Customer service page (`/support`) opens the support
@@ -479,17 +680,26 @@ the links can never drift apart.
 
 - **Live money paths:** accounts, sessions, the wallet (main + 3rd-party), the lucky
   wheel, the daily reward, notifications, deposit limits, **real UPI deposits**
-  (FamGateway, see above) and **Ludo** (entry fee, prize pool) all read
-  and write the live Firebase RTDB and are enforced server-side. Static reference
-  copy for promotions/VIP and the other catalogue games is still presentation only
-  (no wagering or game logic is wired yet).
+  (FamGateway, see above), **Ludo** (entry fee, prize pool) and **WinGo**
+  (bets settled against the real wallet) all read and write the live Firebase RTDB
+  and are enforced server-side. Static reference copy for promotions/VIP and the
+  other catalogue games is still presentation only (no wagering or game logic is
+  wired yet).
+- **WinGo results** are decided by the Worker and written into
+  `GAME_RESULTS/WINGO/<MODE>` — that node is the game's single source of truth,
+  so editing a value there by hand is authoritative (the generator only ever adds
+  a key, never overwrites one). The cron trigger needs a deployed Worker; see
+  *The WinGo cron trigger* above.
 - The spin/daily reward guard is a read-then-write (`rewards/spin/dayKey`): a truly
   parallel double tap could still claim twice. Deposits are protected by the keyed
-  ledger above; do the same trick (or a Durable Object) before those two ever pay real
-  money.
+  ledger above, and Ludo/WinGo by an ETag-guarded order id — do the same trick (or
+  a Durable Object) before those two ever pay real money.
 - Reference game thumbnails and provider logos are hosted third-party brand assets
   kept only so the layout matches the reference; replace them before any public use.
 - The reference bundle's own JS/CSS was **not** copied — all styling is newly authored
-  against the extracted measurements (rem values, gradients, radii, timings).
+  against the extracted measurements (rem values, gradients, radii, timings). The
+  original WinGo build sits in `/_wingo_src` as a **reference only** (gitignored,
+  never shipped); only its rules, period math and payout table were re-implemented
+  in this codebase's own style.
 
-**Last updated**: 2026-09-29
+**Last updated**: 2026-10-03

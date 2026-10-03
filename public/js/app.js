@@ -2891,7 +2891,7 @@
      puts its own class on <body> (see src/renderer.tsx → bodyClass / ludo /
      liveChat). An SPA swap only replaces body.innerHTML, so it can neither bring
      the stylesheet along nor set that class: these must be loaded for real. */
-  const STANDALONE_ROUTES = ['/games/ludo', '/support/live-chat'];
+  const STANDALONE_ROUTES = ['/games/ludo', '/games/wingo', '/support/live-chat'];
 
   function isStandaloneRoute(href) {
     const path = String(href || '').split('#')[0].split('?')[0];

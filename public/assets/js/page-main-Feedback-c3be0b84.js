@@ -1,0 +1,96 @@
+import {
+    G as u,
+    z as p,
+    R as f,
+    A as b,
+    H as m,
+    I as k,
+    Q as v,
+    O as n,
+    J as e,
+    ax as g,
+    aF as h,
+    P as c,
+    u as w,
+    F as x,
+    N as y
+} from "./common.modules-afd11eec.js";
+import {
+    A as B,
+    bY as A,
+    g as F,
+    _ as T
+} from "./page-activity-ActivityDetail-2fb211b4.js";
+import "./page-turntable-assets-d6267459.js";
+import "./native/index-58bee5fe.js";
+import "./en-818c8e10.js";
+const I = {
+        class: "feedback-container"
+    },
+    N = {
+        class: "feedback-container-content"
+    },
+    R = {
+        class: "feedback-container-content-text"
+    },
+    S = {
+        class: "feedback-container-content-text-wrapper"
+    },
+    $ = ["placeholder"],
+    C = {
+        class: "feedback-container-content-describe"
+    },
+    M = ["src"],
+    P = {
+        class: "feedback-container-footer"
+    },
+    V = u({
+        __name: "index",
+        setup(D) {
+            const {
+                t: o
+            } = p(), i = f(), d = o("feedbackPhTXT"), s = b({
+                content: ""
+            });
+            async function l() {
+                if (!s.content) {
+                    w({
+                        message: o("feedbackMsg"),
+                        wordBreak: "break-word"
+                    });
+                    return
+                }
+                await B(A(s)) && (x(o("submitSuccess")), i.go(-1))
+            }
+            return (t, a) => {
+                const _ = m("NavBar");
+                return y(), k("div", I, [v(_, {
+                    title: t.$t("feedback"),
+                    "left-arrow": "",
+                    onClickLeft: a[0] || (a[0] = r => n(i).go(-1))
+                }, null, 8, ["title"]), e("div", N, [e("div", R, [e("div", S, [g(e("textarea", {
+                    "onUpdate:modelValue": a[1] || (a[1] = r => s.content = r),
+                    name: "feedback",
+                    id: "",
+                    cols: "30",
+                    rows: "10",
+                    placeholder: n(d)
+                }, null, 8, $), [
+                    [h, s.content]
+                ])])]), e("div", C, [e("h5", null, c(t.$t("tipAcessableFeedback")), 1), e("h5", null, c(t.$t("tipWinMysteryRewards")), 1), e("div", null, [e("img", {
+                    src: n(F)("main", "feedbackImg"),
+                    alt: ""
+                }, null, 8, M)])])]), e("div", P, [e("button", {
+                    onClick: l
+                }, c(t.$t("submit")), 1)])])
+            }
+        }
+    });
+const H = T(V, [
+    ["__scopeId", "data-v-00fab4aa"],
+    ["__file", "/usr/local/jenkins-prod/workspace/AR095-Pages-india-yaarwin/src/views/main/Feedback/index.vue"]
+]);
+export {
+    H as
+    default
+};

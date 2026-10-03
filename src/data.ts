@@ -48,6 +48,10 @@ export const site = {
     {
       "cover": "/assets/img/game/jili/20.png",
       "rank": "NO6"
+    },
+    {
+      "cover": "/assets/img/game/arlottery/WinGo_30S_20260909011825105.jpg",
+      "rank": "NO7"
     }
   ],
   "gameHub": [

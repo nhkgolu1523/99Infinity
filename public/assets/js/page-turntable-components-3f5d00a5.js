@@ -1,0 +1,564 @@
+import {
+  G as L,
+  B as E,
+  r as v,
+  R as H,
+  $ as q,
+  C as G,
+  X as M,
+  H as P,
+  I as g,
+  ao as k,
+  Q as j,
+  J as u,
+  P as x,
+  O as T,
+  aC as W,
+  aD as z,
+  N as y,
+  n as J,
+  E as Q,
+  av as X,
+} from "./common.modules-cecf9b0d.js";
+import {
+  y as K,
+  cI as Y,
+  _ as U,
+  A as Z,
+  cJ as ee,
+} from "./page-activity-ActivityDetail-6713f46c.js";
+import { k as te, o as ae } from "./page-turntable-assets-d6267459.js";
+const I = (f) => (W("data-v-031a78f2"), (f = f()), z(), f),
+  ne = { key: 0, class: "popuer-gift" },
+  le = { class: "gift_content" },
+  se = { class: "title" },
+  ie = { class: "gift_list" },
+  oe = I(() => u("div", { class: "activeDiv1 active_item" }, null, -1)),
+  ue = { key: 1, class: "amount" },
+  re = I(() => u("div", { class: "activeDiv2 active_item" }, null, -1)),
+  ce = { key: 1, class: "amount" },
+  ve = I(() => u("div", { class: "activeDiv3 active_item" }, null, -1)),
+  de = { key: 1, class: "amount" },
+  fe = I(() => u("div", { class: "activeDiv4 active_item" }, null, -1)),
+  me = { key: 1, class: "amount" },
+  pe = { class: "tip" },
+  _e = L({
+    __name: "popuerGift",
+    props: { visible: { type: Boolean, default: !1 } },
+    emits: ["update:visible"],
+    setup(f, { emit: p }) {
+      function c(i) {
+        let t = null;
+        return () => (
+          t === null &&
+            (t = i().catch((r) => {
+              throw ((t = null), r);
+            })),
+          t
+        );
+      }
+      const e = K(),
+        a = E(() => e.getDollarSign),
+        d = c(async () =>
+          J(
+            () => import("./lottie-9873543b.js").then((i) => i.l),
+            [
+              "assets/js/lottie-9873543b.js",
+              "assets/js/common.modules-cecf9b0d.js",
+              "assets/css/common-e210f711.css",
+            ]
+          )
+        ),
+        l = v(!1),
+        s = v(null),
+        b = v(null),
+        o = v(null),
+        R = v(null),
+        w = H(),
+        A = () => {
+          w.back();
+        },
+        {
+          getTurntableReward: D,
+          firstReward: $,
+          firstInvitedWheelDatas: _,
+          isOpenAward: V,
+          restBgcontainer: F,
+        } = Y(),
+        n = v([
+          { id: 1, isOpen: !1, animat: void 0, amount: 0 },
+          { id: 2, isOpen: !1, animat: void 0, amount: 0 },
+          { id: 3, isOpen: !1, animat: void 0, amount: 0 },
+          { id: 4, isOpen: !1, animat: void 0, amount: 0 },
+        ]),
+        N = E(() => s.value && b.value && o.value && R.value),
+        B = [s, b, o, R],
+        S = async (i) => {
+          if (l.value) return;
+          await D(), (l.value = !0), (n.value[i - 1].amount = $.value);
+          let t = n.value.find((m) => m.id === i);
+          if (((n.value[i - 1].isOpen = !0), t)) {
+            const m = await d();
+            t.animat = null;
+            const C = document.getElementsByClassName("activeDiv" + i)[0];
+            (t.animat = m.loadAnimation({
+              container: C,
+              renderer: "svg",
+              loop: !1,
+              autoplay: !1,
+              path: te,
+            })),
+              t.animat.play(),
+              (t.isOpen = !0);
+          }
+          let r = n.value.filter((m) => m.id !== i);
+          const h = _.value.filter((m) => !m.isSelected);
+          setTimeout(() => {
+            r.forEach((m, C) => {
+              m.animat.play(), (m.amount = h[C].amount);
+            }),
+              setTimeout(() => {
+                p("update:visible", !1), F();
+              }, 1500);
+          }, 2e3);
+        };
+      return (
+        q(
+          () => N.value,
+          async (i) => {
+            if (i) {
+              const t = await d();
+              n.value.forEach((r, h) => {
+                (r.animat = t.loadAnimation({
+                  container: B[h].value,
+                  renderer: "svg",
+                  loop: !1,
+                  autoplay: !1,
+                  path: ae,
+                })),
+                  r.animat.stop();
+              });
+            }
+          },
+          { immediate: !0 }
+        ),
+        G(async () => {}),
+        M(() => {
+          n.value.forEach((i) => {
+            i.animat && i.animat.destroy();
+          });
+        }),
+        (i, t) => {
+          const r = P("van-icon");
+          return f.visible
+            ? (y(),
+              g("div", ne, [
+                k(
+                  ' <svg-icon name="icon_return_01" icon-class="icon_return_01" @click="onClickLeft" /> '
+                ),
+                j(r, {
+                  class: "icon_return_01",
+                  name: "arrow-left",
+                  onClick: A,
+                }),
+                u("div", le, [
+                  u("div", se, [u("span", null, x(i.$t("t578")), 1)]),
+                  u("div", ie, [
+                    u(
+                      "div",
+                      {
+                        class: "gift_item",
+                        onClick: t[0] || (t[0] = (h) => S(1)),
+                      },
+                      [
+                        n.value[0].isOpen
+                          ? k("v-if", !0)
+                          : (y(),
+                            g(
+                              "div",
+                              {
+                                key: 0,
+                                ref_key: "giftRef1",
+                                ref: s,
+                                class: "item_f",
+                              },
+                              null,
+                              512
+                            )),
+                        oe,
+                        T(V) && n.value[0].amount
+                          ? (y(),
+                            g("div", ue, [
+                              u(
+                                "span",
+                                null,
+                                x(a.value + n.value[0].amount),
+                                1
+                              ),
+                            ]))
+                          : k("v-if", !0),
+                      ]
+                    ),
+                    u(
+                      "div",
+                      {
+                        class: "gift_item",
+                        onClick: t[1] || (t[1] = (h) => S(2)),
+                      },
+                      [
+                        n.value[1].isOpen
+                          ? k("v-if", !0)
+                          : (y(),
+                            g(
+                              "div",
+                              {
+                                key: 0,
+                                ref_key: "giftRef2",
+                                ref: b,
+                                class: "item_f",
+                              },
+                              null,
+                              512
+                            )),
+                        re,
+                        T(V) && n.value[1].amount
+                          ? (y(),
+                            g("div", ce, [
+                              u(
+                                "span",
+                                null,
+                                x(a.value + n.value[1].amount),
+                                1
+                              ),
+                            ]))
+                          : k("v-if", !0),
+                      ]
+                    ),
+                    u(
+                      "div",
+                      {
+                        class: "gift_item",
+                        onClick: t[2] || (t[2] = (h) => S(3)),
+                      },
+                      [
+                        n.value[2].isOpen
+                          ? k("v-if", !0)
+                          : (y(),
+                            g(
+                              "div",
+                              {
+                                key: 0,
+                                ref_key: "giftRef3",
+                                ref: o,
+                                class: "item_f",
+                              },
+                              null,
+                              512
+                            )),
+                        ve,
+                        T(V) && n.value[2].amount
+                          ? (y(),
+                            g("div", de, [
+                              u(
+                                "span",
+                                null,
+                                x(a.value + n.value[2].amount),
+                                1
+                              ),
+                            ]))
+                          : k("v-if", !0),
+                      ]
+                    ),
+                    u(
+                      "div",
+                      {
+                        class: "gift_item",
+                        onClick: t[3] || (t[3] = (h) => S(4)),
+                      },
+                      [
+                        n.value[3].isOpen
+                          ? k("v-if", !0)
+                          : (y(),
+                            g(
+                              "div",
+                              {
+                                key: 0,
+                                ref_key: "giftRef4",
+                                ref: R,
+                                class: "item_f",
+                              },
+                              null,
+                              512
+                            )),
+                        fe,
+                        T(V) && n.value[3].amount
+                          ? (y(),
+                            g("div", me, [
+                              u(
+                                "span",
+                                null,
+                                x(a.value + n.value[3].amount),
+                                1
+                              ),
+                            ]))
+                          : k("v-if", !0),
+                      ]
+                    ),
+                  ]),
+                  u("div", pe, x(i.$t("t579")), 1),
+                ]),
+              ]))
+            : k("v-if", !0);
+        }
+      );
+    },
+  });
+const Fe = U(_e, [
+  ["__scopeId", "data-v-031a78f2"],
+  [
+    "__file",
+    "/usr/local/jenkins-prod/workspace/ar051-india-tiranga/src/views/turntable/components/popuerGift.vue",
+  ],
+]);
+function ge() {
+  const f = "webkit moz ms o".split(" ");
+  let p = 0,
+    c,
+    e;
+  if (typeof window > "u") (c = () => {}), (e = () => {});
+  else {
+    (c = window.requestAnimationFrame), (e = window.cancelAnimationFrame);
+    for (let a = 0; a < f.length && !(c !== void 0 && e !== void 0); a++) {
+      const d = f[a];
+      (c = c || window[d + "RequestAnimationFrame"]),
+        (e =
+          e ||
+          window[d + "CancelAnimationFrame"] ||
+          window[d + "CancelRequestAnimationFrame"]);
+    }
+    (!c || !e) &&
+      ((c = (a) => {
+        const d = new Date().getTime(),
+          l = Math.max(0, 16 - (d - p)),
+          s = window.setTimeout(() => {
+            a(d + l);
+          }, l);
+        return (p = d + l), s;
+      }),
+      (e = (a) => {
+        window.clearTimeout(a);
+      }));
+  }
+  return (
+    M(() => {
+      e(p);
+    }),
+    { requestAnimationFrame: c, cancelAnimationFrame: e }
+  );
+}
+const ye = { class: "scroll_num" },
+  we = L({
+    __name: "ScrollNum",
+    props: {
+      startVal: { type: Number, required: !0, default: 0 },
+      endVal: { type: Number, required: !0, default: 2e3 },
+      duration: { type: Number, required: !1, default: 3e3 },
+      autoplay: { type: Boolean, required: !1, default: !0 },
+      decimals: { type: Number, required: !1, default: 0 },
+      decimal: { type: String, required: !1, default: "." },
+      separator: { type: String, required: !1, default: "," },
+      prefix: { type: String, required: !1, default: "" },
+      suffix: { type: String, required: !1, default: "" },
+      useEasing: { type: Boolean, required: !1, default: !0 },
+      easingFn: {
+        type: Function,
+        required: !1,
+        default: (f, p, c, e) =>
+          (c * (-Math.pow(2, (-10 * f) / e) + 1) * 1024) / 1023 + p,
+      },
+      repeatAnimation: { type: Number, required: !1, default: void 0 },
+    },
+    emits: ["onFinish", "init"],
+    setup(f, { expose: p, emit: c }) {
+      const e = f,
+        { requestAnimationFrame: a, cancelAnimationFrame: d } = ge(),
+        l = (t) => {
+          t = t.toFixed(e.decimals);
+          const [r, h] = t.split("."),
+            m = h ? e.decimal + h : "",
+            C = /(\d+)(\d{3})/;
+          let O = r;
+          for (; C.test(O); ) O = O.replace(C, "$1" + e.separator + "$2");
+          return e.prefix + O + m + e.suffix;
+        },
+        s = v(e.startVal),
+        b = v(l(e.startVal)),
+        o = v(null),
+        R = v(!1),
+        w = v(e.duration),
+        A = v(null),
+        D = v(null),
+        $ = v(null),
+        _ = v(null),
+        V = E(() => e.startVal > e.endVal),
+        F = () => {
+          (s.value = e.startVal),
+            (A.value = null),
+            (w.value = e.duration),
+            (R.value = !1),
+            (_.value = a(i));
+        },
+        n = () => {
+          _.value !== null && d(_.value);
+        },
+        N = () => {
+          (A.value = null),
+            (w.value = $.value !== null ? $.value : e.duration),
+            (s.value = o.value !== null ? o.value : e.startVal),
+            (_.value = a(i));
+        },
+        B = () => {
+          R.value ? N() : n(), (R.value = !R.value);
+        },
+        S = () => {
+          (A.value = null),
+            _.value !== null && d(_.value),
+            (b.value = l(e.startVal));
+        },
+        i = (t) => {
+          A.value || (A.value = t), (D.value = t);
+          const r = t - A.value;
+          ($.value = w.value - r),
+            e.useEasing
+              ? V.value
+                ? (o.value =
+                    s.value - e.easingFn(r, 0, s.value - e.endVal, w.value))
+                : (o.value = e.easingFn(
+                    r,
+                    s.value,
+                    e.endVal - s.value,
+                    w.value
+                  ))
+              : V.value
+              ? (o.value = s.value - (s.value - e.endVal) * (r / w.value))
+              : (o.value = s.value + (e.endVal - s.value) * (r / w.value)),
+            V.value
+              ? (o.value = o.value < e.endVal ? e.endVal : o.value)
+              : (o.value = o.value > e.endVal ? e.endVal : o.value),
+            (b.value = l(o.value)),
+            r < w.value ? (_.value = a(i)) : c("onFinish");
+        };
+      return (
+        q(
+          () => e.startVal,
+          () => {
+            e.autoplay && F();
+          }
+        ),
+        q(
+          () => e.endVal,
+          () => {
+            e.autoplay && F();
+          }
+        ),
+        q(
+          () => e.repeatAnimation,
+          (t) => {
+            t
+              ? setInterval(() => {
+                  F();
+                }, t)
+              : n();
+          },
+          { immediate: !0 }
+        ),
+        G(() => {
+          e.autoplay && F(), c("init");
+        }),
+        Q(() => {
+          _.value !== null && d(_.value);
+        }),
+        p({ start: F, pause: n, resume: N, pauseResume: B, reset: S }),
+        (t, r) => (y(), g("span", ye, x(b.value), 1))
+      );
+    },
+  });
+const Se = U(we, [
+    ["__scopeId", "data-v-653b796f"],
+    [
+      "__file",
+      "/usr/local/jenkins-prod/workspace/ar051-india-tiranga/src/views/turntable/components/ScrollNum.vue",
+    ],
+  ]),
+  he = { class: "header" },
+  ke = { class: "content" },
+  be = ["innerHTML"],
+  Re = L({
+    __name: "Rule",
+    props: { visible: { type: Boolean, default: !1 } },
+    emits: ["update:visible"],
+    setup(f, { emit: p }) {
+      const c = f,
+        e = v(!1),
+        a = v(""),
+        d = async () => {
+          try {
+            const l = await Z(ee());
+            l.code === 0 ? (a.value = l.data) : (a.value = "");
+          } catch (l) {
+            console.error("Error fetching rules:", l), (a.value = "");
+          }
+        };
+      return (
+        q(
+          () => c.visible,
+          (l) => {
+            (e.value = l), l && !a.value && d();
+          },
+          { immediate: !0 }
+        ),
+        (l, s) => {
+          const b = P("van-dialog");
+          return (
+            y(),
+            g("div", null, [
+              j(
+                b,
+                {
+                  show: e.value,
+                  "onUpdate:show": s[0] || (s[0] = (o) => (e.value = o)),
+                  "confirm-button-text": l.$t("ok"),
+                  onConfirm: s[1] || (s[1] = (o) => p("update:visible", !1)),
+                },
+                {
+                  default: X(() => [
+                    u("div", he, x(l.$t("rule")), 1),
+                    u("div", ke, [
+                      u(
+                        "div",
+                        { class: "duan", innerHTML: a.value },
+                        null,
+                        8,
+                        be
+                      ),
+                    ]),
+                  ]),
+                  _: 1,
+                },
+                8,
+                ["show", "confirm-button-text"]
+              ),
+            ])
+          );
+        }
+      );
+    },
+  });
+const Ce = U(Re, [
+  ["__scopeId", "data-v-ba98b202"],
+  [
+    "__file",
+    "/usr/local/jenkins-prod/workspace/ar051-india-tiranga/src/views/turntable/components/Rule.vue",
+  ],
+]);
+export { Fe as P, Ce as R, Se as S };
